@@ -33,43 +33,27 @@ jama_client = JamaClient(host_domain=jama_url, credentials=(jama_api_username, j
 # get item types
 item_types = jama_client.get_item_types()
 
-'''
-# Get the list of projects from Jama
-# The client will return to us a JSON array of Projects, where each project is a JSON object.
-project_list = jama_client.get_projects()
-
-#
-
-# Print the data out for each project.
-
-for project in project_list:
-    project_name = project['fields']['name']
-    if project_name == 'PIT':
-        print('\n---------------' + project_name + '---------------')
-        print_fields(project)
-        print('\n')
-'''
+testplan_type = next(x for x in item_types if x['typeKey'] == 'TSTPL')['id']
+testcycle_type = next(x for x in item_types if x['typeKey'] == 'TSTCY')['id']
 
 # get all test plans in project
-testplans = jama_client.get_abstract_items(item_type=35, project=269 , contains='GX5_Phase1_Stage1_FAT2_Dry_Run') #project=269
+testplans = jama_client.get_abstract_items(item_type=testplan_type, project=269 , contains='GX5_Phase1_Stage1_FAT2_Dry_Run') #project=269
 
 # there should only be one test plan with this name
 testplan_id = testplans[0]['id']
 
 # get all test cycles in project
-testcycles = jama_client.get_abstract_items(item_type=36, project=269 ) #contains='GX5_P1S1F2-DR_IQ800_Datapath'
+testcycles = jama_client.get_abstract_items(item_type=testcycle_type, project=269 ) #contains='GX5_P1S1F2-DR_IQ800_Datapath'
 
 # remove test cycles that do not belong to our test plan
 testcycles = [x for x in testcycles if x['fields']['testPlan'] == testplan_id]
 
-# get all test run in project
-alltestruns = jama_client.get_abstract_items(item_type=37, project=269)
 
 for x in testcycles:
     testcycle_id = x['id']
     testcycle_name = x['fields']['name']
     print(testcycle_name + ':')
-    testruns = [x for x in alltestruns if x['fields']['testCycle'] == testcycle_id]
+    testruns = jama_client.get_testruns(test_cycle_id=testcycle_id)
     for y in testruns:
         testrun_name = y['fields']['name']
         testrun_status = y['fields']['testRunStatus']
