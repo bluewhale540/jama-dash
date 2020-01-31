@@ -1,5 +1,6 @@
 import os
 from py_jama_rest_client.client import JamaClient
+import login_dialog
 
 
 def print_fields(obj):
@@ -23,9 +24,18 @@ def print_fields(obj):
 # You may use environment variables, or enter your information directly.
 # Reminder: Follow your companies security policies for storing passwords.
 jama_url = os.environ['JAMA_API_URL']
-jama_api_username = os.environ['JAMA_API_USERNAME']
-jama_api_password = os.environ['JAMA_API_PASSWORD']
+#jama_api_username = os.environ['JAMA_API_USERNAME']
+#jama_api_password = os.environ['JAMA_API_PASSWORD']
 
+# get Jama/contour login credentials
+while True:
+    result = login_dialog.run()
+    if result is None:
+        continue
+    break
+
+jama_api_username = result[0]
+jama_api_password = result[1]
 # Create the JamaClient
 jama_client = JamaClient(host_domain=jama_url, credentials=(jama_api_username, jama_api_password))
 
@@ -33,17 +43,27 @@ jama_client = JamaClient(host_domain=jama_url, credentials=(jama_api_username, j
 # get item types
 item_types = jama_client.get_item_types()
 
+#project_type = next(x for x in item_types if x['typeKey'] == 'TSTPL')['id']
 testplan_type = next(x for x in item_types if x['typeKey'] == 'TSTPL')['id']
 testcycle_type = next(x for x in item_types if x['typeKey'] == 'TSTCY')['id']
 
+# find our project id
+projects = jama_client.get_projects()
+
+projects = [x for x in projects if x.get('projectKey') is not None and x['projectKey'] == 'PIT' and x['isFolder'] is False]
+
+project_id = projects[0]['id']
+
 # get all test plans in project
-testplans = jama_client.get_abstract_items(item_type=testplan_type, project=269 , contains='GX5_Phase1_Stage1_FAT2_Dry_Run') #project=269
+testplans = jama_client.get_abstract_items(item_type=testplan_type,
+                                           project=project_id ,
+                                           contains='GX5_Phase1_Stage1_FAT2_Dry_Run') #project=269
 
 # there should only be one test plan with this name
 testplan_id = testplans[0]['id']
 
 # get all test cycles in project
-testcycles = jama_client.get_abstract_items(item_type=testcycle_type, project=269 ) #contains='GX5_P1S1F2-DR_IQ800_Datapath'
+testcycles = jama_client.get_abstract_items(item_type=testcycle_type, project=project_id) #contains='GX5_P1S1F2-DR_IQ800_Datapath'
 
 # remove test cycles that do not belong to our test plan
 testcycles = [x for x in testcycles if x['fields']['testPlan'] == testplan_id]
@@ -61,7 +81,3 @@ for x in testcycles:
 
     continue
 
-# remove test runs that do not belong to our test cycle
-#testcycles = [x for x in testcycles if x['fields']['testPlan'] == testplan_id]
-
-pass
