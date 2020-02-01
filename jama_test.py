@@ -1,6 +1,9 @@
 import os
 from py_jama_rest_client.client import JamaClient
 import login_dialog
+import pandas as pd
+import plotly.graph_objects as go
+
 
 
 def print_fields(obj):
@@ -36,12 +39,15 @@ while True:
 
 jama_api_username = result[0]
 jama_api_password = result[1]
+
 # Create the JamaClient
-jama_client = JamaClient(host_domain=jama_url, credentials=(jama_api_username, jama_api_password))
-
-
-# get item types
-item_types = jama_client.get_item_types()
+try:
+    jama_client = JamaClient(host_domain=jama_url, credentials=(jama_api_username, jama_api_password))
+    # get item types
+    item_types = jama_client.get_item_types()
+except Exception as err:
+    print('Error: cannot connect to Jama server -', err)
+    exit(-1)
 
 #project_type = next(x for x in item_types if x['typeKey'] == 'TSTPL')['id']
 testplan_type = next(x for x in item_types if x['typeKey'] == 'TSTPL')['id']
@@ -69,15 +75,41 @@ testcycles = jama_client.get_abstract_items(item_type=testcycle_type, project=pr
 testcycles = [x for x in testcycles if x['fields']['testPlan'] == testplan_id]
 
 
+# create a dctionary of data frames for all test cycles
+df_cycles = {}
+df_overall = None
 for x in testcycles:
     testcycle_id = x['id']
     testcycle_name = x['fields']['name']
-    print(testcycle_name + ':')
     testruns = jama_client.get_testruns(test_cycle_id=testcycle_id)
+    data_list = list()
     for y in testruns:
-        testrun_name = y['fields']['name']
-        testrun_status = y['fields']['testRunStatus']
-        print('\t' + testrun_name + ':' + testrun_status)
+        data_list.append([testcycle_name,
+                    y['fields']['name'],
+                    y['modifiedDate'],
+                    y['fields']['testRunStatus']])
+    # create a data frame from the test runs for this test cycle
+    df = pd.DataFrame(data_list, columns=['cycle', 'name', 'date', 'status'])
+    # convert 'date' column dtype to datetime
+    df['date'] = pd.to_datetime(df['date'])
 
-    continue
+    if df_overall is None:
+        df_overall = df
+    else:
+        df_overall.append(df)
+    df_cycles[testcycle_name] = df
 
+df_cycles['All'] = df_overall
+
+status_counts = df_overall['status'].value_counts()
+
+# Build chart data
+x_axis = ['Overall']
+chart_data = []
+for index, value in status_counts.items():
+    chart_data.append(go.Bar(name=index, x=x_axis, y=[value]))
+
+fig = go.Figure(data=chart_data)
+# Change the bar mode
+fig.update_layout(barmode='stack')
+fig.show()
