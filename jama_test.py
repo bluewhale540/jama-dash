@@ -6,39 +6,20 @@ import plotly.graph_objects as go
 
 
 
-def print_fields(obj):
-    # Print each field
-    for field_name, field_data in obj.items():
 
-        # If one of the fields(i.e. "fields") is a dictionary then print its subfields indented.
-        if isinstance(field_data, dict):
-            print(field_name + ':')
-            # Print each sub field
-            for sub_field_name in field_data:
-                sub_field_data = field_data[sub_field_name]
-                print('\t' + sub_field_name + ': ' + str(sub_field_data))
-
-        # If this field is not a dictionary just print its field.
-        else:
-            print(field_name + ': ' + str(field_data))
-    return
-
-# Setup your Jama instance url, username, and password.
-# You may use environment variables, or enter your information directly.
-# Reminder: Follow your companies security policies for storing passwords.
 jama_url = os.environ['JAMA_API_URL']
-#jama_api_username = os.environ['JAMA_API_USERNAME']
-#jama_api_password = os.environ['JAMA_API_PASSWORD']
+jama_api_username = os.environ['JAMA_API_USERNAME']
+jama_api_password = os.environ['JAMA_API_PASSWORD']
 
-# get Jama/contour login credentials
-while True:
-    result = login_dialog.run()
-    if result is None:
-        continue
-    break
-
-jama_api_username = result[0]
-jama_api_password = result[1]
+if jama_api_password is None or jama_api_username is None:
+    # get Jama/contour login credentials using a dialog box
+    while True:
+        result = login_dialog.run()
+        if result is None:
+            continue
+        break
+    jama_api_username = result[0]
+    jama_api_password = result[1]
 
 # Create the JamaClient
 try:
@@ -96,18 +77,26 @@ for x in testcycles:
     if df_overall is None:
         df_overall = df
     else:
-        df_overall.append(df)
+        df_overall = pd.concat([df_overall, df])
     df_cycles[testcycle_name] = df
 
-df_cycles['All'] = df_overall
+#df_cycles['All'] = df_overall
 
 status_counts = df_overall['status'].value_counts()
 
 # Build chart data
-x_axis = ['Overall']
+x_axis = ['All test cycles']
+for x in testcycles:
+    x_axis.append(x['fields']['name'])
+
 chart_data = []
 for index, value in status_counts.items():
     chart_data.append(go.Bar(name=index, x=x_axis, y=[value]))
+
+for cycle in df_cycles.keys():
+    status_counts = df_cycles[cycle]['status'].value_counts()
+    for index, value in status_counts.items():
+        chart_data.append(go.Bar(name=index, x=x_axis, y=[value]))
 
 fig = go.Figure(data=chart_data)
 # Change the bar mode
