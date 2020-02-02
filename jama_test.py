@@ -3,8 +3,7 @@ from py_jama_rest_client.client import JamaClient
 import login_dialog
 import pandas as pd
 import plotly.graph_objects as go
-
-
+import numpy as np
 
 
 jama_url = os.environ['JAMA_API_URL']
@@ -83,20 +82,32 @@ for x in testcycles:
 #df_cycles['All'] = df_overall
 
 status_counts = df_overall['status'].value_counts()
-
+status_counts = status_counts.rename('Overall')
 # Build chart data
 x_axis = ['All test cycles']
 for x in testcycles:
     x_axis.append(x['fields']['name'])
 
-chart_data = []
-for index, value in status_counts.items():
-    chart_data.append(go.Bar(name=index, x=x_axis, y=[value]))
+chart_df = pd.DataFrame(columns=['cycle', 'NOT_RUN', 'PASSED', 'FAILED', 'BLOCKED', 'INPROGRESS'])
+chart_df = chart_df.set_index(['cycle'])
+chart_df = chart_df.append(status_counts)
+#print('items = {}'.format(status_counts.items()))
+
+
 
 for cycle in df_cycles.keys():
     status_counts = df_cycles[cycle]['status'].value_counts()
-    for index, value in status_counts.items():
-        chart_data.append(go.Bar(name=index, x=x_axis, y=[value]))
+    status_counts = status_counts.rename(cycle)
+    #print(status_counts)
+    chart_df = chart_df.append((status_counts))
+
+#print(chart_df['NOT_RUN'].index)
+#print(chart_df)
+
+chart_data = []
+for status, column in chart_df.iteritems():
+    chart_data.append(go.Bar(name=status, x=column.index.tolist(), y=column.values.tolist()))
+
 
 fig = go.Figure(data=chart_data)
 # Change the bar mode
