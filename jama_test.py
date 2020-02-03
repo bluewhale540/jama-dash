@@ -133,12 +133,25 @@ def main():
     if not client.connect(url=jama_url, username=jama_api_username, password=jama_api_password):
         exit(1)
     testcycle_db = client.retrieve_testcycles(project_key='PIT', testplan_key='GX5_Phase1_Stage1_FAT2_Dry_Run')
-    if not testcycle_db:
+    if testcycle_db is None:
         exit(1)
     testrun_df = client.retrieve_testruns(project_key='PIT', testplan_key='GX5_Phase1_Stage1_FAT2_Dry_Run')
-    if not testrun_df:
+    if testrun_df is None:
         exit(1)
-    print(testrun_df.values)
+
+    status_counts = testrun_df['status'].value_counts()
+    colormap = {'NOT_RUN': 'gray', 'PASSED': 'green', 'FAILED': 'red', 'BLOCKED': 'blue', 'INPROGRESS': 'yellow'}
+
+    pie_colors = []
+    for index in status_counts.index:
+        pie_colors.append(colormap[index])
+    fig = go.Figure(data=[go.Pie(labels=status_counts.index, values=status_counts.values,
+                                 textinfo='label+percent',
+                                 insidetextorientation='radial',
+                                 marker_colors=pie_colors
+                                 )])
+    fig.update_layout(title_text='PIT FAT2 Dry Run Status')
+    fig.show()
 
 if __name__ == '__main__':
     main()
