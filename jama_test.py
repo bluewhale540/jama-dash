@@ -3,6 +3,7 @@ from py_jama_rest_client.client import JamaClient
 import login_dialog
 import pandas as pd
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import numpy as np
 
 
@@ -98,6 +99,7 @@ for cycle in df_cycles.keys():
     chart_df = chart_df.append((status_counts))
 
 colors_dict = { 'NOT_RUN': 'gray', 'PASSED': 'green', 'FAILED': 'red', 'BLOCKED': 'blue', 'INPROGRESS': 'yellow'}
+'''
 chart_data = []
 for status, column in chart_df.iteritems():
     chart_data.append(go.Bar(name=status, x=column.index.tolist(), y=column.values.tolist(), marker_color=colors_dict[status]))
@@ -105,4 +107,51 @@ for status, column in chart_df.iteritems():
 fig = go.Figure(data=chart_data)
 # Change the bar mode
 fig.update_layout(barmode='stack', title_text='PIT FAT2 Dry Run Status')
+fig.show()
+
+'''
+
+'''
+# Pie chart subplots
+num_traces = chart_df.shape[0]
+num_rows = 3
+num_cols = int(num_traces/3) +1
+specs = [
+    [{'type':'domain'},]*num_cols,
+] * num_rows
+
+fig = make_subplots(
+    rows=num_rows, cols=num_cols,
+    specs=specs,
+    subplot_titles=list(chart_df.index.values)
+)
+fig.print_grid()
+next_row = 1
+next_col = 1
+for test_cycle, row in chart_df.iterrows():
+    fig.add_trace(go.Pie(name=test_cycle, labels=row.index, values=row.values, textinfo='label+percent',
+                             insidetextorientation='radial', scalegroup='one'),
+                  row=next_row,
+                  col=next_col
+                  )
+    next_col += 1
+    if next_col > num_cols:
+        next_col = 1
+        next_row += 1
+
+
+fig.update_layout(height=800, width=600, title_text='PIT FAT2 Dry Run Status')
+fig.show()
+
+'''
+pie_row = chart_df.loc['Overall']
+pie_colors = []
+for index in pie_row.index:
+    pie_colors.append(colors_dict[index])
+fig = go.Figure(data=[go.Pie(labels=pie_row.index, values=pie_row.values,
+                             textinfo='label+percent',
+                             insidetextorientation='radial',
+                             marker_colors=pie_colors
+                             )])
+fig.update_layout(title_text='PIT FAT2 Dry Run Status')
 fig.show()
