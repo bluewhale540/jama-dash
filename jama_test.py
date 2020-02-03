@@ -21,39 +21,69 @@ if jama_api_password is None or jama_api_username is None:
     jama_api_username = result[0]
     jama_api_password = result[1]
 
-# Create the JamaClient
-try:
-    jama_client = JamaClient(host_domain=jama_url, credentials=(jama_api_username, jama_api_password))
-    # get item types
-    item_types = jama_client.get_item_types()
-except Exception as err:
-    print('Error: cannot connect to Jama server -', err)
-    exit(-1)
 
-#project_type = next(x for x in item_types if x['typeKey'] == 'TSTPL')['id']
-testplan_type = next(x for x in item_types if x['typeKey'] == 'TSTPL')['id']
-testcycle_type = next(x for x in item_types if x['typeKey'] == 'TSTCY')['id']
+class jama_testplan_utils:
+    testplan_status = {}
+    def __init__(self):
+        pass
 
-# find our project id
-projects = jama_client.get_projects()
+    def connect(self, url, username, password):
+        # Create the JamaClient
+        try:
+            self.jama_client = JamaClient(host_domain=jama_url, credentials=(jama_api_username, jama_api_password))
+            # get item types for test plans and cycles
+            self.item_types = self.jama_client.get_item_types()
+            self.testplan_type = next(x for x in self.item_types if x['typeKey'] == 'TSTPL')['id']
+            self.testcycle_type = next(x for x in self.item_types if x['typeKey'] == 'TSTCY')['id']
+        except Exception as err:
+            print('Jama server ERROR! -', err)
+            return False
+        return True
 
-projects = [x for x in projects if x.get('projectKey') is not None and x['projectKey'] == 'PIT' and x['isFolder'] is False]
+    def update_testplan_status(self, project_key, testplan_key):
+        # get a list of all projects - not efficient but py_jama_rest_client does not support
+        # searching using a project key
+        # TODO: use REST API directly
+        print('querying for project {}...'.format(project_key))
+        projects = self.jama_client.get_projects()
+        # find our project id
+        projects = [x for x in projects if
+                    x.get('projectKey') is not None and x['projectKey'] == project_key and x['isFolder'] is False]
+        if len(projects) == 0:
+            print('Error: Cannot find a project with name {}'.format(project_key))
+            return False
+        # we will assume that Jama only allows you to create projects with unique names
+        project_id = projects[0]['id']
+        print('found project {}!'.format(project_key))
+        print('querying for test plan {}...'.format(testplan_key))
+        # get all test plans in project
+        testplans = self.jama_client.get_abstract_items(item_type=self.testplan_type,
+                                                   project=project_id,
+                                                   contains=testplan_key)
+        if len(testplans) == 0:
+            print('Error: Cannot find a testplan with name {}'.format(testplan_key))
+            return False
+        # we will assume that within a project, Jama only allows you to create testplans with unique names
+        testplan_id = testplans[0]['id']
+        print('found test plan {}!'.format(testplan_key))
+        print('querying for test cycles under test plan {}...'.format(testplan_key))
+        # get all test cycles in project
+        testcycles = self.jama_client.get_abstract_items(item_type=self.testcycle_type,
+                                                    project=project_id)  # contains='GX5_P1S1F2-DR_IQ800_Datapath'
+        # remove test cycles that do not belong to our test plan
+        testcycles = [x for x in testcycles if x['fields']['testPlan'] == testplan_id]
+        if len(testcycles) == 0:
+            print('Error: Cannot find any test cycles under test plan {}'.format(testplan_key))
+            return False
+        print('found {} test cycles under test plan {}!'.format(len(testcycles), testplan_key))
 
-project_id = projects[0]['id']
+        pass
 
-# get all test plans in project
-testplans = jama_client.get_abstract_items(item_type=testplan_type,
-                                           project=project_id ,
-                                           contains='GX5_Phase1_Stage1_FAT2_Dry_Run') #project=269
 
-# there should only be one test plan with this name
-testplan_id = testplans[0]['id']
 
-# get all test cycles in project
-testcycles = jama_client.get_abstract_items(item_type=testcycle_type, project=project_id) #contains='GX5_P1S1F2-DR_IQ800_Datapath'
 
-# remove test cycles that do not belong to our test plan
-testcycles = [x for x in testcycles if x['fields']['testPlan'] == testplan_id]
+
+
 
 
 # create a dctionary of data frames for all test cycles
