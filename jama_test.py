@@ -118,6 +118,12 @@ def main():
     jama_url = os.environ['JAMA_API_URL']
     jama_api_username = os.environ['JAMA_API_USERNAME']
     jama_api_password = os.environ['JAMA_API_PASSWORD']
+    #project = 'PIT'
+    #testplan = 'GX5_Phase1_Stage1_FAT2_Dry_Run'
+    #title = 'PIT FAT2 Dry Run Status'
+    project = 'VRel'
+    testplan = '2.7.1-3.1-FAT2 Testing'
+    title = 'SIT FAT2 Testing'
 
     if jama_api_password is None or jama_api_username is None:
         # get Jama/contour login credentials using a dialog box
@@ -132,10 +138,10 @@ def main():
     client = jama_testplan_utils()
     if not client.connect(url=jama_url, username=jama_api_username, password=jama_api_password):
         exit(1)
-    testcycle_db = client.retrieve_testcycles(project_key='PIT', testplan_key='GX5_Phase1_Stage1_FAT2_Dry_Run')
+    testcycle_db = client.retrieve_testcycles(project_key=project, testplan_key=testplan)
     if testcycle_db is None:
         exit(1)
-    testrun_df = client.retrieve_testruns(project_key='PIT', testplan_key='GX5_Phase1_Stage1_FAT2_Dry_Run')
+    testrun_df = client.retrieve_testruns(project_key=project, testplan_key=testplan)
     if testrun_df is None:
         exit(1)
 
@@ -150,7 +156,7 @@ def main():
                                  insidetextorientation='radial',
                                  marker_colors=pie_colors
                                  )])
-    fig.update_layout(title_text='PIT FAT2 Dry Run Status')
+    fig.update_layout(title_text=title)
     fig.show()
 
 if __name__ == '__main__':
