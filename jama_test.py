@@ -3,7 +3,8 @@ from py_jama_rest_client.client import JamaClient
 import login_dialog
 import pandas as pd
 import plotly.graph_objects as go
-
+from datetime import timedelta, date
+from tzlocal import get_localzone
 
 
 class jama_testplan_utils:
@@ -116,12 +117,12 @@ def main():
     jama_url = os.environ['JAMA_API_URL']
     jama_api_username = os.environ['JAMA_API_USERNAME']
     jama_api_password = os.environ['JAMA_API_PASSWORD']
-    #project = 'PIT'
-    #testplan = 'GX5_Phase1_Stage1_FAT2_Dry_Run'
-    #title = 'PIT FAT2 Dry Run Status'
-    project = 'VRel'
-    testplan = '2.7.1-3.1-FAT2 Testing'
-    title = 'SIT FAT2 Testing'
+    project = 'PIT'
+    testplan = 'GX5_Phase1_Stage1_FAT2_Dry_Run'
+    title = 'PIT FAT2 Dry Run Status'
+    #project = 'VRel'
+    #testplan = '2.7.1-3.1-FAT2 Testing'
+    #title = 'SIT FAT2 Testing'
 
     if jama_api_password is None or jama_api_username is None:
         # get Jama/contour login credentials using a dialog box
@@ -143,9 +144,69 @@ def main():
     if testrun_df is None:
         exit(1)
 
-    status_counts = testrun_df['status'].value_counts()
-    colormap = {'NOT_RUN': 'gray', 'PASSED': 'green', 'FAILED': 'red', 'BLOCKED': 'blue', 'INPROGRESS': 'orange'}
+    #print('created: min={} max={}'.format(testrun_df['created_date'].values.min(), testrun_df['created_date'].values.max()))
+    #print('modified: min={} max={}'.format(testrun_df['modified_date'].values.min(), testrun_df['modified_date'].values.max()))
 
+    # set lowest creation date + 1 as start date
+    start_date = pd.to_datetime(testrun_df['created_date'].values.min()).date() + timedelta(days=1)
+    # set tomorrow's date as end date
+    end_date = date.today() + timedelta(days=1)
+
+    # get local time zone
+    local_tz = get_localzone()
+    # create a date range using start and end dates from above set to the local TZ
+    daterange = pd.date_range(start_date, end_date, tz=local_tz)
+
+    t = []
+    for d in daterange:
+        # create a dataframe of all test runs created before date 'd'
+        df1 = testrun_df[testrun_df['created_date'] < d]
+        if df1.empty:
+            # no test runs found - we will not consider this date
+            continue
+        total = df1.shape[0] # no of rows gives total number of test runs on that date
+        df2 = df1[df1['modified_date'] < d]
+        counts = df2['status'].value_counts()
+        passed = 0
+        failed = 0
+        inprogress = 0
+        blocked = 0
+        if 'PASSED' in counts.index:
+            passed = counts['PASSED']
+        if 'FAILED' in counts.index:
+            failed = counts['FAILED']
+        if 'INPROGRESS' in counts.index:
+            inprogress = counts['INPROGRESS']
+        if 'BLOCKED' in counts.index:
+            blocked = counts['BLOCKED']
+        not_run = total - passed - failed - inprogress - blocked
+        t.append([d, not_run, passed, failed, inprogress, blocked])
+        continue
+
+    status_list = ['NOT_RUN', 'PASSED', 'FAILED', 'INPROGRESS', 'BLOCKED']
+    df_status_by_date = pd.DataFrame(t, columns=['date'] + status_list)
+    df_status_by_date['date'] = pd.to_datetime(df_status_by_date['date'])
+
+    colormap = {'NOT_RUN': 'gray', 'PASSED': 'green', 'FAILED': 'firebrick', 'BLOCKED': 'royalblue', 'INPROGRESS': 'orange'}
+
+    # create historical status scatter graph
+    fig = go.Figure()
+
+    x_axis = [pd.to_datetime(d).date() for d in df_status_by_date['date'].values]
+    # Add traces
+    for status in status_list:
+        y_axis = df_status_by_date[status].values
+        fig.add_trace(go.Scatter(x=x_axis, y=y_axis,
+                                 mode='lines',
+                                 name=status,
+                                 line=dict(color=colormap[status])
+                                 ))
+    fig.update_layout(title_text=title)
+    fig.show()
+
+'''
+    # create pie chart
+    status_counts = testrun_df['status'].value_counts()
     pie_colors = []
     for index in status_counts.index:
         pie_colors.append(colormap[index])
@@ -156,6 +217,6 @@ def main():
                                  )])
     fig.update_layout(title_text=title)
     fig.show()
-
+'''
 if __name__ == '__main__':
     main()
