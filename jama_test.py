@@ -207,12 +207,6 @@ def main():
     jama_url = os.environ['JAMA_API_URL']
     jama_api_username = os.environ['JAMA_API_USERNAME']
     jama_api_password = os.environ['JAMA_API_PASSWORD']
-    project = 'PIT'
-    testplan = 'GX5_Phase1_Stage1_FAT2_Dry_Run'
-    title = 'PIT FAT2 Dry Run Status'
-    #project = 'VRel'
-    #testplan = '2.7.1-3.1-FAT2 Testing'
-    #title = 'SIT FAT2 Testing'
 
     if jama_api_password is None or jama_api_username is None:
         # get Jama/contour login credentials using a dialog box
@@ -227,38 +221,44 @@ def main():
     client = jama_testplan_utils()
     if not client.connect(url=jama_url, username=jama_api_username, password=jama_api_password):
         exit(1)
-    testcycle_db = client.retrieve_testcycles(project_key=project, testplan_key=testplan)
-    if testcycle_db is None:
-        exit(1)
-
+    # list of project, test plan and chart title
+    testing_list = [
+        ('PIT', 'GX5_Phase1_Stage1_FAT2_Dry_Run', 'PIT FAT2 Dry Run Status'),
+        ('VRel', '2.7.1-3.1-FAT2 Testing', 'SIT FAT2 Testing Status')
+    ]
 
     colormap = \
         {'NOT_RUN': 'gray', 'PASSED': 'green', 'FAILED': 'firebrick', 'BLOCKED': 'royalblue', 'INPROGRESS': 'orange'}
     status_names = client.get_status_names()
 
-    testcycles = [None]
-    for id, cycle in testcycle_db:
-        testcycles.append(cycle)
+    for project, testplan, title in testing_list:
+        testcycle_db = client.retrieve_testcycles(project_key=project, testplan_key=testplan)
+        if testcycle_db is None:
+            exit(1)
 
-    for cycle in testcycles:
-        chart_title = title
-        if cycle is not None:
-            chart_title += ' (' + cycle + ')'
-        df_status_by_date = client.get_testrun_status_historical(project_key=project,
-                                                                 testplan_key=testplan,
-                                                                 testcycle_key=cycle)
-        if df_status_by_date is None:
-            continue
-        display_historical_status_chart(df_status=df_status_by_date,
-                                        status_names=status_names, colormap=colormap, title=chart_title)
+        testcycles = [None]
+        for id, cycle in testcycle_db:
+            testcycles.append(cycle)
 
-        df_status_current = client.get_testrun_status_current(project_key=project,
-                                                              testplan_key=testplan,
-                                                              testcycle_key=cycle)
-        if df_status_current is None:
-            continue
-        display_current_status_chart(df_status=df_status_current,
-                                     status_names=status_names, colormap=colormap, title=chart_title)
+        for cycle in testcycles:
+            chart_title = title
+            if cycle is not None:
+                chart_title += ' (' + cycle + ')'
+            df_status_by_date = client.get_testrun_status_historical(project_key=project,
+                                                                     testplan_key=testplan,
+                                                                     testcycle_key=cycle)
+            if df_status_by_date is None:
+                continue
+            display_historical_status_chart(df_status=df_status_by_date,
+                                            status_names=status_names, colormap=colormap, title=chart_title)
+
+            df_status_current = client.get_testrun_status_current(project_key=project,
+                                                                  testplan_key=testplan,
+                                                                  testcycle_key=cycle)
+            if df_status_current is None:
+                continue
+            display_current_status_chart(df_status=df_status_current,
+                                         status_names=status_names, colormap=colormap, title=chart_title)
 
 if __name__ == '__main__':
     main()
