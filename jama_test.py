@@ -125,7 +125,11 @@ class jama_testplan_utils:
         return new_df
 
     def get_testrun_status_current(self, project_key, testplan_key, testcycle_key=None):
-        pass
+        testrun_df = self.retrieve_testruns(project_key=project_key,
+                                            testplan_key=testplan_key,
+                                            testcycle_key=testcycle_key)
+        status_counts = testrun_df['status'].value_counts()
+        return status_counts
 
     def get_testrun_status_historical(self, project_key, testplan_key, testcycle_key=None):
         testrun_df = self.retrieve_testruns(project_key=project_key,
@@ -170,6 +174,34 @@ class jama_testplan_utils:
         df_status_by_date['date'] = pd.to_datetime(df_status_by_date['date'])
         return df_status_by_date
 
+def display_current_status_chart(df_status, status_names, colormap, title):
+    # create pie chart
+    pie_colors = []
+    for index in df_status.index:
+        pie_colors.append(colormap[index])
+    fig = go.Figure(data=[go.Pie(labels=df_status.index, values=df_status.values,
+                                 textinfo='label+percent',
+                                 insidetextorientation='radial',
+                                 marker_colors=pie_colors
+                                 )])
+    fig.update_layout(title_text=title)
+    fig.show()
+
+def display_historical_status_chart(df_status, status_names, colormap, title):
+    # create historical status scatter graph
+    fig = go.Figure()
+
+    x_axis = [pd.to_datetime(d).date() for d in df_status['date'].values]
+    # Add traces
+    for status in status_names:
+        y_axis = df_status[status].values
+        fig.add_trace(go.Scatter(x=x_axis, y=y_axis,
+                                 mode='lines',
+                                 name=status,
+                                 line=dict(color=colormap[status])
+                                 ))
+    fig.update_layout(title_text=title)
+    fig.show()
 
 def main():
     jama_url = os.environ['JAMA_API_URL']
@@ -199,42 +231,25 @@ def main():
     if testcycle_db is None:
         exit(1)
 
-    status_names = client.get_status_names()
     df_status_by_date = client.get_testrun_status_historical(project_key=project, testplan_key=testplan)
     if df_status_by_date is None:
         exit(1)
 
-    colormap = {'NOT_RUN': 'gray', 'PASSED': 'green', 'FAILED': 'firebrick', 'BLOCKED': 'royalblue', 'INPROGRESS': 'orange'}
+    colormap = \
+        {'NOT_RUN': 'gray', 'PASSED': 'green', 'FAILED': 'firebrick', 'BLOCKED': 'royalblue', 'INPROGRESS': 'orange'}
+    status_names = client.get_status_names()
 
-    # create historical status scatter graph
-    fig = go.Figure()
 
-    x_axis = [pd.to_datetime(d).date() for d in df_status_by_date['date'].values]
-    # Add traces
-    for status in status_names:
-        y_axis = df_status_by_date[status].values
-        fig.add_trace(go.Scatter(x=x_axis, y=y_axis,
-                                 mode='lines',
-                                 name=status,
-                                 line=dict(color=colormap[status])
-                                 ))
-    fig.update_layout(title_text=title)
-    fig.show()
+    display_historical_status_chart(df_status=df_status_by_date,
+                                    status_names=status_names, colormap=colormap, title=title)
 
-'''
-    # create pie chart
-    status_counts = testrun_df['status'].value_counts()
-    pie_colors = []
-    for index in status_counts.index:
-        pie_colors.append(colormap[index])
-    fig = go.Figure(data=[go.Pie(labels=status_counts.index, values=status_counts.values,
-                                 textinfo='label+percent',
-                                 insidetextorientation='radial',
-                                 marker_colors=pie_colors
-                                 )])
-    fig.update_layout(title_text=title)
-    fig.show()
-'''
+    df_status_current = client.get_testrun_status_current(project_key=project, testplan_key=testplan)
+    if df_status_current is None:
+        exit(1)
+
+    display_current_status_chart(df_status=df_status_current,
+                                 status_names=status_names, colormap=colormap, title=title)
+
 if __name__ == '__main__':
     main()
 
