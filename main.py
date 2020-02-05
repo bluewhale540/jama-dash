@@ -3,6 +3,9 @@ import pandas as pd
 import plotly.graph_objects as go
 from jama_client import jama_client
 import login_dialog
+from datetime import datetime
+import pytz
+from tzlocal import get_localzone
 
 def display_current_status_chart(df_status, status_names, colormap, title):
     # create pie chart
@@ -17,7 +20,7 @@ def display_current_status_chart(df_status, status_names, colormap, title):
     fig.update_layout(title_text=title)
     fig.show()
 
-def display_historical_status_chart(df_status, status_names, colormap, title):
+def display_historical_status_chart(df_status, status_names, colormap, title, deadline=None):
     # create historical status scatter graph
     fig = go.Figure()
 
@@ -30,6 +33,14 @@ def display_historical_status_chart(df_status, status_names, colormap, title):
                                  name=status,
                                  line=dict(color=colormap[status])
                                  ))
+    # add deadline meeting trace
+    tail = df_status.tail(1)
+    current_date = pd.to_datetime(tail['date'].values[0])
+    deadline_x = [current_date, pd.to_datetime(deadline)]
+    deadline_y = [tail['NOT_RUN'].values[0], 0]
+    fig.add_trace(go.Scatter(x=deadline_x, y=deadline_y,
+                             mode='lines',
+                             line=dict(dash='dash', color='black')))
     fig.update_layout(title_text=title)
     fig.show()
 
@@ -82,8 +93,13 @@ def main():
                                                                      testcycle_key=cycle)
             if df_status_by_date is None:
                 continue
+            local_tz = get_localzone()
+            deadline_date = datetime.strptime('2020-02-28-05:00:00', '%Y-%m-%d-%H:%M:%S').replace(tzinfo=pytz.utc).astimezone(local_tz)
             display_historical_status_chart(df_status=df_status_by_date,
-                                            status_names=status_names, colormap=colormap, title=chart_title)
+                                            status_names=status_names,
+                                            colormap=colormap,
+                                            title=chart_title,
+                                            deadline=deadline_date)
 
         for cycle in testcycles:
             df_status_current = client.get_testrun_status_current(project_key=project,
