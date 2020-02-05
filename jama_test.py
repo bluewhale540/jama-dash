@@ -231,24 +231,34 @@ def main():
     if testcycle_db is None:
         exit(1)
 
-    df_status_by_date = client.get_testrun_status_historical(project_key=project, testplan_key=testplan)
-    if df_status_by_date is None:
-        exit(1)
 
     colormap = \
         {'NOT_RUN': 'gray', 'PASSED': 'green', 'FAILED': 'firebrick', 'BLOCKED': 'royalblue', 'INPROGRESS': 'orange'}
     status_names = client.get_status_names()
 
+    testcycles = [None]
+    for id, cycle in testcycle_db:
+        testcycles.append(cycle)
 
-    display_historical_status_chart(df_status=df_status_by_date,
-                                    status_names=status_names, colormap=colormap, title=title)
+    for cycle in testcycles:
+        chart_title = title
+        if cycle is not None:
+            chart_title += ' (' + cycle + ')'
+        df_status_by_date = client.get_testrun_status_historical(project_key=project,
+                                                                 testplan_key=testplan,
+                                                                 testcycle_key=cycle)
+        if df_status_by_date is None:
+            continue
+        display_historical_status_chart(df_status=df_status_by_date,
+                                        status_names=status_names, colormap=colormap, title=chart_title)
 
-    df_status_current = client.get_testrun_status_current(project_key=project, testplan_key=testplan)
-    if df_status_current is None:
-        exit(1)
-
-    display_current_status_chart(df_status=df_status_current,
-                                 status_names=status_names, colormap=colormap, title=title)
+        df_status_current = client.get_testrun_status_current(project_key=project,
+                                                              testplan_key=testplan,
+                                                              testcycle_key=cycle)
+        if df_status_current is None:
+            continue
+        display_current_status_chart(df_status=df_status_current,
+                                     status_names=status_names, colormap=colormap, title=chart_title)
 
 if __name__ == '__main__':
     main()
