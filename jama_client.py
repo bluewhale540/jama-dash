@@ -1,13 +1,11 @@
 import os
 from py_jama_rest_client.client import JamaClient
-import login_dialog
 import pandas as pd
-import plotly.graph_objects as go
 from datetime import timedelta, date
 from tzlocal import get_localzone
 
 
-class jama_testplan_utils:
+class jama_client:
     testcycle_db = {} # DB of test cycles for the projects and test plans we want to track
     status_list = ['NOT_RUN', 'PASSED', 'FAILED', 'INPROGRESS', 'BLOCKED']
 
@@ -86,17 +84,27 @@ class jama_testplan_utils:
         return testcycles
 
     def retrieve_testruns(self, project_key, testplan_key, testcycle_key=None, update=False):
-        # check for existing test run data
+        # check for cached test run data
         if not self.df.empty:
+            print('checking cached test runs for project {} and test plan {}{}...'
+                  .format(project_key, testplan_key, '' if testcycle_key is None else ' and test cycle {}'.format(testcycle_key)))
             query_df = self.df[self.df.project.isin([project_key]) & self.df.testplan.isin([testplan_key])]
-            if testcycle_key is not None:
+            if not query_df.empty and testcycle_key is not None:
                 # filter by test cycle key
                 query_df = query_df[query_df.testcycle.isin([testcycle_key])]
-            if update == False and query_df.shape[0] != 0:
-                return query_df
-            # either update is True or query_df is empty - either case lets remove any existing runs for this test plan
-            self.df = self.df[self.df['project'] != project_key or self.df['testplan'] != testplan_key]
+            if query_df.empty:
+                print('no cached test runs found!')
+            else:
+                print('{} cached test runs found!'.format(query_df.shape[0]))
+                if update == False:
+                    # return cached test runs
+                    return query_df
+                else:
+                    print('removing cached test runs to prepare for update...')
+                    # remove any cached runs for this test plan
+                    self.df = self.df[self.df.project != project_key or self.df.testplan != testplan_key]
 
+        print('attempting to retrieve test runs for project {} and test plan {} from Jama...'.format(project_key, testplan_key))
         testcycles = self.testcycle_db.get((project_key, testplan_key))
         if testcycles is None:
             print('No test cycles found for test plan. please call retrieve_testcycles() first')
@@ -113,6 +121,9 @@ class jama_testplan_utils:
                                      y['createdDate'],
                                      y['modifiedDate'],
                                      y['fields']['testRunStatus']])
+
+        print('found {} test runs!'.format(len(testruns_to_add)))
+
         # append the retrieved test runs to the existing data frame
         new_df = pd.DataFrame(testruns_to_add, columns=['project', 'testplan', 'testcycle', 'testrun',
                                             'created_date', 'modified_date', 'status'])
@@ -135,8 +146,8 @@ class jama_testplan_utils:
         testrun_df = self.retrieve_testruns(project_key=project_key,
                                             testplan_key=testplan_key,
                                             testcycle_key=testcycle_key)
-        # set lowest creation date + 1 as start date
-        start_date = pd.to_datetime(testrun_df['created_date'].values.min()).date() + timedelta(days=1)
+        # set lowest modified date - 1 as start date
+        start_date = pd.to_datetime(testrun_df['modified_date'].values.min()).date() - timedelta(days=1)
         # set tomorrow's date as end date
         end_date = date.today() + timedelta(days=1)
 
@@ -173,93 +184,4 @@ class jama_testplan_utils:
         df_status_by_date = pd.DataFrame(t, columns=['date'] + self.status_list)
         df_status_by_date['date'] = pd.to_datetime(df_status_by_date['date'])
         return df_status_by_date
-
-def display_current_status_chart(df_status, status_names, colormap, title):
-    # create pie chart
-    pie_colors = []
-    for index in df_status.index:
-        pie_colors.append(colormap[index])
-    fig = go.Figure(data=[go.Pie(labels=df_status.index, values=df_status.values,
-                                 textinfo='label+percent',
-                                 insidetextorientation='radial',
-                                 marker_colors=pie_colors
-                                 )])
-    fig.update_layout(title_text=title)
-    fig.show()
-
-def display_historical_status_chart(df_status, status_names, colormap, title):
-    # create historical status scatter graph
-    fig = go.Figure()
-
-    x_axis = [pd.to_datetime(d).date() for d in df_status['date'].values]
-    # Add traces
-    for status in status_names:
-        y_axis = df_status[status].values
-        fig.add_trace(go.Scatter(x=x_axis, y=y_axis,
-                                 mode='lines',
-                                 name=status,
-                                 line=dict(color=colormap[status])
-                                 ))
-    fig.update_layout(title_text=title)
-    fig.show()
-
-def main():
-    jama_url = os.environ['JAMA_API_URL']
-    jama_api_username = os.environ['JAMA_API_USERNAME']
-    jama_api_password = os.environ['JAMA_API_PASSWORD']
-
-    if jama_api_password is None or jama_api_username is None:
-        # get Jama/contour login credentials using a dialog box
-        while True:
-            result = login_dialog.run()
-            if result is None:
-                continue
-            break
-        jama_api_username = result[0]
-        jama_api_password = result[1]
-
-    client = jama_testplan_utils()
-    if not client.connect(url=jama_url, username=jama_api_username, password=jama_api_password):
-        exit(1)
-    # list of project, test plan and chart title
-    testing_list = [
-        ('PIT', 'GX5_Phase1_Stage1_FAT2_Dry_Run', 'PIT FAT2 Dry Run Status'),
-        ('VRel', '2.7.1-3.1-FAT2 Testing', 'SIT FAT2 Testing Status')
-    ]
-
-    colormap = \
-        {'NOT_RUN': 'gray', 'PASSED': 'green', 'FAILED': 'firebrick', 'BLOCKED': 'royalblue', 'INPROGRESS': 'orange'}
-    status_names = client.get_status_names()
-
-    for project, testplan, title in testing_list:
-        testcycle_db = client.retrieve_testcycles(project_key=project, testplan_key=testplan)
-        if testcycle_db is None:
-            exit(1)
-
-        testcycles = [None]
-        for id, cycle in testcycle_db:
-            testcycles.append(cycle)
-
-        for cycle in testcycles:
-            chart_title = title
-            if cycle is not None:
-                chart_title += ' (' + cycle + ')'
-            df_status_by_date = client.get_testrun_status_historical(project_key=project,
-                                                                     testplan_key=testplan,
-                                                                     testcycle_key=cycle)
-            if df_status_by_date is None:
-                continue
-            display_historical_status_chart(df_status=df_status_by_date,
-                                            status_names=status_names, colormap=colormap, title=chart_title)
-
-            df_status_current = client.get_testrun_status_current(project_key=project,
-                                                                  testplan_key=testplan,
-                                                                  testcycle_key=cycle)
-            if df_status_current is None:
-                continue
-            display_current_status_chart(df_status=df_status_current,
-                                         status_names=status_names, colormap=colormap, title=chart_title)
-
-if __name__ == '__main__':
-    main()
 
