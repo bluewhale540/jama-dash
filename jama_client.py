@@ -7,9 +7,8 @@ from tzlocal import get_localzone
 
 class jama_client:
     testcycle_db = {} # DB of test cycles for the projects and test plans we want to track
-    status_list = ['NOT_RUN', 'PASSED', 'FAILED', 'INPROGRESS', 'BLOCKED']
 
-    def __init__(self):
+    def __init__(self, blocking_as_not_run=False, inprogress_as_not_run=False):
         # Test run DF columns
         self.df_columns = ['project', 'testplan', 'testcycle', 'testrun',
                                             'created_date', 'modified_date', 'status']
@@ -17,13 +16,20 @@ class jama_client:
         self.df = pd.DataFrame([], columns=self.df_columns)
         self.df['created_date'] = pd.to_datetime(self.df['created_date'])
         self.df['modified_date'] = pd.to_datetime(self.df['modified_date'])
+        self.blocking_as_not_run = blocking_as_not_run
+        self.inprogress_as_not_run = inprogress_as_not_run
+        self.status_list = ['NOT_RUN', 'PASSED', 'FAILED']
+        if not inprogress_as_not_run:
+            self.status_list.append('INPROGRESS')
+        if not blocking_as_not_run:
+            self.status_list.append('BLOCKED')
 
     def connect(self, url, username, password):
         # Create the Jama client
         try:
-            self.jama_client = JamaClient(host_domain=url, credentials=(username, password))
+            self.client = JamaClient(host_domain=url, credentials=(username, password))
             # get item types for test plans and cycles
-            self.item_types = self.jama_client.get_item_types()
+            self.item_types = self.client.get_item_types()
             self.testplan_type = next(x for x in self.item_types if x['typeKey'] == 'TSTPL')['id']
             self.testcycle_type = next(x for x in self.item_types if x['typeKey'] == 'TSTCY')['id']
         except Exception as err:
@@ -46,7 +52,11 @@ class jama_client:
         # searching using a project key
         # TODO: use REST API directly
         print('querying for project {}...'.format(project_key))
-        projects = self.jama_client.get_projects()
+        try:
+            projects = self.client.get_projects()
+        except Exception as err:
+            print('Jama server connection ERROR! -', err)
+            return None
         # find our project id
         projects = [x for x in projects if
                     x.get('projectKey') is not None and x['projectKey'] == project_key and x['isFolder'] is False]
@@ -58,9 +68,14 @@ class jama_client:
         print('found project {}!'.format(project_key))
         print('querying for test plan {}...'.format(testplan_key))
         # get all test plans in project
-        testplans = self.jama_client.get_abstract_items(item_type=self.testplan_type,
-                                                   project=project_id,
-                                                   contains=testplan_key)
+        try:
+            testplans = self.client.get_abstract_items(item_type=self.testplan_type,
+                                                       project=project_id,
+                                                       contains=testplan_key)
+        except Exception as err:
+            print('Jama server connection ERROR! -', err)
+            return None
+
         if len(testplans) == 0:
             print('Error: Cannot find a testplan with name {}'.format(testplan_key))
             return None
@@ -69,8 +84,13 @@ class jama_client:
         print('found test plan {}!'.format(testplan_key))
         print('querying for test cycles under test plan {}...'.format(testplan_key))
         # get all test cycles in project
-        tc = self.jama_client.get_abstract_items(item_type=self.testcycle_type,
-                                                    project=project_id)  # contains='GX5_P1S1F2-DR_IQ800_Datapath'
+        try:
+            tc = self.client.get_abstract_items(item_type=self.testcycle_type,
+                                                project=project_id)  # contains='GX5_P1S1F2-DR_IQ800_Datapath'
+        except Exception as err:
+            print('Jama server connection ERROR! -', err)
+            return None
+
         # remove test cycles that do not belong to our test plan
         tc = [x for x in tc if x['fields']['testPlan'] == testplan_id]
         if len(tc) == 0:
@@ -112,7 +132,12 @@ class jama_client:
 
         testruns_to_add = []
         for (testcycle_id, testcycle_name) in testcycles:
-            testruns_raw = self.jama_client.get_testruns(test_cycle_id=testcycle_id)
+            try:
+                testruns_raw = self.client.get_testruns(test_cycle_id=testcycle_id)
+            except Exception as err:
+                print('Jama server connection ERROR! -', err)
+                return None
+
             for y in testruns_raw:
                 testruns_to_add.append([project_key,
                                      testplan_key,
@@ -139,8 +164,17 @@ class jama_client:
         testrun_df = self.retrieve_testruns(project_key=project_key,
                                             testplan_key=testplan_key,
                                             testcycle_key=testcycle_key)
-        status_counts = testrun_df['status'].value_counts()
-        return status_counts
+        # get the counts of each status
+        df = testrun_df['status'].value_counts()
+        if self.inprogress_as_not_run:
+            # consolidate INPROGRESS into NOT_RUN
+            df['NOT_RUN'] = df['NOT_RUN'] + df['INPROGRESS']
+            df = df.drop(columns=['INPROGRESS',])
+        if self.blocking_as_not_run:
+            #consolidate BLOCKED into NOT_RUN
+            df['NOT_RUN'] = df['NOT_RUN'] + df['BLOCKED']
+            df = df.drop(columns=['BLOCKED',])
+        return df
 
     def get_testrun_status_historical(self, project_key, testplan_key, testcycle_key=None):
         testrun_df = self.retrieve_testruns(project_key=project_key,
@@ -178,10 +212,19 @@ class jama_client:
                 inprogress = counts['INPROGRESS']
             if 'BLOCKED' in counts.index:
                 blocked = counts['BLOCKED']
-            not_run = total - passed - failed - inprogress - blocked
-            t.append([d, not_run, passed, failed, inprogress, blocked])
+            not_run = total - passed - failed
+            if self.inprogress_as_not_run:
+                not_run -= inprogress
+            if self.blocking_as_not_run:
+                not_run -= blocked
+            data_row = [d, not_run, passed, failed,]
+            if not self.inprogress_as_not_run:
+                data_row.append(inprogress)
+            if not self.blocking_as_not_run:
+                data_row.append(blocked)
+            t.append(data_row)
             continue
-        df_status_by_date = pd.DataFrame(t, columns=['date'] + self.status_list)
-        df_status_by_date['date'] = pd.to_datetime(df_status_by_date['date'])
-        return df_status_by_date
+        df = pd.DataFrame(t, columns=['date'] + self.status_list)
+        df['date'] = pd.to_datetime(df['date'])
+        return df
 

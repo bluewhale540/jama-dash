@@ -110,7 +110,7 @@ def main():
         jama_api_username = result[0]
         jama_api_password = result[1]
 
-    client = jama_client()
+    client = jama_client(blocking_as_not_run=True, inprogress_as_not_run=True)
     if not client.connect(url=jama_url, username=jama_api_username, password=jama_api_password):
         exit(1)
     # list of project, test plan and chart title
