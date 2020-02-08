@@ -7,7 +7,7 @@ from datetime import datetime
 import pytz
 from tzlocal import get_localzone
 
-def display_current_status_chart(df_status, status_names, colormap, title):
+def display_current_status_pie_chart(df_status, status_names, colormap, title):
     # create pie chart
     pie_colors = []
     for index in df_status.index:
@@ -19,6 +19,8 @@ def display_current_status_chart(df_status, status_names, colormap, title):
                                  )])
     fig.update_layout(title_text=title)
     fig.show()
+
+def display_weekly_status_bar_chart(df, status_names, colormap, title):
 
 def display_historical_status_chart(df_list, status_names, colormap, title_list, deadline=None):
     if df_list is None or len(df_list) == 0:
@@ -115,8 +117,8 @@ def main():
         exit(1)
     # list of project, test plan and chart title
     testing_list = [
-        ('PIT', 'GX5_Phase1_Stage1_FAT2_Dry_Run', 'PIT FAT2 Dry Run Status'),
-        ('VRel', '2.7.1-3.1-FAT2 Testing', 'SIT FAT2 Testing Status')
+ #       ('PIT', 'GX5_Phase1_Stage1_FAT2_Dry_Run', 'PIT FAT2 Dry Run Status'),
+        ('VRel', '2.7.1-3.1-FAT2 Testing (Priority1)', 'SIT FAT2 Testing Status')
     ]
 
     colormap = \
