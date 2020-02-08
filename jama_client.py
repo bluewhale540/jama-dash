@@ -7,7 +7,8 @@ from tzlocal import get_localzone
 
 class jama_client:
     testcycle_db = {} # DB of test cycles for the projects and test plans we want to track
-    planned_weeks_db = {} # dict of planned week id to name
+    planned_weeks_lookup = {} # dict of planned week id to name
+    planned_weeks_reverse_lookup = {} # dict of planned week name to id
 
     def __init__(self, blocking_as_not_run=False, inprogress_as_not_run=False):
         # Test run DF columns
@@ -45,7 +46,8 @@ class jama_client:
                     break
             planned_weeks = self.client.get_pick_list_options(planned_week_id)
             for x in planned_weeks:
-                self.planned_weeks_db[x['id']] = x['name']
+                self.planned_weeks_lookup[x['id']] = x['name']
+                self.planned_weeks_reverse_lookup[x['name']] = x['id']
             self.planned_weeks_names = [x['name'] for x in planned_weeks]
         except Exception as err:
             print('Jama server connection ERROR! -', err)
@@ -192,7 +194,10 @@ class jama_client:
                 planned_week = 'Unassigned'
                 if self.planned_week_field_name is not None:
                     if self.planned_week_field_name in y['fields']:
-                        planned_week = y['fields'][self.planned_week_field_name]
+                        week_id = y['fields'][self.planned_week_field_name]
+                        if week_id in self.planned_weeks_lookup:
+                            planned_week = self.planned_weeks_lookup[week_id]
+
                 row = [project_key,
                        testplan_key,
                         testcycle_name,
@@ -210,7 +215,7 @@ class jama_client:
                                             'created_date', 'modified_date', 'status', 'planned_week'])
         new_df['created_date'] = pd.to_datetime(new_df['created_date'])
         new_df['modified_date'] = pd.to_datetime(new_df['modified_date'])
-        self.df = self.df.append(new_df)
+        self.df = self.df.append(new_df, sort=False)
         if testcycle_key is not None:
             # filter by test cycle key
             new_df = new_df[new_df.testcycle.isin([testcycle_key])]
@@ -266,8 +271,11 @@ class jama_client:
         for week in self.planned_weeks_names:
             df1 = testrun_df[testrun_df['planned_week'] == week]
             # get the counts of each status
-            data_row = [week] + self.__get_status_counts__(df1)
-            t.append(data_row)
+            data_row = self.__get_status_counts__(df1)
+            if not any(data_row):
+                # all zero values -- skip row
+                continue
+            t.append([week] + data_row)
 
         df = pd.DataFrame(t, columns=['planned_week'] + self.status_list)
         return df

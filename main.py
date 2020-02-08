@@ -20,7 +20,18 @@ def display_current_status_pie_chart(df_status, status_names, colormap, title):
     fig.update_layout(title_text=title)
     fig.show()
 
-def display_weekly_status_bar_chart(df, status_names, colormap, title):
+def display_weekly_status_bar_chart(df, status_names):
+
+    data = []
+    x_axis = df['planned_week'].values
+    for status in status_names:
+        y_axis = df[status].values
+        data.append(go.Bar(name=status, x=x_axis, y=y_axis))
+    # Change the bar mode
+    fig = go.Figure(data=data)
+    fig.update_layout(barmode='stack')
+    fig.show()
+    pass
 
 def display_historical_status_chart(df_list, status_names, colormap, title_list, deadline=None):
     if df_list is None or len(df_list) == 0:
@@ -136,6 +147,10 @@ def main():
         title_list = []
         df_list = []
         for cycle in testcycles:
+            df = client.get_testrun_status_by_planned_weeks(project_key=project, testplan_key=testplan,
+                                                            testcycle_key=cycle)
+            display_weekly_status_bar_chart(df, status_names)
+'''
             if cycle is None:
                 title_list.append(title)
             else:
@@ -155,7 +170,7 @@ def main():
                                         colormap=colormap,
                                         title_list=title_list,
                                         deadline=deadline_date)
-
+'''
 '''
         for cycle in testcycles:
             df_status_current = client.get_testrun_status_current(project_key=project,
