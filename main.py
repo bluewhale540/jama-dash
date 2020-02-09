@@ -20,13 +20,13 @@ def display_current_status_pie_chart(df_status, status_names, colormap, title):
     fig.update_layout(title_text=title)
     fig.show()
 
-def display_weekly_status_bar_chart(df, status_names):
+def display_weekly_status_bar_chart(df, status_names, colormap):
 
     data = []
     x_axis = df['planned_week'].values
     for status in status_names:
         y_axis = df[status].values
-        data.append(go.Bar(name=status, x=x_axis, y=y_axis))
+        data.append(go.Bar(name=status, x=x_axis, y=y_axis, marker_color=colormap[status]))
     # Change the bar mode
     fig = go.Figure(data=data)
     fig.update_layout(barmode='stack')
@@ -123,13 +123,13 @@ def main():
         jama_api_username = result[0]
         jama_api_password = result[1]
 
-    client = jama_client(blocking_as_not_run=True, inprogress_as_not_run=True)
+    client = jama_client(blocking_as_not_run=False, inprogress_as_not_run=False)
     if not client.connect(url=jama_url, username=jama_api_username, password=jama_api_password):
         exit(1)
     # list of project, test plan and chart title
     testing_list = [
- #       ('PIT', 'GX5_Phase1_Stage1_FAT2_Dry_Run', 'PIT FAT2 Dry Run Status'),
-        ('VRel', '2.7.1-3.1-FAT2 Testing (Priority1)', 'SIT FAT2 Testing Status')
+        ('PIT', 'GX5_Phase1_Stage1_FAT2_Dry_Run', 'PIT FAT2 Dry Run Status'),
+ #       ('VRel', '2.7.1-3.1-FAT2 Testing (Priority1)', 'SIT FAT2 Testing Status')
     ]
 
     colormap = \
@@ -149,7 +149,7 @@ def main():
         for cycle in testcycles:
             df = client.get_testrun_status_by_planned_weeks(project_key=project, testplan_key=testplan,
                                                             testcycle_key=cycle)
-            display_weekly_status_bar_chart(df, status_names)
+            display_weekly_status_bar_chart(df=df, status_names=status_names, colormap=colormap)
 '''
             if cycle is None:
                 title_list.append(title)
