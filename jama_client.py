@@ -3,6 +3,7 @@ from py_jama_rest_client.client import JamaClient
 import pandas as pd
 from datetime import timedelta, date
 from tzlocal import get_localzone
+import re
 
 
 class jama_client:
@@ -275,7 +276,13 @@ class jama_client:
             if not any(data_row):
                 # all zero values -- skip row
                 continue
-            t.append([week] + data_row)
+            # strip 'Sprint\d_' prefix if it exists
+            result = re.findall('^Sprint\d+_', week)
+            if len(result) != 0:
+                week = week[len(result[0]):]
+            # replace 0 values with None
+            data_row1 = [i if i > 0 else None for i in data_row]
+            t.append([week] + data_row1)
 
         df = pd.DataFrame(t, columns=['planned_week'] + self.status_list)
         return df

@@ -62,8 +62,9 @@ for project, testplan, title in testing_list:
         else:
             df_by_cycle[cycle] = df
     df_by_testplan[title] = df_by_cycle
-    current_testplan = next(iter(df_by_testplan))
-    current_testcycle = next(iter(df_by_testplan[current_testplan]))
+
+current_testplan = next(iter(df_by_testplan))
+current_testcycle = next(iter(df_by_testplan[current_testplan]))
 
 
 app.layout = html.Div([
@@ -72,7 +73,7 @@ app.layout = html.Div([
         html.Div([
             dcc.Dropdown(
                 id='id-test-plan',
-                options=[{'label': i, 'value': i} for i in df_by_testplan],
+                options=[{'label': i, 'value': i} for i in iter(df_by_testplan)],
                 value=current_testplan
             ),
         ],
@@ -81,7 +82,7 @@ app.layout = html.Div([
         html.Div([
             dcc.Dropdown(
                 id='id-test-cycle',
-                options=[{'label': i, 'value': i} for i in df_by_testplan[current_testplan]],
+                #options=[{'label': i, 'value': i} for i in df_by_testplan[current_testplan]],
                 value=current_testcycle
             ),
         ],
@@ -92,6 +93,22 @@ app.layout = html.Div([
 ])
 
 @app.callback(
+    Output('id-test-cycle', 'options'),
+    [Input('id-test-plan', 'value')])
+def update_testcycle_options(testplan):
+    current_testplan = testplan
+    current_testcycle = next(iter(df_by_testplan[current_testplan]))
+    options = [{'label': i, 'value': i} for i in iter(df_by_testplan[testplan])]
+    return options
+
+@app.callback(
+    Output('id-test-cycle', 'value'),
+    [Input('id-test-plan', 'value')])
+def update_current_testcycle(testplan):
+    current_testcycle = next(iter(df_by_testplan[testplan]))
+    return current_testcycle
+
+@app.callback(
     Output('weekly-status', 'figure'),
     [Input('id-test-plan', 'value'),
      Input('id-test-cycle', 'value')])
@@ -99,16 +116,23 @@ def update_graph(testplan, testcycle):
     current_testplan = testplan
     current_testcycle = testcycle
     df_by_cycle = df_by_testplan[current_testplan]
+    if current_testcycle not in iter(df_by_cycle):
+        current_testcycle = next(iter(df_by_testplan[current_testplan]))
     df = df_by_cycle[current_testcycle]
     data = []
     x_axis = df['planned_week'].values
     for status in status_names:
         y_axis = df[status].values
-        data.append(dict(name=status, x=x_axis, y=y_axis, type='bar', marker=dict(color=colormap[status])))
+        data.append(dict(name=status, x=x_axis, y=y_axis, type='bar',
+                         text=y_axis,
+                         textposition='auto',
+                         marker=dict(color=colormap[status])))
     return {
         'data': data,
         'layout': dict(
             title=testplan + ': ' + testcycle,
+            uniformtext_minsize=8,
+            uniformtext_mode='auto',
             xaxis={
                 'title': 'Planned Week',
             },

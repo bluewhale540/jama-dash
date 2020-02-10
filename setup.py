@@ -15,11 +15,11 @@ if sys.platform == 'win32':
     base = 'Win32GUI'
 
 executables = [
-    Executable('main.py', base='Console')
+    Executable('app.py', base='Console')
 ]
 
 setup(name='jama-test-progress',
-      version='0.1',
+      version='0.2',
       description='Create charts to indicate test progress',
       executables=executables
       )
