@@ -36,7 +36,7 @@ if not client.connect(url=jama_url, username=jama_api_username, password=jama_ap
     exit(1)
 # list of project, test plan and chart title
 testing_list = [
-#    ('PIT', 'GX5_Phase1_Stage1_FAT2_Dry_Run', 'PIT FAT2 Dry Run Status'),
+    ('PIT', 'GX5_Phase1_Stage1_FAT2_Dry_Run', 'PIT FAT2 Dry Run Status'),
     ('VRel', '2.7.1-3.1-FAT2 Testing (Priority1)', 'SIT FAT2 Testing Status')
 ]
 
@@ -65,10 +65,6 @@ for project, testplan, title in testing_list:
     current_testplan = next(iter(df_by_testplan))
     current_testcycle = next(iter(df_by_testplan[current_testplan]))
 
-
-#df = pd.read_csv('https://plotly.github.io/datasets/country_indicators.csv')
-
-#available_indicators = df['Indicator Name'].unique()
 
 app.layout = html.Div([
     html.Div([
@@ -108,10 +104,11 @@ def update_graph(testplan, testcycle):
     x_axis = df['planned_week'].values
     for status in status_names:
         y_axis = df[status].values
-        data.append(dict(name=status, x=x_axis, y=y_axis, type='bar', marker_color=colormap[status]))
+        data.append(dict(name=status, x=x_axis, y=y_axis, type='bar', marker=dict(color=colormap[status])))
     return {
         'data': data,
         'layout': dict(
+            title=testplan + ': ' + testcycle,
             xaxis={
                 'title': 'Planned Week',
             },
