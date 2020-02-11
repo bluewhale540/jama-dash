@@ -7,14 +7,14 @@ import re
 
 
 class jama_client:
-    testcycle_db = {} # DB of test cycles for the projects and test plans we want to track
-    planned_weeks_lookup = {} # dict of planned week id to name
-    planned_weeks_reverse_lookup = {} # dict of planned week name to id
+    testcycle_db = {}  # DB of test cycles for the projects and test plans we want to track
+    planned_weeks_lookup = {}  # dict of planned week id to name
+    planned_weeks_reverse_lookup = {}  # dict of planned week name to id
 
     def __init__(self, blocking_as_not_run=False, inprogress_as_not_run=False):
         # Test run DF columns
         self.df_columns = ['project', 'testplan', 'testcycle', 'testrun',
-                                            'created_date', 'modified_date', 'status']
+                           'created_date', 'modified_date', 'status']
         # Test run DF
         self.df = pd.DataFrame([], columns=self.df_columns)
         self.df['created_date'] = pd.to_datetime(self.df['created_date'])
@@ -160,7 +160,8 @@ class jama_client:
         # check for cached test run data
         if not self.df.empty:
             print('checking cached test runs for project {} and test plan {}{}...'
-                  .format(project_key, testplan_key, '' if testcycle_key is None else ' and test cycle {}'.format(testcycle_key)))
+                  .format(project_key, testplan_key,
+                          '' if testcycle_key is None else ' and test cycle {}'.format(testcycle_key)))
             query_df = self.df[self.df.project.isin([project_key]) & self.df.testplan.isin([testplan_key])]
             if not query_df.empty and testcycle_key is not None:
                 # filter by test cycle key
@@ -177,7 +178,8 @@ class jama_client:
                     # remove any cached runs for this test plan
                     self.df = self.df[self.df.project != project_key or self.df.testplan != testplan_key]
 
-        print('attempting to retrieve test runs for project {} and test plan {} from Jama...'.format(project_key, testplan_key))
+        print('attempting to retrieve test runs for project {} and test plan {} from Jama...'.format(project_key,
+                                                                                                     testplan_key))
         testcycles = self.testcycle_db.get((project_key, testplan_key))
         if testcycles is None:
             print('No test cycles found for test plan. please call retrieve_testcycles() first')
@@ -201,11 +203,11 @@ class jama_client:
 
                 row = [project_key,
                        testplan_key,
-                        testcycle_name,
-                        y['fields']['name'],
-                        y['createdDate'],
-                        y['modifiedDate'],
-                        y['fields']['testRunStatus'],
+                       testcycle_name,
+                       y['fields']['name'],
+                       y['createdDate'],
+                       y['modifiedDate'],
+                       y['fields']['testRunStatus'],
                        planned_week]
                 testruns_to_add.append(row)
 
@@ -213,7 +215,7 @@ class jama_client:
 
         # append the retrieved test runs to the existing data frame
         new_df = pd.DataFrame(testruns_to_add, columns=['project', 'testplan', 'testcycle', 'testrun',
-                                            'created_date', 'modified_date', 'status', 'planned_week'])
+                                                        'created_date', 'modified_date', 'status', 'planned_week'])
         new_df['created_date'] = pd.to_datetime(new_df['created_date'])
         new_df['modified_date'] = pd.to_datetime(new_df['modified_date'])
         self.df = self.df.append(new_df, sort=False)
@@ -221,7 +223,6 @@ class jama_client:
             # filter by test cycle key
             new_df = new_df[new_df.testcycle.isin([testcycle_key])]
         return new_df
-
 
     def get_testrun_status_current(self, project_key, testplan_key, testcycle_key=None):
         testrun_df = self.retrieve_testruns(project_key=project_key,
@@ -287,3 +288,30 @@ class jama_client:
         df = pd.DataFrame(t, columns=['planned_week'] + self.status_list)
         return df
 
+    def get_testruns_for_current_week(self, project_key, testplan_key, testcycle_key=None):
+        for week in self.planned_weeks_names:
+            # extract start and end dates from Planned week
+            result = re.findall('^Sprint\d+_', week)
+            if len(result) == 0:
+                continue
+            dates  = week[len(result[0]):]
+            result = re.findall('^\D+', dates)
+            month_map = {'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5,
+                         'Jun': 6, 'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10,
+                         'Nov': 11, 'Dec': 12 }
+            if result[0] not in iter(month_map):
+                print('Invalid planned week format - {}'.format(week))
+                continue
+            month = month_map[result[0]]
+            days = re.split('-', dates[len(result[0]):])
+            if len(days) < 2:
+                print('Invalid planned week format - {}'.format(week))
+                continue
+            current_year = date.today().year
+            current_month = date.today().month
+            if month >
+        df = self.retrieve_testruns(project_key=project_key,
+                                            testplan_key=testplan_key,
+                                            testcycle_key=testcycle_key)
+
+        return df

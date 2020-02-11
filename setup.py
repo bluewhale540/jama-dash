@@ -18,6 +18,18 @@ executables = [
     Executable('app.py', base='Console')
 ]
 
+options = {
+    'build_exe': {
+        'includes': [
+            'cx_Logging', 'numpy', 'plotly', 'dash', 'jinja2.ext'
+        ],
+        'packages': [
+            'flask', 'dash', 'plotly', 'jinja2.ext'
+        ],
+        'excludes': ['matplotlib']
+    }
+}
+
 setup(name='jama-test-progress',
       version='0.2',
       description='Create charts to indicate test progress',
