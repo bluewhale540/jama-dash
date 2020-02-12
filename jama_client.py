@@ -1,7 +1,7 @@
 import os
 from py_jama_rest_client.client import JamaClient
 import pandas as pd
-from datetime import timedelta, date
+from datetime import timedelta, date, datetime
 from tzlocal import get_localzone
 import re
 
@@ -288,7 +288,7 @@ class jama_client:
         df = pd.DataFrame(t, columns=['planned_week'] + self.status_list)
         return df
 
-    def get_testruns_for_current_week(self, project_key, testplan_key, testcycle_key=None):
+    def __get_current_planned_week__(self):
         for week in self.planned_weeks_names:
             # extract start and end dates from Planned week
             result = re.findall('^Sprint\d+_', week)
@@ -299,19 +299,52 @@ class jama_client:
             month_map = {'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5,
                          'Jun': 6, 'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10,
                          'Nov': 11, 'Dec': 12 }
-            if result[0] not in iter(month_map):
+            if len(result) == 0 or result[0] not in iter(month_map):
                 print('Invalid planned week format - {}'.format(week))
                 continue
-            month = month_map[result[0]]
+            start_month = month_map[result[0]]
+            end_month = start_month
             days = re.split('-', dates[len(result[0]):])
             if len(days) < 2:
                 print('Invalid planned week format - {}'.format(week))
                 continue
+            start_day = int(days[0])
+            # check for second month
+            result = re.findall('^\D+', days[1])
+            if len(result) != 0:
+                if result[0] not in iter(month_map):
+                    print('Invalid planned week format - {}'.format(week))
+                    continue
+                else:
+                    end_month = month_map[result[0]]
+                    days[1] = days[1][len(result[0]):]
+            end_day = int(days[1])
+
             current_year = date.today().year
             current_month = date.today().month
-            if month >
+            start_year = current_year
+            end_year = current_year
+            # empirically check if we are straddling years
+            # (assume month > current month + 6) as the threshold
+            if start_month > current_month + 6:
+                start_year -= 1
+            if end_month > current_month +6:
+                end_year -= 1
+
+            start_date = date(year=start_year, month=start_month, day=start_day)
+            end_date = date(year=end_year, month=end_month, day=end_day)
+            if date.today() >= start_date and date.today() <= end_date:
+                return week
+        return None
+
+    def get_testruns_for_current_week(self, project_key, testplan_key, testcycle_key=None):
+
+        week = self.__get_current_planned_week__()
+        if week is None:
+            print('Cannot detect current planned week in Contour')
+            return None
         df = self.retrieve_testruns(project_key=project_key,
                                             testplan_key=testplan_key,
                                             testcycle_key=testcycle_key)
-
-        return df
+        df1 = df[df['planned_week'] == week]
+        return df1
