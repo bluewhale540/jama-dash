@@ -6,6 +6,7 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output
+import dash_table
 import pandas
 import jinja2.ext
 
@@ -36,15 +37,16 @@ if not client.connect(url=jama_url, username=jama_api_username, password=jama_ap
     exit(1)
 # list of project, test plan and chart title
 testing_list = [
-    ('PIT', 'GX5_Phase1_Stage1_FAT2_Dry_Run', 'PIT FAT2 Dry Run Status'),
-    ('VRel', '2.7.1-3.1-FAT2 Testing (Priority1)', 'SIT FAT2 Testing Status')
+    ('VRel', '2.7.1-3.1-FAT2 Testing (Priority1)', 'SIT FAT2 Testing Status'),
+#    ('PIT', 'GX5_Phase1_Stage1_FAT2_Dry_Run', 'PIT FAT2 Dry Run Status'),
 ]
 
 colormap = \
-    {'NOT_RUN': 'gray', 'PASSED': 'green', 'FAILED': 'firebrick', 'BLOCKED': 'royalblue', 'INPROGRESS': 'orange'}
+    {'NOT_RUN': 'darkslategray', 'PASSED': 'green', 'FAILED': 'firebrick', 'BLOCKED': 'royalblue', 'INPROGRESS': 'darkorange'}
 status_names = client.get_status_names()
 
 df_by_testplan = {}
+df_testruns_by_testplan = {}
 for project, testplan, title in testing_list:
     testcycle_db = client.retrieve_testcycles(project_key=project, testplan_key=testplan)
     if testcycle_db is None:
@@ -54,14 +56,23 @@ for project, testplan, title in testing_list:
     for id, cycle in testcycle_db:
         testcycles.append(cycle)
     df_by_cycle = {}
+    df_testruns_by_cycle = {}
     for cycle in testcycles:
         df = client.get_testrun_status_by_planned_weeks(project_key=project, testplan_key=testplan,
                                                         testcycle_key=cycle)
+        df2 = client.get_testruns_for_current_week(project_key=project, testplan_key=testplan,
+                                                        testcycle_key=cycle)
         if cycle is None:
             df_by_cycle['Overall'] = df
+            df_testruns_by_cycle['Overall'] = df2
         else:
             df_by_cycle[cycle] = df
+            # drop test cycle column since we are printing it elsewhere
+            df2 = df2.drop(columns=['testcycle'])
+            df_testruns_by_cycle[cycle] = df2
     df_by_testplan[title] = df_by_cycle
+    df_testruns_by_testplan[title] = df_testruns_by_cycle
+
 
 current_testplan = next(iter(df_by_testplan))
 current_testcycle = next(iter(df_by_testplan[current_testplan]))
@@ -69,7 +80,6 @@ current_testcycle = next(iter(df_by_testplan[current_testplan]))
 
 app.layout = html.Div([
     html.Div([
-
         html.Div([
             dcc.Dropdown(
                 id='id-test-plan',
@@ -82,14 +92,14 @@ app.layout = html.Div([
         html.Div([
             dcc.Dropdown(
                 id='id-test-cycle',
-                #options=[{'label': i, 'value': i} for i in df_by_testplan[current_testplan]],
                 value=current_testcycle
             ),
         ],
         style={'width': '48%', 'float': 'right', 'display': 'inline-block'})
     ]),
-
     dcc.Graph(id='weekly-status'),
+    html.Hr(),
+    html.Div(id='datatable-container')
 ])
 
 @app.callback(
@@ -107,6 +117,69 @@ def update_testcycle_options(testplan):
 def update_current_testcycle(testplan):
     current_testcycle = next(iter(df_by_testplan[testplan]))
     return current_testcycle
+
+@app.callback(
+    Output('datatable-container', 'children'),
+    [Input('id-test-plan', 'value'),
+     Input('id-test-cycle', 'value')])
+def update_table(testplan, testcycle):
+    df_testruns_by_cycle = df_testruns_by_testplan[testplan]
+    df = df_testruns_by_cycle[testcycle]
+    table =  dash_table.DataTable(
+        id='datatable-testruns',
+        columns=[
+            {'name': i, 'id': i, 'deletable': False, 'selectable': False}
+                for i in df.columns
+        ],
+        data=df.to_dict('records'),
+        editable=False,
+        filter_action='native',
+        sort_action='native',
+        page_size=50,
+        style_header={
+            'backgroundColor': 'rgb(230, 230, 230)',
+            'fontWeight': 'bold',
+            'textAlign': 'left'
+        },
+        style_cell_conditional=[
+            {
+                'if': {'column_id': c},
+                'textAlign': 'left'
+            } for c in df.columns
+        ] +
+        [
+            {
+                'if': {'column_id': 'testcycle'},
+                'maxWidth': '40px'
+            },
+            {
+                'if': {'column_id': 'status'},
+                'maxWidth': '30px'
+            },
+            {
+                'if': {'column_id': 'execution_date'},
+                'maxWidth': '24px'
+            },
+
+        ],
+        style_data_conditional=[
+            {
+                'if': {
+                    'filter_query': '{status} eq "' + s + '"',
+                },
+                'backgroundColor': colormap[s],
+                'color': 'white'
+            } for s in status_names
+        ],
+        style_cell={
+            'minWidth': '0px', 'maxWidth': '100px',
+            'whiteSpace': 'normal',
+            'overflow': 'hidden',
+            'textOverflow': 'ellipsis',
+        }
+    )
+    return [html.H6('Test Runs Scheduled This Week'), table]
+
 
 @app.callback(
     Output('weekly-status', 'figure'),

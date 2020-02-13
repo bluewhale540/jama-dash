@@ -200,14 +200,17 @@ class jama_client:
                         week_id = y['fields'][self.planned_week_field_name]
                         if week_id in self.planned_weeks_lookup:
                             planned_week = self.planned_weeks_lookup[week_id]
-
+                fields = y.get('fields')
+                if fields is None:
+                    continue
                 row = [project_key,
                        testplan_key,
                        testcycle_name,
-                       y['fields']['name'],
-                       y['createdDate'],
-                       y['modifiedDate'],
-                       y['fields']['testRunStatus'],
+                       fields.get('name'),
+                       y.get('createdDate'),
+                       y.get('modifiedDate'),
+                       fields.get('testRunStatus'),
+                       fields.get('executionDate'),
                        planned_week]
                 testruns_to_add.append(row)
 
@@ -215,7 +218,7 @@ class jama_client:
 
         # append the retrieved test runs to the existing data frame
         new_df = pd.DataFrame(testruns_to_add, columns=['project', 'testplan', 'testcycle', 'testrun',
-                                                        'created_date', 'modified_date', 'status', 'planned_week'])
+                                                        'created_date', 'modified_date', 'status', 'execution_date', 'planned_week'])
         new_df['created_date'] = pd.to_datetime(new_df['created_date'])
         new_df['modified_date'] = pd.to_datetime(new_df['modified_date'])
         self.df = self.df.append(new_df, sort=False)
@@ -341,10 +344,12 @@ class jama_client:
 
         week = self.__get_current_planned_week__()
         if week is None:
-            print('Cannot detect current planned week in Contour')
+            print('Cannot find current planned week in Jama')
             return None
         df = self.retrieve_testruns(project_key=project_key,
                                             testplan_key=testplan_key,
                                             testcycle_key=testcycle_key)
+        # filter test runs by current week
         df1 = df[df['planned_week'] == week]
+        df1 = df1.drop(columns=['project', 'testplan', 'created_date', 'modified_date', 'planned_week'])
         return df1
