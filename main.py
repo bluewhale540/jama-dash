@@ -106,6 +106,14 @@ def display_historical_status_chart(df_list, status_names, colormap, title_list,
     fig.show()
 
 def main():
+    # list of project, test plan and chart title
+    testing_list = [
+        ('VRel', '2.7.1-3.1-FAT2 Testing (Priority1)', 'SIT FAT2 Testing Status'),
+        #    ('PIT', 'GX5_Phase1_Stage1_FAT2_Dry_Run', 'PIT FAT2 Dry Run Status'),
+    ]
+    projlist = [x[0] for x in testing_list]
+
+
     jama_url = os.environ.get('JAMA_API_URL')
     jama_api_username = os.environ.get('JAMA_API_USERNAME')
     jama_api_password = os.environ.get('JAMA_API_PASSWORD')
@@ -124,14 +132,8 @@ def main():
         jama_api_password = result[1]
 
     client = jama_client(blocking_as_not_run=False, inprogress_as_not_run=False)
-    if not client.connect(url=jama_url, username=jama_api_username, password=jama_api_password):
+    if not client.connect(url=jama_url, username=jama_api_username, password=jama_api_password, projkey_list=projlist):
         exit(1)
-    # list of project, test plan and chart title
-    testing_list = [
-#        ('PIT', 'GX5_Phase1_Stage1_FAT2_Dry_Run', 'PIT FAT2 Dry Run Status'),
-        ('VRel', '2.7.1-3.1-FAT2 Testing (Priority1)', 'SIT FAT2 Testing Status')
-    ]
-
     colormap = \
         {'NOT_RUN': 'gray', 'PASSED': 'green', 'FAILED': 'firebrick', 'BLOCKED': 'royalblue', 'INPROGRESS': 'orange'}
     status_names = client.get_status_names()

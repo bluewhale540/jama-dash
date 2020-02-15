@@ -10,6 +10,7 @@ class jama_client:
     testcycle_db = {}  # DB of test cycles for the projects and test plans we want to track
     planned_weeks_lookup = {}  # dict of planned week id to name
     planned_weeks_reverse_lookup = {}  # dict of planned week name to id
+    project_id_lookup = {} # dict of project keys to id
 
     def __init__(self, blocking_as_not_run=False, inprogress_as_not_run=False):
         # Test run DF columns
@@ -27,24 +28,57 @@ class jama_client:
         if not blocking_as_not_run:
             self.status_list.append('BLOCKED')
 
-    def connect(self, url, username, password):
+    # download the list of project ids given a list of project keys (names)
+    def __get_projects_info__(self, projkey_list):
+        # get a list of all projects - not efficient but py_jama_rest_client does not support
+        # searching using a project key
+        # TODO: use REST API directly
+        print('getting a list of all projects...')
+        all_projects = self.client.get_projects()
+
+        for x in all_projects:
+            p = x.get('projectKey')
+            if p is None or x['isFolder'] is True:
+                continue
+
+            projkey_list = [a for a in projkey_list if a not in iter(self.project_id_lookup)]
+            for project_key in projkey_list:
+                if p == project_key:
+                    self.project_id_lookup[project_key] = x['id']
+                    print('found project {}!'.format(project_key))
+        if len(projkey_list) != 0:
+            print('following projects not found -')
+            for proj in projkey_list:
+                print(f'\t{proj}')
+
+    def connect(self, url, username, password, projkey_list):
         # Create the Jama client
         try:
             self.client = JamaClient(host_domain=url, credentials=(username, password))
+            # create project id lookup table
+            self.__get_projects_info__(projkey_list)
             # get item types for test plans and cycles
             self.item_types = self.client.get_item_types()
             self.testplan_type = next(x for x in self.item_types if x['typeKey'] == 'TSTPL')['id']
             self.testcycle_type = next(x for x in self.item_types if x['typeKey'] == 'TSTCY')['id']
+            self.bug_type = next(x for x in self.item_types if x['typeKey'] == 'BUG')['id']
             testrun_obj = next(x for x in self.item_types if x['typeKey'] == 'TSTRN')
+
+            # find the name for the 'Bug ID' field in a test run
+            self.bug_id_field_name = None
 
             # find the name for the 'Planned week' field in a test run
             pick_lists = self.client.get_pick_lists()
             planned_week_id = next(x for x in pick_lists if x['name'] == 'Planned week')['id']
             self.planned_week_field_name = None
             for x in testrun_obj['fields']:
+                if 'label' in x and x['label'] == 'Bug ID':
+                    self.bug_id_field_name = x['name']
+                    continue
                 if 'pickList' in x and x['pickList'] == planned_week_id:
                     self.planned_week_field_name = x['name']
-                    break
+                    continue
+
             planned_weeks = self.client.get_pick_list_options(planned_week_id)
             for x in planned_weeks:
                 self.planned_weeks_lookup[x['id']] = x['name']
@@ -55,6 +89,7 @@ class jama_client:
             return False
         return True
 
+
     def get_status_names(self):
         return self.status_list
 
@@ -64,22 +99,22 @@ class jama_client:
     # retuns an array of counts of the values in the status field in the df
     # if override_total_runs is not None, calculate not_run using this value
     def __get_status_counts__(self, df, override_total_runs=None):
-        counts = df['status'].value_counts()
+        df_counts = df['status'].value_counts()
         passed = 0
         failed = 0
         inprogress = 0
         blocked = 0
         not_run = 0
-        if 'PASSED' in counts.index:
-            passed = counts['PASSED']
-        if 'FAILED' in counts.index:
-            failed = counts['FAILED']
-        if 'INPROGRESS' in counts.index:
-            inprogress = counts['INPROGRESS']
-        if 'BLOCKED' in counts.index:
-            blocked = counts['BLOCKED']
-        if 'NOT_RUN' in counts.index:
-            not_run = counts['NOT_RUN']
+        if 'PASSED' in df_counts.index:
+            passed = df_counts['PASSED']
+        if 'FAILED' in df_counts.index:
+            failed = df_counts['FAILED']
+        if 'INPROGRESS' in df_counts.index:
+            inprogress = df_counts['INPROGRESS']
+        if 'BLOCKED' in df_counts.index:
+            blocked = df_counts['BLOCKED']
+        if 'NOT_RUN' in df_counts.index:
+            not_run = df_counts['NOT_RUN']
         if override_total_runs is not None:
             not_run = override_total_runs - passed - failed - blocked - inprogress
         data_row = [not_run, passed, failed, ]
@@ -101,25 +136,11 @@ class jama_client:
                   .format(project_key, testplan_key))
             return testcycles
 
-        # get a list of all projects - not efficient but py_jama_rest_client does not support
-        # searching using a project key
-        # TODO: use REST API directly
-        print('querying for project {}...'.format(project_key))
-        try:
-            projects = self.client.get_projects()
-        except Exception as err:
-            print('Jama server connection ERROR! -', err)
-            return None
-        # find our project id
-        projects = [x for x in projects if
-                    x.get('projectKey') is not None and x['projectKey'] == project_key and x['isFolder'] is False]
-        if len(projects) == 0:
-            print('Error: Cannot find a project with name {}'.format(project_key))
-            return None
-        # we will assume that Jama only allows you to create projects with unique names
-        project_id = projects[0]['id']
-        print('found project {}!'.format(project_key))
-        print('querying for test plan {}...'.format(testplan_key))
+        project_id = self.project_id_lookup[project_key]
+        if project_id is None:
+            print(f'Invalid project {project_key}')
+        print(f'found project {project_key}!')
+        print(f'querying for test plan {testplan_key}...')
         # get all test plans in project
         try:
             testplans = self.client.get_abstract_items(item_type=self.testplan_type,
@@ -200,6 +221,9 @@ class jama_client:
                         week_id = y['fields'][self.planned_week_field_name]
                         if week_id in self.planned_weeks_lookup:
                             planned_week = self.planned_weeks_lookup[week_id]
+                bug_id = None
+                if self.bug_id_field_name is not None:
+                    bug_id = y['fields'].get(self.bug_id_field_name)
                 fields = y.get('fields')
                 if fields is None:
                     continue
@@ -211,16 +235,19 @@ class jama_client:
                        y.get('modifiedDate'),
                        fields.get('testRunStatus'),
                        fields.get('executionDate'),
-                       planned_week]
+                       planned_week,
+                       bug_id]
                 testruns_to_add.append(row)
 
         print('found {} test runs!'.format(len(testruns_to_add)))
 
         # append the retrieved test runs to the existing data frame
         new_df = pd.DataFrame(testruns_to_add, columns=['project', 'testplan', 'testcycle', 'testrun',
-                                                        'created_date', 'modified_date', 'status', 'execution_date', 'planned_week'])
-        new_df['created_date'] = pd.to_datetime(new_df['created_date'])
-        new_df['modified_date'] = pd.to_datetime(new_df['modified_date'])
+                                                        'created_date', 'modified_date', 'status', 'execution_date', 'planned_week', 'bug_id'])
+        new_df['created_date'] = pd.to_datetime(new_df['created_date'], format="%Y-%m-%d").dt.floor("d")
+        new_df['modified_date'] = pd.to_datetime(new_df['modified_date'], format="%Y-%m-%d").dt.floor("d")
+        new_df['execution_date'] = pd.to_datetime(new_df['execution_date'], format="%Y-%m-%d").dt.floor("d")
+
         self.df = self.df.append(new_df, sort=False)
         if testcycle_key is not None:
             # filter by test cycle key
@@ -257,7 +284,7 @@ class jama_client:
                 # no test runs found - we will not consider this date
                 continue
             total_runs = df1.shape[0]
-            df2 = df1[df1['modified_date'] < d]
+            df2 = df1[df1['modified_date'] < d or (df1['execution_date'] is not None and df1['execution_date'] < d)]
             if df2.empty:
                 continue
             data_row = [d] + self.__get_status_counts__(df2, override_total_runs=total_runs)
@@ -337,12 +364,11 @@ class jama_client:
             start_date = date(year=start_year, month=start_month, day=start_day)
             end_date = date(year=end_year, month=end_month, day=end_day)
             if date.today() >= start_date and date.today() <= end_date:
-                return week
+                return week, start_date, end_date
         return None
 
     def get_testruns_for_current_week(self, project_key, testplan_key, testcycle_key=None):
-
-        week = self.__get_current_planned_week__()
+        week, start, end = self.__get_current_planned_week__()
         if week is None:
             print('Cannot find current planned week in Jama')
             return None
@@ -353,3 +379,36 @@ class jama_client:
         df1 = df[df['planned_week'] == week]
         df1 = df1.drop(columns=['project', 'testplan', 'created_date', 'modified_date', 'planned_week'])
         return df1
+
+    def get_testrun_status_for_current_Week(self, project_key, testplan_key, testcycle_key=None):
+        week, start_date, end_date = self.__get_current_planned_week__()
+        if week is None:
+            print('Cannot find current planned week in Jama')
+            return None
+        df = self.retrieve_testruns(project_key=project_key,
+                                            testplan_key=testplan_key,
+                                            testcycle_key=testcycle_key)
+        # filter test runs by current week
+        df1 = df[df['planned_week'] == week]
+
+        # get local time zone
+        local_tz = get_localzone()
+        # create a date range using start and end dates from above set to the local TZ
+        daterange = pd.date_range(start_date, end_date, tz=local_tz)
+        t = []
+        for d in daterange:
+            # create a dataframe of all test runs created before date 'd'
+            df1 = df[df['created_date'] < d]
+            if df1.empty:
+                # no test runs found - we will not consider this date
+                continue
+            total_runs = df1.shape[0]
+            df2 = df1[df1['modified_date'] < d]
+            if df2.empty:
+                continue
+            data_row = [d] + self.__get_status_counts__(df2, override_total_runs=total_runs)
+            t.append(data_row)
+
+        df = pd.DataFrame(t, columns=['date'] + self.status_list)
+        df['date'] = pd.to_datetime(df['date'])
+        return df

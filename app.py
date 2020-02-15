@@ -32,14 +32,17 @@ if jama_api_password is None or jama_api_username is None:
     jama_api_username = result[0]
     jama_api_password = result[1]
 
-client = jama_client(blocking_as_not_run=False, inprogress_as_not_run=False)
-if not client.connect(url=jama_url, username=jama_api_username, password=jama_api_password):
-    exit(1)
 # list of project, test plan and chart title
 testing_list = [
     ('VRel', '2.7.1-3.1-FAT2 Testing (Priority1)', 'SIT FAT2 Testing Status'),
 #    ('PIT', 'GX5_Phase1_Stage1_FAT2_Dry_Run', 'PIT FAT2 Dry Run Status'),
 ]
+
+proj_list = [x[0] for x in testing_list]
+
+client = jama_client(blocking_as_not_run=False, inprogress_as_not_run=False)
+if not client.connect(url=jama_url, username=jama_api_username, password=jama_api_password, projkey_list=proj_list):
+    exit(1)
 
 colormap = \
     {'NOT_RUN': 'darkslategray', 'PASSED': 'green', 'FAILED': 'firebrick', 'BLOCKED': 'royalblue', 'INPROGRESS': 'darkorange'}
@@ -125,6 +128,7 @@ def update_current_testcycle(testplan):
 def update_table(testplan, testcycle):
     df_testruns_by_cycle = df_testruns_by_testplan[testplan]
     df = df_testruns_by_cycle[testcycle]
+    df['execution_date'] = df['execution_date'].apply(lambda x: x.date())
     table =  dash_table.DataTable(
         id='datatable-testruns',
         columns=[
@@ -150,7 +154,7 @@ def update_table(testplan, testcycle):
         [
             {
                 'if': {'column_id': 'testcycle'},
-                'maxWidth': '40px'
+                'maxWidth': '30px'
             },
             {
                 'if': {'column_id': 'status'},
@@ -172,7 +176,7 @@ def update_table(testplan, testcycle):
             } for s in status_names
         ],
         style_cell={
-            'minWidth': '0px', 'maxWidth': '100px',
+            'minWidth': '0px', 'maxWidth': '60px',
             'whiteSpace': 'normal',
             'overflow': 'hidden',
             'textOverflow': 'ellipsis',
