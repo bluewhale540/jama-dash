@@ -61,9 +61,8 @@ class jama_client:
             self.item_types = self.client.get_item_types()
             self.testplan_type = next(x for x in self.item_types if x['typeKey'] == 'TSTPL')['id']
             self.testcycle_type = next(x for x in self.item_types if x['typeKey'] == 'TSTCY')['id']
-            self.bug_type = next(x for x in self.item_types if x['typeKey'] == 'BUG')['id']
-            testrun_obj = next(x for x in self.item_types if x['typeKey'] == 'TSTRN')
 
+            self.testrun_obj = next(x for x in self.item_types if x['typeKey'] == 'TSTRN')
             # find the name for the 'Bug ID' field in a test run
             self.bug_id_field_name = None
 
@@ -71,7 +70,7 @@ class jama_client:
             pick_lists = self.client.get_pick_lists()
             planned_week_id = next(x for x in pick_lists if x['name'] == 'Planned week')['id']
             self.planned_week_field_name = None
-            for x in testrun_obj['fields']:
+            for x in self.testrun_obj['fields']:
                 if 'label' in x and x['label'] == 'Bug ID':
                     self.bug_id_field_name = x['name']
                     continue
@@ -319,6 +318,9 @@ class jama_client:
         return df
 
     def __get_current_planned_week__(self):
+        prev_week = None
+        prev_start_date = None
+        prev_end_date = None
         for week in self.planned_weeks_names:
             # extract start and end dates from Planned week
             result = re.findall('^Sprint\d+_', week)
@@ -365,7 +367,12 @@ class jama_client:
             end_date = date(year=end_year, month=end_month, day=end_day)
             if date.today() >= start_date and date.today() <= end_date:
                 return week, start_date, end_date
-        return None
+            if prev_start_date is not None and date.today() > prev_end_date and date.today() < start_date:
+                return prev_week, prev_start_date, prev_end_date
+            prev_week = week
+            prev_start_date = start_date
+            prev_end_date = end_date
+        return 'Unassigned', date.today(), date.today() # TODO: fix this to return something meaningful
 
     def get_testruns_for_current_week(self, project_key, testplan_key, testcycle_key=None):
         week, start, end = self.__get_current_planned_week__()
