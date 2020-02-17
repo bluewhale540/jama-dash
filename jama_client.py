@@ -4,9 +4,11 @@ import pandas as pd
 from datetime import timedelta, date, datetime
 from tzlocal import get_localzone
 import re
-
+import requests
+from requests.exceptions import HTTPError
 
 class jama_client:
+    url = None
     username = None
     password = None
     testcycle_db = {}  # DB of test cycles for the projects and test plans we want to track
@@ -33,6 +35,23 @@ class jama_client:
 
 
     def __get_user_info_from_jama(self, user_id):
+        try:
+            response = requests.get(self.url + '/rest/latest/users/' + str(user_id), auth=(self.username, self.password))
+            # If the response was successful, no Exception will be raised
+            response.raise_for_status()
+        except HTTPError as http_err:
+            print(f'HTTP error occurred: {http_err}')  # Python 3.6
+            return ''
+        except Exception as err:
+            print(f'Other error occurred: {err}')  # Python 3.6
+            return ''
+        else:
+            data = response.json().get('data')
+            if data is None:
+                return ''
+            first_name = data['firstName']
+            last_name = data['lastName']
+            return first_name + ' ' + last_name
 
 
     # query the name for a user id
@@ -41,8 +60,8 @@ class jama_client:
             return ''
         user = self.user_id_lookup.get(user_id)
         if user is None:
-
-        return 'User ' + str(user_id)
+            user = self.__get_user_info_from_jama(user_id)
+        return user
 
     # download the list of project ids given a list of project keys (names)
     def __get_projects_info(self, projkey_list):
@@ -104,6 +123,7 @@ class jama_client:
             return False
         self.username = username
         self.password = password
+        self.url = url
         return True
 
 
