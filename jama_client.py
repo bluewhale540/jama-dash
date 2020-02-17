@@ -7,10 +7,13 @@ import re
 
 
 class jama_client:
+    username = None
+    password = None
     testcycle_db = {}  # DB of test cycles for the projects and test plans we want to track
     planned_weeks_lookup = {}  # dict of planned week id to name
     planned_weeks_reverse_lookup = {}  # dict of planned week name to id
     project_id_lookup = {} # dict of project keys to id
+    user_id_lookup = {} # dict of user ids to names
 
     def __init__(self, blocking_as_not_run=False, inprogress_as_not_run=False):
         # Test run DF columns
@@ -28,8 +31,21 @@ class jama_client:
         if not blocking_as_not_run:
             self.status_list.append('BLOCKED')
 
+
+    def __get_user_info_from_jama(self, user_id):
+
+
+    # query the name for a user id
+    def __get_user_from_id(self, user_id):
+        if user_id is None:
+            return ''
+        user = self.user_id_lookup.get(user_id)
+        if user is None:
+
+        return 'User ' + str(user_id)
+
     # download the list of project ids given a list of project keys (names)
-    def __get_projects_info__(self, projkey_list):
+    def __get_projects_info(self, projkey_list):
         # get a list of all projects - not efficient but py_jama_rest_client does not support
         # searching using a project key
         # TODO: use REST API directly
@@ -56,7 +72,7 @@ class jama_client:
         try:
             self.client = JamaClient(host_domain=url, credentials=(username, password))
             # create project id lookup table
-            self.__get_projects_info__(projkey_list)
+            self.__get_projects_info(projkey_list)
             # get item types for test plans and cycles
             self.item_types = self.client.get_item_types()
             self.testplan_type = next(x for x in self.item_types if x['typeKey'] == 'TSTPL')['id']
@@ -86,6 +102,8 @@ class jama_client:
         except Exception as err:
             print('Jama server connection ERROR! -', err)
             return False
+        self.username = username
+        self.password = password
         return True
 
 
@@ -97,7 +115,7 @@ class jama_client:
 
     # retuns an array of counts of the values in the status field in the df
     # if override_total_runs is not None, calculate not_run using this value
-    def __get_status_counts__(self, df, override_total_runs=None):
+    def __get_status_counts(self, df, override_total_runs=None):
         df_counts = df['status'].value_counts()
         passed = 0
         failed = 0
@@ -226,6 +244,8 @@ class jama_client:
                 fields = y.get('fields')
                 if fields is None:
                     continue
+
+                user = self.__get_user_from_id(fields.get('assignedTo'))
                 row = [project_key,
                        testplan_key,
                        testcycle_name,
@@ -235,6 +255,7 @@ class jama_client:
                        fields.get('testRunStatus'),
                        fields.get('executionDate'),
                        planned_week,
+                       user,
                        bug_id]
                 testruns_to_add.append(row)
 
@@ -242,12 +263,14 @@ class jama_client:
 
         # append the retrieved test runs to the existing data frame
         new_df = pd.DataFrame(testruns_to_add, columns=['project', 'testplan', 'testcycle', 'testrun',
-                                                        'created_date', 'modified_date', 'status', 'execution_date', 'planned_week', 'bug_id'])
+                                                        'created_date', 'modified_date', 'status', 'execution_date',
+                                                        'planned_week', 'assigned_to', 'bug_id'])
         new_df['created_date'] = pd.to_datetime(new_df['created_date'], format="%Y-%m-%d").dt.floor("d")
         new_df['modified_date'] = pd.to_datetime(new_df['modified_date'], format="%Y-%m-%d").dt.floor("d")
         new_df['execution_date'] = pd.to_datetime(new_df['execution_date'], format="%Y-%m-%d").dt.floor("d")
 
         self.df = self.df.append(new_df, sort=False)
+
         if testcycle_key is not None:
             # filter by test cycle key
             new_df = new_df[new_df.testcycle.isin([testcycle_key])]
@@ -258,7 +281,7 @@ class jama_client:
                                             testplan_key=testplan_key,
                                             testcycle_key=testcycle_key)
         t = []
-        t.append(self.__get_status_counts__(testrun_df))
+        t.append(self.__get_status_counts(testrun_df))
         df = pd.DataFrame(t, self.status_list)
 
         return df
@@ -286,7 +309,7 @@ class jama_client:
             df2 = df1[df1['modified_date'] < d or (df1['execution_date'] is not None and df1['execution_date'] < d)]
             if df2.empty:
                 continue
-            data_row = [d] + self.__get_status_counts__(df2, override_total_runs=total_runs)
+            data_row = [d] + self.__get_status_counts(df2, override_total_runs=total_runs)
             t.append(data_row)
 
         df = pd.DataFrame(t, columns=['date'] + self.status_list)
@@ -302,7 +325,7 @@ class jama_client:
         for week in self.planned_weeks_names:
             df1 = testrun_df[testrun_df['planned_week'] == week]
             # get the counts of each status
-            data_row = self.__get_status_counts__(df1)
+            data_row = self.__get_status_counts(df1)
             if not any(data_row):
                 # all zero values -- skip row
                 continue
@@ -413,7 +436,7 @@ class jama_client:
             df2 = df1[df1['modified_date'] < d]
             if df2.empty:
                 continue
-            data_row = [d] + self.__get_status_counts__(df2, override_total_runs=total_runs)
+            data_row = [d] + self.__get_status_counts(df2, override_total_runs=total_runs)
             t.append(data_row)
 
         df = pd.DataFrame(t, columns=['date'] + self.status_list)
