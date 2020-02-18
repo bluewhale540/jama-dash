@@ -13,7 +13,7 @@ class jama_client:
     password = None
     testcycle_db = {}  # DB of test cycles for the projects and test plans we want to track
     planned_weeks_lookup = {}  # dict of planned week id to name
-    planned_weeks_reverse_lookup = {}  # dict of planned week name to id
+    planned_weeks = [] # sorted list of start dates of planned weeks
     project_id_lookup = {} # dict of project keys to id
     user_id_lookup = {} # dict of user ids to names
 
@@ -113,11 +113,16 @@ class jama_client:
                     self.planned_week_field_name = x['name']
                     continue
 
-            planned_weeks = self.client.get_pick_list_options(planned_week_id)
-            for x in planned_weeks:
-                self.planned_weeks_lookup[x['id']] = x['name']
-                self.planned_weeks_reverse_lookup[x['name']] = x['id']
-            self.planned_weeks_names = [x['name'] for x in planned_weeks]
+            weeks = self.client.get_pick_list_options(planned_week_id)
+            for x in weeks:
+                start_date, end_date = self.__get_start_and_end_date(x['name'])
+                if start_date is None:
+                    # will we ever get here?
+                    continue
+                self.planned_weeks_lookup[x['id']] = start_date
+                self.planned_weeks.append(start_date)
+            self.planned_weeks = sorted(self.planned_weeks)
+
         except Exception as err:
             print('Jama server connection ERROR! -', err)
             return False
@@ -130,8 +135,8 @@ class jama_client:
     def get_status_names(self):
         return self.status_list
 
-    def get_planned_week_names(self):
-        return self.planned_weeks_names
+    def get_planned_weeks(self):
+        return self.planned_weeks
 
     # retuns an array of counts of the values in the status field in the df
     # if override_total_runs is not None, calculate not_run using this value
@@ -252,12 +257,11 @@ class jama_client:
                 return None
 
             for y in testruns_raw:
-                planned_week = 'Unassigned'
-                if self.planned_week_field_name is not None:
-                    if self.planned_week_field_name in y['fields']:
-                        week_id = y['fields'][self.planned_week_field_name]
-                        if week_id in self.planned_weeks_lookup:
-                            planned_week = self.planned_weeks_lookup[week_id]
+                planned_week = None
+                if self.planned_week_field_name is not None and self.planned_week_field_name in y['fields']:
+                    week_id = y['fields'][self.planned_week_field_name]
+                    if week_id in self.planned_weeks_lookup:
+                        planned_week = self.planned_weeks_lookup[week_id]
                 bug_id = None
                 if self.bug_id_field_name is not None:
                     bug_id = y['fields'].get(self.bug_id_field_name)
@@ -336,103 +340,99 @@ class jama_client:
         df['date'] = pd.to_datetime(df['date'])
         return df
 
+    # process the week string in the format SprintX_mmmdd_mmmdd or SprintX_mmmdd_dd
+    # and return the start and end dates in the string. Returns None, None if format is
+    # invalid
+    def __get_start_and_end_date(self, week_str):
+        # strip 'Sprint\d_' prefix if it exists
+        result = re.findall('^Sprint\d+_', week_str)
+        if len(result) == 0:
+            return None, None
+        dates = week_str[len(result[0]):]
+        result = re.findall('^\D+', dates)
+        month_map = {'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5,
+                     'Jun': 6, 'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10,
+                     'Nov': 11, 'Dec': 12}
+        if len(result) == 0 or result[0] not in iter(month_map):
+            return None, None
+        start_month = month_map[result[0]]
+        end_month = start_month
+        days = re.split('-', dates[len(result[0]):])
+        if len(days) < 2:
+            return None, None
+        start_day = int(days[0])
+        # check for second month
+        result = re.findall('^\D+', days[1])
+        if len(result) != 0:
+            if result[0] not in iter(month_map):
+                return None, None
+            else:
+                end_month = month_map[result[0]]
+                days[1] = days[1][len(result[0]):]
+        end_day = int(days[1])
+
+        current_year = date.today().year
+        current_month = date.today().month
+        start_year = current_year
+        end_year = current_year
+        # empirically check if we are straddling years
+        # (assume month > current month + 6) as the threshold
+        if start_month > current_month + 6:
+            start_year -= 1
+        if end_month > current_month + 6:
+            end_year -= 1
+
+        start_date = date(year=start_year, month=start_month, day=start_day)
+        end_date = date(year=end_year, month=end_month, day=end_day)
+        return start_date, end_date
+
     def get_testrun_status_by_planned_weeks(self, project_key, testplan_key, testcycle_key=None):
         testrun_df = self.retrieve_testruns(project_key=project_key,
                                             testplan_key=testplan_key,
                                             testcycle_key=testcycle_key)
 
         t = []
-        for week in self.planned_weeks_names:
+        for week in self.planned_weeks:
             df1 = testrun_df[testrun_df['planned_week'] == week]
             # get the counts of each status
             data_row = self.__get_status_counts(df1)
             if not any(data_row):
                 # all zero values -- skip row
                 continue
-            # strip 'Sprint\d_' prefix if it exists
-            result = re.findall('^Sprint\d+_', week)
-            if len(result) != 0:
-                week = week[len(result[0]):]
             # replace 0 values with None
             data_row1 = [i if i > 0 else None for i in data_row]
+
             t.append([week] + data_row1)
 
         df = pd.DataFrame(t, columns=['planned_week'] + self.status_list)
         return df
 
-    def __get_current_planned_week__(self):
-        prev_week = None
+    def __get_current_planned_week(self):
         prev_start_date = None
-        prev_end_date = None
-        for week in self.planned_weeks_names:
-            # extract start and end dates from Planned week
-            result = re.findall('^Sprint\d+_', week)
-            if len(result) == 0:
-                continue
-            dates  = week[len(result[0]):]
-            result = re.findall('^\D+', dates)
-            month_map = {'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5,
-                         'Jun': 6, 'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10,
-                         'Nov': 11, 'Dec': 12 }
-            if len(result) == 0 or result[0] not in iter(month_map):
-                print('Invalid planned week format - {}'.format(week))
-                continue
-            start_month = month_map[result[0]]
-            end_month = start_month
-            days = re.split('-', dates[len(result[0]):])
-            if len(days) < 2:
-                print('Invalid planned week format - {}'.format(week))
-                continue
-            start_day = int(days[0])
-            # check for second month
-            result = re.findall('^\D+', days[1])
-            if len(result) != 0:
-                if result[0] not in iter(month_map):
-                    print('Invalid planned week format - {}'.format(week))
-                    continue
-                else:
-                    end_month = month_map[result[0]]
-                    days[1] = days[1][len(result[0]):]
-            end_day = int(days[1])
 
-            current_year = date.today().year
-            current_month = date.today().month
-            start_year = current_year
-            end_year = current_year
-            # empirically check if we are straddling years
-            # (assume month > current month + 6) as the threshold
-            if start_month > current_month + 6:
-                start_year -= 1
-            if end_month > current_month +6:
-                end_year -= 1
-
-            start_date = date(year=start_year, month=start_month, day=start_day)
-            end_date = date(year=end_year, month=end_month, day=end_day)
-            if date.today() >= start_date and date.today() <= end_date:
-                return week, start_date, end_date
-            if prev_start_date is not None and date.today() > prev_end_date and date.today() < start_date:
-                return prev_week, prev_start_date, prev_end_date
-            prev_week = week
-            prev_start_date = start_date
-            prev_end_date = end_date
-        return 'Unassigned', date.today(), date.today() # TODO: fix this to return something meaningful
+        for start_date in self.planned_weeks:
+            if start_date is None:
+                 continue
+            if date.today() >= start_date and date.today() < start_date + 6:
+                return start_date
+        return None
 
     def get_testruns_for_current_week(self, project_key, testplan_key, testcycle_key=None):
-        week, start, end = self.__get_current_planned_week__()
-        if week is None:
+        start_date = self.__get_current_planned_week()
+        if start_date is None:
             print('Cannot find current planned week in Jama')
             return None
         df = self.retrieve_testruns(project_key=project_key,
                                             testplan_key=testplan_key,
                                             testcycle_key=testcycle_key)
         # filter test runs by current week
-        df1 = df[df['planned_week'] == week]
+        df1 = df[df['planned_week'] == start_date]
         df1 = df1.drop(columns=['project', 'testplan', 'created_date', 'modified_date', 'planned_week'])
         return df1
 
-    def get_testrun_status_for_current_Week(self, project_key, testplan_key, testcycle_key=None):
-        week, start_date, end_date = self.__get_current_planned_week__()
-        if week is None:
+    def get_testrun_status_for_current_week(self, project_key, testplan_key, testcycle_key=None):
+        start_date = self.__get_current_planned_week()
+        if start_date is None:
             print('Cannot find current planned week in Jama')
             return None
         df = self.retrieve_testruns(project_key=project_key,
@@ -444,7 +444,7 @@ class jama_client:
         # get local time zone
         local_tz = get_localzone()
         # create a date range using start and end dates from above set to the local TZ
-        daterange = pd.date_range(start_date, end_date, tz=local_tz)
+        daterange = pd.date_range(start_date, start_date + 6, tz=local_tz)
         t = []
         for d in daterange:
             # create a dataframe of all test runs created before date 'd'

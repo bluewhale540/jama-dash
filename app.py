@@ -44,6 +44,7 @@ client = jama_client(blocking_as_not_run=False, inprogress_as_not_run=False)
 if not client.connect(url=jama_url, username=jama_api_username, password=jama_api_password, projkey_list=proj_list):
     exit(1)
 
+
 colormap = \
     {'NOT_RUN': 'darkslategray', 'PASSED': 'green', 'FAILED': 'firebrick', 'BLOCKED': 'royalblue', 'INPROGRESS': 'darkorange'}
 status_names = client.get_status_names()
@@ -65,10 +66,12 @@ for project, testplan, title in testing_list:
                                                         testcycle_key=cycle)
         df2 = client.get_testruns_for_current_week(project_key=project, testplan_key=testplan,
                                                         testcycle_key=cycle)
+
         if cycle is None:
             df_by_cycle['Overall'] = df
             df_testruns_by_cycle['Overall'] = df2
         else:
+            cycle = cycle.replace('_', ' ')  # replace underscores with spaces for better display
             df_by_cycle[cycle] = df
             # drop test cycle column since we are printing it elsewhere
             df2 = df2.drop(columns=['testcycle'])
@@ -80,6 +83,9 @@ for project, testplan, title in testing_list:
 current_testplan = next(iter(df_by_testplan))
 current_testcycle = next(iter(df_by_testplan[current_testplan]))
 
+chart_types = ['Weekly', 'Historical']
+current_chart_type = next(iter(chart_types))
+
 
 app.layout = html.Div([
     html.Div([
@@ -90,7 +96,7 @@ app.layout = html.Div([
                 value=current_testplan
             ),
         ],
-        style={'width': '48%', 'display': 'inline-block'}),
+        style={'width': '33%', 'display': 'inline-block'}),
 
         html.Div([
             dcc.Dropdown(
@@ -98,9 +104,19 @@ app.layout = html.Div([
                 value=current_testcycle
             ),
         ],
-        style={'width': '48%', 'float': 'right', 'display': 'inline-block'})
+        style={'width': '33%', 'display': 'inline-block'}),
+
+        html.Div([
+            dcc.Dropdown(
+                id='id-chart-type',
+                options=[{'label': i, 'value': i} for i in chart_types],
+                value=current_chart_type
+            ),
+        ],
+        style={'width': '33%', 'display': 'inline-block'})
+
     ]),
-    dcc.Graph(id='weekly-status'),
+    html.Div(id='chart-container'),
     html.Hr(),
     html.Div(id='datatable-container')
 ])
@@ -186,7 +202,8 @@ def update_table(testplan, testcycle):
 
 
 @app.callback(
-    Output('weekly-status', 'figure'),
+#    Output('weekly-status', 'figure'),
+    Output('chart-container', 'children'),
     [Input('id-test-plan', 'value'),
      Input('id-test-cycle', 'value')])
 def update_graph(testplan, testcycle):
@@ -204,21 +221,25 @@ def update_graph(testplan, testcycle):
                          text=y_axis,
                          textposition='auto',
                          marker=dict(color=colormap[status])))
-    return {
-        'data': data,
-        'layout': dict(
-            title=testplan + ': ' + testcycle,
-            uniformtext_minsize=8,
-            uniformtext_mode='auto',
-            xaxis={
-                'title': 'Planned Week',
-            },
-            yaxis={
-                'title': 'Number Of Test Runs',
-            },
-            barmode='stack'
-        )
-    }
+    return [
+        dcc.Graph(
+            id='weekly-status',
+            figure = {
+                'data': data,
+                'layout': dict(
+                    title=testplan + ': ' + testcycle,
+                    uniformtext_minsize=8,
+                    uniformtext_mode='auto',
+                    xaxis={
+                        'title': 'Planned Week',
+                    },
+                    yaxis={
+                        'title': 'Number Of Test Runs',
+                    },
+                    barmode='stack'
+                )
+            }
+        )]
 
 
 if __name__ == '__main__':
