@@ -40,6 +40,9 @@ testing_list = [
     ('PIT', 'GX5_Phase1_Stage1_FAT2_Dry_Run', 'PIT FAT2 Dry Run Status'),
 ]
 
+chart_types = ['Weekly', 'Historical']
+current_chart_type = next(iter(chart_types))
+
 proj_list = [x[0] for x in testing_list]
 
 client = jama_client(blocking_as_not_run=False, inprogress_as_not_run=False)
@@ -85,9 +88,6 @@ for project, testplan, title in testing_list:
 current_testplan = next(iter(df_by_testplan))
 current_testcycle = next(iter(df_by_testplan[current_testplan]))
 
-chart_types = ['Weekly', 'Historical']
-current_chart_type = next(iter(chart_types))
-
 # build current week testrun tables into this lookup for fast refresh
 current_week_tables_db = {}
 
@@ -102,7 +102,6 @@ app.layout = html.Div([
             ),
         ],
         style={'width': '33%', 'display': 'inline-block'}),
-
         html.Div([
             dcc.Dropdown(
                 id='id-test-cycle',
@@ -110,14 +109,6 @@ app.layout = html.Div([
             ),
         ],
         style={'width': '33%', 'display': 'inline-block'}),
-
-    ]),
-    html.Div(id='chart-container'),
-    html.Hr(),
-    html.H6('Test Runs Scheduled This Week'),
-    html.Div(id='datatable-container')
-])
-'''
         html.Div([
             dcc.Dropdown(
                 id='id-chart-type',
@@ -126,7 +117,14 @@ app.layout = html.Div([
             ),
         ],
         style={'width': '33%', 'display': 'inline-block'})
-'''
+
+    ]),
+    html.Div(id='chart-container'),
+    html.Hr(),
+    html.H6('Test Runs Scheduled This Week'),
+    html.Div(id='datatable-container')
+])
+
 
 @app.callback(
     Output('id-test-cycle', 'options'),
@@ -219,19 +217,11 @@ def update_table(testplan, testcycle):
     current_week_tables_db[testplan][testcycle] = table
     return [table]
 
-
-@app.callback(
-#    Output('weekly-status', 'figure'),
-    Output('chart-container', 'children'),
-    [Input('id-test-plan', 'value'),
-     Input('id-test-cycle', 'value')])
-def update_graph(testplan, testcycle):
-    current_testplan = testplan
-    current_testcycle = testcycle
-    df_by_cycle = df_by_testplan[current_testplan]
-    if current_testcycle not in iter(df_by_cycle):
-        current_testcycle = next(iter(df_by_testplan[current_testplan]))
-    df = df_by_cycle[current_testcycle]
+def get_weekly_status_chart(testplan, testcycle):
+    df_by_cycle = df_by_testplan[testplan]
+    if testcycle not in iter(df_by_cycle):
+        testcycle = next(iter(df_by_testplan[testplan]))
+    df = df_by_cycle[testcycle]
     data = []
     fmt_date = lambda x: x.strftime('%b %d') + ' - ' + (x + timedelta(days=4)).strftime('%b %d') \
         if x is not None else 'Unassigned'
@@ -260,6 +250,28 @@ def update_graph(testplan, testcycle):
                 )
             }
         )]
+
+
+def get_historical_status_chart(testplan, testcycle):
+    return []
+
+@app.callback(
+    Output('chart-container', 'children'),
+    [Input('id-test-plan', 'value'),
+     Input('id-test-cycle', 'value'),
+     Input('id-chart-type', 'value')])
+def update_graph(testplan, testcycle, type):
+    current_testplan = testplan
+    current_testcycle = testcycle
+    current_chart_type = type
+    if type == 'Weekly':
+        return get_weekly_status_chart(testplan, testcycle)
+
+    if type == 'Historical':
+        return get_historical_status_chart(testplan, testcycle)
+
+    return []
+
 
 
 
