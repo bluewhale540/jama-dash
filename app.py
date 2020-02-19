@@ -9,6 +9,8 @@ from dash.dependencies import Input, Output
 import dash_table
 import pandas
 import jinja2.ext
+from datetime import timedelta, date, datetime
+
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
@@ -35,7 +37,7 @@ if jama_api_password is None or jama_api_username is None:
 # list of project, test plan and chart title
 testing_list = [
     ('VRel', '2.7.1-3.1-FAT2 Testing (Priority1)', 'SIT FAT2 Testing Status'),
-#    ('PIT', 'GX5_Phase1_Stage1_FAT2_Dry_Run', 'PIT FAT2 Dry Run Status'),
+    ('PIT', 'GX5_Phase1_Stage1_FAT2_Dry_Run', 'PIT FAT2 Dry Run Status'),
 ]
 
 proj_list = [x[0] for x in testing_list]
@@ -86,6 +88,9 @@ current_testcycle = next(iter(df_by_testplan[current_testplan]))
 chart_types = ['Weekly', 'Historical']
 current_chart_type = next(iter(chart_types))
 
+# build current week testrun tables into this lookup for fast refresh
+current_week_tables_db = {}
+
 
 app.layout = html.Div([
     html.Div([
@@ -106,6 +111,13 @@ app.layout = html.Div([
         ],
         style={'width': '33%', 'display': 'inline-block'}),
 
+    ]),
+    html.Div(id='chart-container'),
+    html.Hr(),
+    html.H6('Test Runs Scheduled This Week'),
+    html.Div(id='datatable-container')
+])
+'''
         html.Div([
             dcc.Dropdown(
                 id='id-chart-type',
@@ -114,12 +126,7 @@ app.layout = html.Div([
             ),
         ],
         style={'width': '33%', 'display': 'inline-block'})
-
-    ]),
-    html.Div(id='chart-container'),
-    html.Hr(),
-    html.Div(id='datatable-container')
-])
+'''
 
 @app.callback(
     Output('id-test-cycle', 'options'),
@@ -142,9 +149,19 @@ def update_current_testcycle(testplan):
     [Input('id-test-plan', 'value'),
      Input('id-test-cycle', 'value')])
 def update_table(testplan, testcycle):
+    # check for cached table
+    tables_for_testplan = current_week_tables_db.get(testplan)
+    if tables_for_testplan is None:
+        current_week_tables_db[testplan] = {}
+    else:
+        table = tables_for_testplan.get(testcycle)
+        if table is not None:
+            return [table]
+
+    # cached table not found, let's build it
     df_testruns_by_cycle = df_testruns_by_testplan[testplan]
     df = df_testruns_by_cycle[testcycle]
-    df['execution_date'] = df['execution_date'].apply(lambda x: x.date())
+    df['execution_date'] = df['execution_date'].apply(lambda x: x.date() if x is not None else None)
     table =  dash_table.DataTable(
         id='datatable-testruns',
         columns=[
@@ -198,7 +215,9 @@ def update_table(testplan, testcycle):
             'textOverflow': 'ellipsis',
         }
     )
-    return [html.H6('Test Runs Scheduled This Week'), table]
+
+    current_week_tables_db[testplan][testcycle] = table
+    return [table]
 
 
 @app.callback(
@@ -214,12 +233,15 @@ def update_graph(testplan, testcycle):
         current_testcycle = next(iter(df_by_testplan[current_testplan]))
     df = df_by_cycle[current_testcycle]
     data = []
-    x_axis = df['planned_week'].values
+    fmt_date = lambda x: x.strftime('%b %d') + ' - ' + (x + timedelta(days=4)).strftime('%b %d') \
+        if x is not None else 'Unassigned'
+    x_axis = [fmt_date(x) for x in df['planned_week'].values]
+
     for status in status_names:
         y_axis = df[status].values
         data.append(dict(name=status, x=x_axis, y=y_axis, type='bar',
                          text=y_axis,
-                         textposition='auto',
+                         textposition='inside',
                          marker=dict(color=colormap[status])))
     return [
         dcc.Graph(
@@ -228,8 +250,6 @@ def update_graph(testplan, testcycle):
                 'data': data,
                 'layout': dict(
                     title=testplan + ': ' + testcycle,
-                    uniformtext_minsize=8,
-                    uniformtext_mode='auto',
                     xaxis={
                         'title': 'Planned Week',
                     },
@@ -240,6 +260,7 @@ def update_graph(testplan, testcycle):
                 )
             }
         )]
+
 
 
 if __name__ == '__main__':

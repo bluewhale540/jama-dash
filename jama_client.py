@@ -122,6 +122,8 @@ class jama_client:
                 self.planned_weeks_lookup[x['id']] = start_date
                 self.planned_weeks.append(start_date)
             self.planned_weeks = sorted(self.planned_weeks)
+            # Add None to the list for tests with aunassigned weeks
+            self.planned_weeks = [None] + self.planned_weeks
 
         except Exception as err:
             print('Jama server connection ERROR! -', err)
@@ -393,7 +395,11 @@ class jama_client:
 
         t = []
         for week in self.planned_weeks:
-            df1 = testrun_df[testrun_df['planned_week'] == week]
+            df1 = pd.DataFrame()
+            if week is None:
+                df1 = testrun_df[testrun_df.planned_week.isnull()]
+            else:
+                df1 = testrun_df[testrun_df['planned_week'] == week]
             # get the counts of each status
             data_row = self.__get_status_counts(df1)
             if not any(data_row):
@@ -413,7 +419,7 @@ class jama_client:
         for start_date in self.planned_weeks:
             if start_date is None:
                  continue
-            if date.today() >= start_date and date.today() < start_date + 6:
+            if date.today() >= start_date and date.today() < start_date + timedelta(days=7):
                 return start_date
         return None
 
@@ -444,7 +450,7 @@ class jama_client:
         # get local time zone
         local_tz = get_localzone()
         # create a date range using start and end dates from above set to the local TZ
-        daterange = pd.date_range(start_date, start_date + 6, tz=local_tz)
+        daterange = pd.date_range(start_date, start_date + timedelta(days=7), tz=local_tz)
         t = []
         for d in daterange:
             # create a dataframe of all test runs created before date 'd'
