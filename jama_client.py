@@ -242,7 +242,7 @@ class jama_client:
                     # remove any cached runs for this test plan
                     self.df = self.df[self.df.project != project_key or self.df.testplan != testplan_key]
 
-        print('retrieveing test runs for project {} and test plan {}...'.format(project_key, testplan_key))
+        print('retrieving test runs for project {} and test plan {}...'.format(project_key, testplan_key))
         testcycles = self.testcycle_db.get((project_key, testplan_key))
         if testcycles is None:
             print('No test cycles found for test plan. please call retrieve_testcycles() first')
