@@ -149,11 +149,13 @@ def main():
         title_list = []
         df_list = []
         for cycle in testcycles:
+            '''
             df = client.get_testruns_for_current_week(project_key=project, testplan_key=testplan, testcycle_key=cycle)
             df = client.get_testrun_status_by_planned_weeks(project_key=project, testplan_key=testplan,
                                                             testcycle_key=cycle)
             display_weekly_status_bar_chart(df=df, status_names=status_names, colormap=colormap)
-'''
+            
+            '''
             if cycle is None:
                 title_list.append(title)
             else:
@@ -173,7 +175,7 @@ def main():
                                         colormap=colormap,
                                         title_list=title_list,
                                         deadline=deadline_date)
-'''
+
 '''
         for cycle in testcycles:
             df_status_current = client.get_testrun_status_current(project_key=project,

@@ -183,7 +183,6 @@ class jama_client:
         project_id = self.project_id_lookup[project_key]
         if project_id is None:
             print(f'Invalid project {project_key}')
-        print(f'found project {project_key}!')
         print(f'querying for test plan {testplan_key}...')
         # get all test plans in project
         try:
@@ -243,8 +242,7 @@ class jama_client:
                     # remove any cached runs for this test plan
                     self.df = self.df[self.df.project != project_key or self.df.testplan != testplan_key]
 
-        print('attempting to retrieve test runs for project {} and test plan {} from Jama...'.format(project_key,
-                                                                                                     testplan_key))
+        print('retrieveing test runs for project {} and test plan {}...'.format(project_key, testplan_key))
         testcycles = self.testcycle_db.get((project_key, testplan_key))
         if testcycles is None:
             print('No test cycles found for test plan. please call retrieve_testcycles() first')
@@ -332,9 +330,12 @@ class jama_client:
                 # no test runs found - we will not consider this date
                 continue
             total_runs = df1.shape[0]
-            df2 = df1[df1['modified_date'] < d or (df1['execution_date'] is not None and df1['execution_date'] < d)]
+            df2 = df1[df1.modified_date < d]
             if df2.empty:
                 continue
+            #df2 = df2[df1.execution_date is not None and df1.execution_date < d]
+            #if df2.empty:
+            #    continue
             data_row = [d] + self.__get_status_counts(df2, override_total_runs=total_runs)
             t.append(data_row)
 
