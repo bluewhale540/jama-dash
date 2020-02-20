@@ -2,156 +2,14 @@
 import os
 from jama_client import jama_client
 import login_dialog
-import plotly.graph_objects as go
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output
-import dash_table
-import pandas as pd
-from datetime import timedelta, date, datetime
-
-
-
-def get_current_runs_table(client, project, testplan, testcycle):
-    df = client.get_testruns_for_current_week(project_key=project,
-                                              testplan_key=testplan,
-                                              testcycle_key=testcycle)
-    if testcycle is not None:
-        # drop test cycle column since we are printing it elsewhere
-        df = df.drop(columns=['testcycle'])
-
-    table =  dash_table.DataTable(
-        id='datatable-testruns',
-        columns=[
-            {'name': i, 'id': i, 'deletable': False, 'selectable': False}
-                for i in df.columns
-        ],
-        data=df.to_dict('records'),
-        editable=False,
-        filter_action='native',
-        sort_action='native',
-        page_size=50,
-        style_header={
-            'backgroundColor': 'rgb(230, 230, 230)',
-            'fontWeight': 'bold',
-            'textAlign': 'left'
-        },
-        style_cell_conditional=[
-            {
-                'if': {'column_id': c},
-                'textAlign': 'left'
-            } for c in df.columns
-        ] +
-        [
-            {
-                'if': {'column_id': 'testcycle'},
-                'maxWidth': '30px'
-            },
-            {
-                'if': {'column_id': 'status'},
-                'maxWidth': '30px'
-            },
-            {
-                'if': {'column_id': 'execution_date'},
-                'maxWidth': '24px'
-            },
-            {
-                'if': {'column_id': 'assigned_to'},
-                'maxWidth': '24px'
-            },
-
-        ],
-        style_data_conditional=[
-            {
-                'if': {
-                    'filter_query': '{status} eq "' + s + '"',
-                },
-                'backgroundColor': colormap[s],
-                'color': 'white'
-            } for s in status_names
-        ],
-        style_cell={
-            'minWidth': '0px', 'maxWidth': '60px',
-            'whiteSpace': 'normal',
-            'overflow': 'hidden',
-            'textOverflow': 'ellipsis',
-        }
-    )
-    return table
-
-def get_weekly_status_chart(client, project, testplan, testcycle, title):
-    df = client.get_testrun_status_by_planned_weeks(project_key=project,
-                                                    testplan_key=testplan,
-                                                    testcycle_key=testcycle)
-    data = []
-    fmt_date = lambda x: x.strftime('%b %d') + ' - ' + (x + timedelta(days=4)).strftime('%b %d') \
-        if x is not None else 'Unassigned'
-    x_axis = [fmt_date(x) for x in df['planned_week'].values]
-
-    for status in status_names:
-        y_axis = df[status].values
-        data.append(dict(name=status, x=x_axis, y=y_axis, type='bar',
-                         text=y_axis,
-                         textposition='inside',
-                         marker=dict(color=colormap[status])))
-    return dcc.Graph(
-            id='weekly-status',
-            figure = {
-                'data': data,
-                'layout': dict(
-                    title=title,
-                    xaxis={
-                        'title': 'Planned Week',
-                    },
-                    yaxis={
-                        'title': 'Number Of Test Runs',
-                    },
-                    barmode='stack'
-                )
-            }
-        )
-
-
-def get_historical_status_chart(client, project, testplan, testcycle, title):
-    df = client.get_testrun_status_historical(project_key=project,
-                                              testplan_key=testplan,
-                                              testcycle_key=testcycle)
-    # create historical status scatter graph
-    deadline_x = []
-    deadline_y = []
-
-    x_list = [pd.to_datetime(d).date() for d in df['date'].values]
-    y_dict = {} # dict of y-axis with status name as key
-    for status in status_names:
-        y_dict[status] = df[status].values
-    if test_deadline is not None:
-        tail = df.tail(1)
-        current_date = pd.to_datetime(tail['date'].values[0])
-        deadline_x = [current_date, pd.to_datetime(test_deadline)]
-        deadline_y = [tail['NOT_RUN'].values[0], 0]
-
-    # Add traces
-    data = []
-    for status in status_names:
-        data.append(go.Scatter(x=x_list,
-                         y=y_dict[status],
-                         mode='lines',
-                         name=status,
-                         line=dict(color=colormap[status])))
-    # add deadline meeting trace
-    if test_deadline is not None:
-        data.append(go.Scatter(x=deadline_x,
-                         y=deadline_y,
-                         mode='lines',
-                         name='required burn rate',
-                         line=dict(dash='dash', color='black')))
-    fig = go.Figure(data=data, layout=dict(title=title))
-    return dcc.Graph(
-            id='historical-status',
-            figure = fig,)
-
-
+from datetime import datetime
+from weekly_status import get_weekly_status_chart
+from historical_status import get_historical_status_chart
+from current_testruns import get_current_runs_table
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
@@ -178,7 +36,7 @@ if jama_api_password is None or jama_api_username is None:
 # list of project, test plan and chart title
 testing_list = [
     ('VRel', '2.7.1-3.1-FAT2 Testing (Priority1)', 'SIT FAT2 Testing Status'),
-#    ('PIT', 'GX5_Phase1_Stage1_FAT2_Dry_Run', 'PIT FAT2 Dry Run Status'),
+    ('PIT', 'GX5_Phase1_Stage1_FAT2_Dry_Run', 'PIT FAT2 Dry Run Status'),
 ]
 
 test_deadline = datetime.strptime('Feb 28 2020', '%b %d %Y')
@@ -219,13 +77,14 @@ for project, testplan, title in testing_list:
         for chart_type in chart_types:
             title = f'{chart_type} - {testplan_ui}:{testcycle_ui}'
             if chart_type == FIG_TYPE_WEEKLY_CHART:
-                chart_data_db[testplan_ui][testcycle_ui][chart_type] = [get_weekly_status_chart(client, project, testplan, testcycle, title)]
+                chart_data_db[testplan_ui][testcycle_ui][chart_type] = \
+                    [get_weekly_status_chart(client, project, testplan, testcycle, title, colormap)]
             if chart_type == FIG_TYPE_HISTORICAL_CHART:
                 chart_data_db[testplan_ui][testcycle_ui][chart_type] = \
-                    [get_historical_status_chart(client, project, testplan, testcycle, title)]
+                    [get_historical_status_chart(client, project, testplan, testcycle, test_deadline, title, colormap)]
             if chart_type == FIG_TYPE_CURRENT_RUNS_TABLE:
                 chart_data_db[testplan_ui][testcycle_ui][chart_type] = \
-                    [html.H6(title), get_current_runs_table(client, project, testplan, testcycle)]
+                    [html.H6(title), get_current_runs_table(client, project, testplan, testcycle, title, colormap)]
 
 current_chart_type = next(iter(chart_types))
 current_testplan = next(iter(testplans))
