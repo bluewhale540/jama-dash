@@ -2,7 +2,7 @@ import plotly.graph_objects as go
 import dash_core_components as dcc
 import pandas as pd
 
-def get_historical_status_chart(client, project, testplan, testcycle, test_deadline, title, colormap):
+def get_historical_status_line_chart(client, project, testplan, testcycle, test_deadline, title, colormap):
     df = client.get_testrun_status_historical(project_key=project,
                                               testplan_key=testplan,
                                               testcycle_key=testcycle)

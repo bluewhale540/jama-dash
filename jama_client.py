@@ -306,7 +306,7 @@ class jama_client:
                                             testcycle_key=testcycle_key)
         t = []
         t.append(self.__get_status_counts(testrun_df))
-        df = pd.DataFrame(t, self.status_list)
+        df = pd.DataFrame(t, columns=self.status_list)
 
         return df
 

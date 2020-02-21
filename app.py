@@ -8,8 +8,9 @@ import dash_html_components as html
 from dash.dependencies import Input, Output
 from datetime import datetime
 from weekly_status import get_weekly_status_chart
-from historical_status import get_historical_status_chart
+from historical_status import get_historical_status_line_chart
 from current_testruns import get_current_runs_table
+from current_status import get_current_status_pie_chart
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
@@ -52,10 +53,12 @@ colormap = \
     {'NOT_RUN': 'darkslategray', 'PASSED': 'green', 'FAILED': 'firebrick', 'BLOCKED': 'royalblue', 'INPROGRESS': 'darkorange'}
 status_names = client.get_status_names()
 
-FIG_TYPE_WEEKLY_CHART = 'Weekly Status'
-FIG_TYPE_HISTORICAL_CHART = 'Historical Status'
-FIG_TYPE_CURRENT_RUNS_TABLE= 'Test Runs For Current Week'
-chart_types = [FIG_TYPE_WEEKLY_CHART, FIG_TYPE_HISTORICAL_CHART, FIG_TYPE_CURRENT_RUNS_TABLE]
+FIG_TYPE_WEEKLY_STATUS_CHART = 'Weekly Status'
+FIG_TYPE_HISTORICAL_STATUS_CHART = 'Historical Status'
+FIG_TYPE_CURRENT_STATUS_CHART = 'Current Status'
+FIG_TYPE_CURRENT_RUNS_TABLE = 'Test Runs For Current Week'
+
+chart_types = [FIG_TYPE_WEEKLY_STATUS_CHART, FIG_TYPE_HISTORICAL_STATUS_CHART, FIG_TYPE_CURRENT_STATUS_CHART, FIG_TYPE_CURRENT_RUNS_TABLE]
 current_chart_type = next(iter(chart_types))
 testplans = [] # list of all test plans
 
@@ -76,12 +79,17 @@ for project, testplan, title in testing_list:
         chart_data_db[testplan_ui][testcycle_ui] = {}
         for chart_type in chart_types:
             title = f'{chart_type} - {testplan_ui}:{testcycle_ui}'
-            if chart_type == FIG_TYPE_WEEKLY_CHART:
+            if chart_type == FIG_TYPE_WEEKLY_STATUS_CHART:
                 chart_data_db[testplan_ui][testcycle_ui][chart_type] = \
                     [get_weekly_status_chart(client, project, testplan, testcycle, title, colormap)]
-            if chart_type == FIG_TYPE_HISTORICAL_CHART:
+            if chart_type == FIG_TYPE_HISTORICAL_STATUS_CHART:
                 chart_data_db[testplan_ui][testcycle_ui][chart_type] = \
-                    [get_historical_status_chart(client, project, testplan, testcycle, test_deadline, title, colormap)]
+                    [get_historical_status_line_chart(client, project, testplan, testcycle, test_deadline, title,
+                                                      colormap)]
+            if chart_type == FIG_TYPE_CURRENT_STATUS_CHART:
+                chart_data_db[testplan_ui][testcycle_ui][chart_type] = \
+                    [get_current_status_pie_chart(client, project, testplan, testcycle, title,
+                                                      colormap)]
             if chart_type == FIG_TYPE_CURRENT_RUNS_TABLE:
                 chart_data_db[testplan_ui][testcycle_ui][chart_type] = \
                     [html.H6(title), get_current_runs_table(client, project, testplan, testcycle, title, colormap)]
