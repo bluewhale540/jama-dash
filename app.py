@@ -138,7 +138,7 @@ def update_testcycle_options(testplan):
     current_testplan = testplan
     testcycles = [i for i in iter(chart_data_db[current_testplan])]
     if current_testcycle not in testcycles:
-        current_testcycle = next(testcycles)
+        current_testcycle = next(iter(testcycles))
     options = [{'label': i, 'value': i} for i in testcycles]
     return options
 
@@ -152,7 +152,10 @@ def update_graph(testplan, testcycle, chart_type):
     global current_testcycle
     current_chart_type = chart_type
     current_testcycle = testcycle
-    chart =  chart_data_db[testplan][testcycle][chart_type]
+    testcycles = [i for i in iter(chart_data_db[testplan])]
+    if current_testcycle not in testcycles:
+        current_testcycle = next(iter(testcycles))
+    chart =  chart_data_db[testplan][current_testcycle][chart_type]
     return chart
 
 if __name__ == '__main__':
