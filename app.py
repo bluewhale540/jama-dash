@@ -7,10 +7,11 @@ import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output
 from datetime import datetime
-from weekly_status import get_weekly_status_chart
-from historical_status import get_historical_status_line_chart
-from current_testruns import get_current_runs_table
-from current_status import get_current_status_pie_chart
+from weekly_testrun_status import get_weekly_status_chart
+from historical_testrun_status import get_historical_status_line_chart
+from current_week_status_table import get_current_runs_table
+from current_testrun_status import get_current_status_pie_chart
+from current_testrun_status_by_set import get_current_status_by_set_bar_chart
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
@@ -37,9 +38,9 @@ if jama_api_password is None or jama_api_username is None:
 # list of project, test plan and chart title
 testing_list = [
     ('VRel', '2.7.1-3.1-FAT2 Testing (Priority1)', 'SIT FAT2 Testing Status'),
-    ('PIT', 'GX5_Phase1_Stage1_FAT2_Dry_Run', 'PIT FAT2 Dry Run Status'),
+#    ('PIT', 'GX5_Phase1_Stage1_FAT2_Dry_Run', 'PIT FAT2 Dry Run Status'),
 ]
-
+start_date = datetime.strptime('Feb 01 2020', '%b %d %Y')
 test_deadline = datetime.strptime('Feb 28 2020', '%b %d %Y')
 
 proj_list = [x[0] for x in testing_list]
@@ -53,12 +54,18 @@ colormap = \
     {'NOT_RUN': 'darkslategray', 'PASSED': 'green', 'FAILED': 'firebrick', 'BLOCKED': 'royalblue', 'INPROGRESS': 'darkorange'}
 status_names = client.get_status_names()
 
-FIG_TYPE_WEEKLY_STATUS_CHART = 'Weekly Status'
-FIG_TYPE_HISTORICAL_STATUS_CHART = 'Historical Status'
-FIG_TYPE_CURRENT_STATUS_CHART = 'Current Status'
+FIG_TYPE_WEEKLY_STATUS_BAR_CHART = 'Weekly Status'
+FIG_TYPE_HISTORICAL_STATUS_LINE_CHART = 'Historical Status'
+FIG_TYPE_CURRENT_STATUS_PIE_CHART = 'Current Status'
+FIG_TYPE_CURRENT_STATUS_BY_SET_BAR_CHART = 'Current Status By Testrun Set'
 FIG_TYPE_CURRENT_RUNS_TABLE = 'Test Runs For Current Week'
 
-chart_types = [FIG_TYPE_WEEKLY_STATUS_CHART, FIG_TYPE_HISTORICAL_STATUS_CHART, FIG_TYPE_CURRENT_STATUS_CHART, FIG_TYPE_CURRENT_RUNS_TABLE]
+chart_types = [
+    FIG_TYPE_WEEKLY_STATUS_BAR_CHART,
+    FIG_TYPE_HISTORICAL_STATUS_LINE_CHART,
+    FIG_TYPE_CURRENT_STATUS_PIE_CHART,
+#    FIG_TYPE_CURRENT_STATUS_BY_SET_BAR_CHART,
+    FIG_TYPE_CURRENT_RUNS_TABLE]
 current_chart_type = next(iter(chart_types))
 testplans = [] # list of all test plans
 
@@ -79,16 +86,28 @@ for project, testplan, title in testing_list:
         chart_data_db[testplan_ui][testcycle_ui] = {}
         for chart_type in chart_types:
             title = f'{chart_type} - {testplan_ui}:{testcycle_ui}'
-            if chart_type == FIG_TYPE_WEEKLY_STATUS_CHART:
+            if chart_type == FIG_TYPE_WEEKLY_STATUS_BAR_CHART:
                 chart_data_db[testplan_ui][testcycle_ui][chart_type] = \
                     [get_weekly_status_chart(client, project, testplan, testcycle, title, colormap)]
-            if chart_type == FIG_TYPE_HISTORICAL_STATUS_CHART:
+            if chart_type == FIG_TYPE_HISTORICAL_STATUS_LINE_CHART:
                 chart_data_db[testplan_ui][testcycle_ui][chart_type] = \
-                    [get_historical_status_line_chart(client, project, testplan, testcycle, test_deadline, title,
-                                                      colormap)]
-            if chart_type == FIG_TYPE_CURRENT_STATUS_CHART:
+                    [get_historical_status_line_chart(client,
+                                                      project,
+                                                      testplan,
+                                                      testcycle,
+                                                      start_date,
+                                                      test_deadline,
+                                                      title,
+                                                      colormap,
+                                                      treat_blocked_as_not_run=True,
+                                                      treat_inprogress_as_not_run=True)]
+            if chart_type == FIG_TYPE_CURRENT_STATUS_PIE_CHART:
                 chart_data_db[testplan_ui][testcycle_ui][chart_type] = \
                     [get_current_status_pie_chart(client, project, testplan, testcycle, title,
+                                                      colormap)]
+            if chart_type == FIG_TYPE_CURRENT_STATUS_BY_SET_BAR_CHART:
+                chart_data_db[testplan_ui][testcycle_ui][chart_type] = \
+                    [get_current_status_by_set_bar_chart(client, project, testplan, testcycle, title,
                                                       colormap)]
             if chart_type == FIG_TYPE_CURRENT_RUNS_TABLE:
                 chart_data_db[testplan_ui][testcycle_ui][chart_type] = \

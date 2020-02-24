@@ -2,10 +2,22 @@ import plotly.graph_objects as go
 import dash_core_components as dcc
 import pandas as pd
 
-def get_historical_status_line_chart(client, project, testplan, testcycle, test_deadline, title, colormap):
+def get_historical_status_line_chart(
+        client, project, testplan, testcycle,
+        start_date, test_deadline, title, colormap,
+        treat_blocked_as_not_run=False,
+        treat_inprogress_as_not_run=False):
     df = client.get_testrun_status_historical(project_key=project,
                                               testplan_key=testplan,
-                                              testcycle_key=testcycle)
+                                              testcycle_key=testcycle,
+                                              start_date=pd.to_datetime(start_date))
+    if treat_blocked_as_not_run:
+        df['NOT_RUN'] = df['NOT_RUN'] + df['BLOCKED']
+        df.drop(columns=['BLOCKED'])
+    if treat_inprogress_as_not_run:
+        df['NOT_RUN'] = df['NOT_RUN'] + df['INPROGRESS']
+        df.drop(columns=['INPROGRESS'])
+
     # create historical status scatter graph
     deadline_x = []
     deadline_y = []
@@ -23,6 +35,10 @@ def get_historical_status_line_chart(client, project, testplan, testcycle, test_
     # Add traces
     data = []
     for status in client.get_status_names():
+        if status == 'INPROGRESS' and treat_inprogress_as_not_run is True:
+            continue
+        if status == 'BLOCKED' and treat_blocked_as_not_run is True:
+            continue
         data.append(go.Scatter(x=x_list,
                          y=y_dict[status],
                          mode='lines',

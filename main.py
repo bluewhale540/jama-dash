@@ -155,7 +155,7 @@ def main():
                                                             testcycle_key=cycle)
             display_weekly_status_bar_chart(df=df, status_names=status_names, colormap=colormap)
             
-            '''
+
             if cycle is None:
                 title_list.append(title)
             else:
@@ -164,9 +164,14 @@ def main():
             df = client.get_testrun_status_historical(project_key=project,
                                                                      testplan_key=testplan,
                                                                      testcycle_key=cycle)
+            '''
+            df = client.get_testrun_status_by_set(project_key=project,
+                                                                     testplan_key=testplan,
+                                                                     testcycle_key=cycle)
             if df is None:
                 continue
             df_list.append(df)
+
 
         local_tz = get_localzone()
         deadline_date = datetime.strptime('2020-02-28-05:00:00', '%Y-%m-%d-%H:%M:%S').replace(tzinfo=pytz.utc).astimezone(local_tz)
