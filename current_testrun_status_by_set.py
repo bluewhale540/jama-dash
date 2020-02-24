@@ -1,9 +1,9 @@
 import dash_core_components as dcc
 
 def get_current_status_by_set_bar_chart(client, project, testplan, testcycle, title, colormap):
-    df = client.get_testrun_status_by_set(project_key=project,
-                                        testplan_key=testplan,
-                                        testcycle_key=testcycle)
+    df = client.get_testrun_status_by_testcase(project_key=project,
+                                               testplan_key=testplan,
+                                               testcycle_key=testcycle)
     data = []
     x_axis = [x for x in df.index]
 

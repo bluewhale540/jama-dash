@@ -84,6 +84,7 @@ for project, testplan, title in testing_list:
             testcycle_ui = 'Overall'
         print(f'Creating charts for {testplan_ui}:{testcycle_ui}...')
         chart_data_db[testplan_ui][testcycle_ui] = {}
+        df = client.retrieve_testruns(project_key=project, testplan_key=testplan, testcycle_key=testcycle)
         for chart_type in chart_types:
             title = f'{chart_type} - {testplan_ui}:{testcycle_ui}'
             if chart_type == FIG_TYPE_WEEKLY_STATUS_BAR_CHART:
@@ -103,8 +104,7 @@ for project, testplan, title in testing_list:
                                                       treat_inprogress_as_not_run=True)]
             if chart_type == FIG_TYPE_CURRENT_STATUS_PIE_CHART:
                 chart_data_db[testplan_ui][testcycle_ui][chart_type] = \
-                    [get_current_status_pie_chart(client, project, testplan, testcycle, title,
-                                                      colormap)]
+                    [get_current_status_pie_chart(df=df, title=title, colormap=colormap)]
             if chart_type == FIG_TYPE_CURRENT_STATUS_BY_SET_BAR_CHART:
                 chart_data_db[testplan_ui][testcycle_ui][chart_type] = \
                     [get_current_status_by_set_bar_chart(client, project, testplan, testcycle, title,

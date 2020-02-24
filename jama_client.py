@@ -300,7 +300,7 @@ class jama_client:
         print('found {} test runs!'.format(len(testruns_to_add)))
 
         # append the retrieved test runs to the existing data frame
-        new_df = pd.DataFrame(testruns_to_add, columns=['project', 'testplan', 'testcycle', 'testrun', 'testrun_set',
+        new_df = pd.DataFrame(testruns_to_add, columns=['project', 'testplan', 'testcycle', 'testcase', 'testrun',
                                                         'created_date', 'modified_date', 'status', 'execution_date',
                                                         'planned_week', 'assigned_to', 'bug_id'])
         new_df['created_date'] = pd.to_datetime(new_df['created_date'], format="%Y-%m-%d").dt.floor("d")
@@ -315,16 +315,16 @@ class jama_client:
         return new_df
 
     # get testrun status by testrun set
-    def get_testrun_status_by_set(self, project_key, testplan_key, testcycle_key=None):
+    def get_testrun_status_by_testcase(self, project_key, testplan_key, testcycle_key=None):
         df = self.retrieve_testruns(project_key=project_key,
                                             testplan_key=testplan_key,
                                             testcycle_key=testcycle_key)
 
         # get list of testrun sets
-        sets = [x for x in iter(df.testrun_set.unique())]
+        sets = [x for x in iter(df.testcase.unique())]
         d = []
         for set in iter(sets):
-            df1 = df[df.testrun_set == set]
+            df1 = df[df.testcase == set]
             total_runs = df1.shape[0]
             status_counts = self.__get_status_counts_as_list(df1)
             d.append(status_counts)
