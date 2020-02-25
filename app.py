@@ -7,10 +7,10 @@ import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output
 from datetime import datetime
-from weekly_testrun_status import get_weekly_status_bar_chart
-from historical_testrun_status import get_historical_status_line_chart
-from current_week_status_table import get_current_runs_table
-from current_testrun_status import get_current_status_pie_chart
+from weekly_status import get_weekly_status_bar_chart, get_current_week_testruns_table
+from historical_status import get_historical_status_line_chart
+from current_status import get_current_status_pie_chart, get_current_status_by_testcase_bar_chart
+from testrun_utils import get_status_names
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
@@ -51,18 +51,19 @@ if not client.connect(url=jama_url, username=jama_api_username, password=jama_ap
 
 colormap = \
     {'NOT_RUN': 'darkslategray', 'PASSED': 'green', 'FAILED': 'firebrick', 'BLOCKED': 'royalblue', 'INPROGRESS': 'darkorange'}
-status_names = client.get_status_names()
+status_names = get_status_names()
 
 FIG_TYPE_WEEKLY_STATUS_BAR_CHART = 'Weekly Status'
 FIG_TYPE_HISTORICAL_STATUS_LINE_CHART = 'Historical Status'
 FIG_TYPE_CURRENT_STATUS_PIE_CHART = 'Current Status'
-FIG_TYPE_CURRENT_STATUS_BY_SET_BAR_CHART = 'Current Status By Testrun Set'
+FIG_TYPE_CURRENT_STATUS_BY_TESTCASE_BAR_CHART = 'Testcase Status'
 FIG_TYPE_CURRENT_RUNS_TABLE = 'Test Runs For Current Week'
 
 chart_types = [
     FIG_TYPE_WEEKLY_STATUS_BAR_CHART,
     FIG_TYPE_HISTORICAL_STATUS_LINE_CHART,
     FIG_TYPE_CURRENT_STATUS_PIE_CHART,
+#    FIG_TYPE_CURRENT_STATUS_BY_TESTCASE_BAR_CHART,
     FIG_TYPE_CURRENT_RUNS_TABLE]
 current_chart_type = next(iter(chart_types))
 testplans = [] # list of all test plans
@@ -127,12 +128,21 @@ for project, testplan, title in testing_list:
 
                 if chart_type == FIG_TYPE_CURRENT_RUNS_TABLE:
                     chart_data_db[testplan_ui][testcycle_ui][testcase_ui][chart_type] = \
-                        [html.H6(title), get_current_runs_table(
+                        [html.H6(title), get_current_week_testruns_table(
                             df=df,
                             testcycle=testcycle,
                             testcase=testcase,
                             title=title,
                             colormap=colormap)]
+
+                    if chart_type == FIG_TYPE_CURRENT_STATUS_BY_TESTCASE_BAR_CHART:
+                        chart_data_db[testplan_ui][testcycle_ui][testcase_ui][chart_type] = \
+                            [get_current_status_by_testcase_bar_chart(
+                                df=df,
+                                testcycle=testcycle,
+                                testcase=testcase,
+                                title=title,
+                                colormap=colormap)]
 
 current_chart_type = next(iter(chart_types))
 current_testplan = next(iter(testplans))

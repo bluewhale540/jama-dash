@@ -165,12 +165,6 @@ def main():
                                                                      testplan_key=testplan,
                                                                      testcycle_key=cycle)
             '''
-            df = client.get_testrun_status_by_testcase(project_key=project,
-                                                       testplan_key=testplan,
-                                                       testcycle_key=cycle)
-            if df is None:
-                continue
-            df_list.append(df)
 
 
         local_tz = get_localzone()

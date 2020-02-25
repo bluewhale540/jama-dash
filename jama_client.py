@@ -136,54 +136,6 @@ class jama_client:
     def get_status_names(self):
         return self.status_list
 
-    def get_planned_weeks(self):
-        return self.planned_weeks
-
-    # retuns an array of counts of the values in the status field in the df
-    # if override_total_runs is not None, calculate not_run using this value
-    def __get_status_counts(self, df, override_total_runs=None):
-        df_counts = df['status'].value_counts()
-        passed = 0
-        failed = 0
-        inprogress = 0
-        blocked = 0
-        not_run = 0
-        if 'PASSED' in df_counts.index:
-            passed = df_counts['PASSED']
-        if 'FAILED' in df_counts.index:
-            failed = df_counts['FAILED']
-        if 'INPROGRESS' in df_counts.index:
-            inprogress = df_counts['INPROGRESS']
-        if 'BLOCKED' in df_counts.index:
-            blocked = df_counts['BLOCKED']
-        if 'NOT_RUN' in df_counts.index:
-            not_run = df_counts['NOT_RUN']
-        if override_total_runs is not None:
-            not_run = override_total_runs - passed - failed - blocked - inprogress
-
-        datadict = {}
-        datadict['NOT_RUN'] = not_run
-        datadict['PASSED'] = passed
-        datadict['FAILED'] = failed
-        if self.inprogress_as_not_run:
-            datadict['NOT_RUN'] += inprogress
-        else:
-            datadict['INPROGRESS'] = inprogress
-        if self.blocking_as_not_run:
-            datadict['NOT_RUN'] += blocked
-        else:
-            datadict['BLOCKED'] = blocked
-        return datadict
-
-    def __get_status_counts_as_list(self, df, override_total_runs=None):
-        d = self.__get_status_counts(df, override_total_runs)
-        data_row = [d['NOT_RUN'], d['PASSED'], d['FAILED'], ]
-        if not self.inprogress_as_not_run:
-            data_row.append(d['INPROGRESS'])
-        if not self.blocking_as_not_run:
-            data_row.append(d['BLOCKED'])
-        return data_row
-
     def retrieve_testcycles(self, project_key, testplan_key, update=False):
         testcycles = self.testcycle_db.get((project_key, testplan_key))
         if not update and self.testcycle_db is not None and testcycles is not None:
@@ -312,57 +264,4 @@ class jama_client:
             # filter by test cycle key
             new_df = new_df[new_df.testcycle.isin([testcycle_key])]
         return new_df
-
-    # get testrun status by testrun set
-    def get_testrun_status_by_testcase(self, project_key, testplan_key, testcycle_key=None):
-        df = self.retrieve_testruns(project_key=project_key,
-                                            testplan_key=testplan_key,
-                                            testcycle_key=testcycle_key)
-
-        # get list of testrun sets
-        sets = [x for x in iter(df.testcase.unique())]
-        d = []
-        for set in iter(sets):
-            df1 = df[df.testcase == set]
-            total_runs = df1.shape[0]
-            status_counts = self.__get_status_counts_as_list(df1)
-            d.append(status_counts)
-        df_result = pd.DataFrame(d, columns=self.get_status_names(), index=sets)
-        df_result = df_result.query('FAILED > 0 or BLOCKED > 0')
-        return df_result
-
-
-    def get_testrun_status_historical(self, project_key, testplan_key, testcycle_key=None, start_date=None):
-        testrun_df = self.retrieve_testruns(project_key=project_key,
-                                            testplan_key=testplan_key,
-                                            testcycle_key=testcycle_key)
-        # set lowest modified date - 1 as start date
-        if start_date is None:
-            start_date = pd.to_datetime(testrun_df['modified_date'].values.min()).date() - timedelta(days=1)
-        # set tomorrow's date as end date
-        end_date = date.today() + timedelta(days=1) - timedelta(seconds=1)  # today 11:59:59 pm
-        # get local time zone
-        local_tz = get_localzone()
-        # create a date range using start and end dates from above set to the local TZ
-        daterange = pd.date_range(start_date, end_date, tz=local_tz)
-        t = []
-        for d in daterange:
-            # create a dataframe of all test runs created before date 'd'
-            df1 = testrun_df[testrun_df['created_date'] < d]
-            if df1.empty:
-                # no test runs found - we will not consider this date
-                continue
-            total_runs = df1.shape[0]
-            df2 = df1[df1.modified_date < d]
-            if df2.empty:
-                continue
-            #df2 = df2[df1.execution_date is not None and df1.execution_date < d]
-            #if df2.empty:
-            #    continue
-            data_row = [d] + self.__get_status_counts_as_list(df2, override_total_runs=total_runs)
-            t.append(data_row)
-
-        df = pd.DataFrame(t, columns=['date'] + self.status_list)
-        df['date'] = pd.to_datetime(df['date'])
-        return df
 
