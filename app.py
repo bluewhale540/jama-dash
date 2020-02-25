@@ -7,7 +7,7 @@ import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output
 from datetime import datetime
-from weekly_testrun_status import get_weekly_status_chart
+from weekly_testrun_status import get_weekly_status_bar_chart
 from historical_testrun_status import get_historical_status_line_chart
 from current_week_status_table import get_current_runs_table
 from current_testrun_status import get_current_status_pie_chart
@@ -77,6 +77,7 @@ for project, testplan, title in testing_list:
     chart_data_db[testplan_ui] = {}
     testcycles = [None, ] + [c for i,c in client.retrieve_testcycles(project_key=project, testplan_key=testplan)]
 #    df = pd.DataFrame() # initialize an empty data frame
+    df = client.retrieve_testruns(project_key=project, testplan_key=testplan)
     for testcycle in testcycles:
         testcycle_ui = testcycle
         if testcycle is None:
@@ -84,12 +85,16 @@ for project, testplan, title in testing_list:
             testcycle_ui = 'Overall'
         print(f'Creating charts for {testplan_ui}:{testcycle_ui}...')
         chart_data_db[testplan_ui][testcycle_ui] = {}
-        df = client.retrieve_testruns(project_key=project, testplan_key=testplan, testcycle_key=testcycle)
+        testcase = None
         for chart_type in chart_types:
             title = f'{chart_type} - {testplan_ui}:{testcycle_ui}'
             if chart_type == FIG_TYPE_WEEKLY_STATUS_BAR_CHART:
                 chart_data_db[testplan_ui][testcycle_ui][chart_type] = \
-                    [get_weekly_status_chart(client, project, testplan, testcycle, title, colormap)]
+                    [get_weekly_status_bar_chart(df,
+                                             testcycle,
+                                             testcase,
+                                             title,
+                                             colormap)]
             if chart_type == FIG_TYPE_HISTORICAL_STATUS_LINE_CHART:
                 chart_data_db[testplan_ui][testcycle_ui][chart_type] = \
                     [get_historical_status_line_chart(client,
