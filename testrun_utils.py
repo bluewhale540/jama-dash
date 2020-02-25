@@ -1,10 +1,19 @@
 import re
 from datetime import timedelta, date, datetime
 import pandas as pd
-
+from tzlocal import get_localzone
 
 def get_status_names():
     return ['NOT_RUN', 'PASSED', 'FAILED', 'INPROGRESS', 'BLOCKED']
+
+def filter_df(df, testcycle_key, testcase_key):
+    df1 = df
+    if testcycle_key is not None:
+        df1 = df[df.testcycle.isin([testcycle_key])]
+    if testcase_key is not None:
+        df1 = df[df.testcase.isin([testcase_key])]
+    return df1
+
 
 # retuns an array of counts of the values in the status field in the df
 # if override_total_runs is not None, calculate not_run using this value
@@ -58,7 +67,7 @@ def __get_status_counts_as_list(df, override_total_runs=None,
 # process the week string in the format SprintX_mmmdd_mmmdd or SprintX_mmmdd_dd
 # and return the start and end dates in the string. Returns None, None if format is
 # invalid
-def __get_start_and_end_date(self, week_str):
+def get_start_and_end_date(week_str):
     # strip 'Sprint\d_' prefix if it exists
     result = re.findall('^Sprint\d+_', week_str)
     if len(result) == 0:
@@ -111,12 +120,9 @@ def __get_current_planned_week(planned_weeks):
 
 
 def get_testrun_status_by_planned_weeks(df, testcycle_key=None, testcase_key=None):
-    df1 = df
-    if testcycle_key is not None:
-        df1 = df[df.testcycle.isin([testcycle_key])]
-    if testcase_key is not None:
-        df1 = df[df.testcase.isin([testcase_key])]
+    df1 = filter_df(df, testcycle_key, testcase_key)
     t = []
+    status_list=[]
     planned_weeks = df1.planned_week.unique()
     for week in planned_weeks:
         df2 = pd.DataFrame()
@@ -130,9 +136,56 @@ def get_testrun_status_by_planned_weeks(df, testcycle_key=None, testcase_key=Non
             # all zero values -- skip row
             continue
         # replace 0 values with None
-        data_row1 = [i if i > 0 else None for i in data_row]
+        data_row = [i if i > 0 else None for i in data_row]
 
-        t.append([week] + data_row1)
+        t.append([week] + data_row)
 
     df = pd.DataFrame(t, columns=['planned_week'] + status_list)
     return df
+
+def get_testruns_for_current_week(df, testcycle_key=None, testcase_key=None):
+    df1 = filter_df(df, testcycle_key, testcase_key)
+    planned_weeks = df1.planned_week.unique()
+    start_date = __get_current_planned_week(planned_weeks)
+    if start_date is None:
+        print('Cannot find current planned week in dataframe')
+        return None
+    # filter test runs by current week
+    df1 = df1[df1['planned_week'] == start_date]
+    df1 = df1.drop(columns=['project', 'testplan', 'created_date', 'modified_date', 'planned_week'])
+    return df1
+
+
+def get_testrun_status_historical(df, testcycle_key=None, testcase_key=None, start_date=None):
+    df1 = filter_df(df, testcycle_key, testcase_key)
+    # set lowest modified date - 1 as start date
+    if start_date is None:
+        start_date = pd.to_datetime(df1['modified_date'].values.min()).date() - timedelta(days=1)
+    # set tomorrow's date as end date
+    end_date = date.today() + timedelta(days=1) - timedelta(seconds=1)  # today 11:59:59 pm
+    # get local time zone
+    local_tz = get_localzone()
+    # create a date range using start and end dates from above set to the local TZ
+    daterange = pd.date_range(start_date, end_date, tz=local_tz)
+    t = []
+    for d in daterange:
+        # create a dataframe of all test runs created before date 'd'
+        df1 = df1[df1['created_date'] < d]
+        if df1.empty:
+            # no test runs found - we will not consider this date
+            continue
+        total_runs = df1.shape[0]
+        df2 = df1[df1.modified_date < d]
+        if df2.empty:
+            continue
+        #df2 = df2[df1.execution_date is not None and df1.execution_date < d]
+        #if df2.empty:
+        #    continue
+        status_list, data_row = __get_status_counts_as_list(df2, override_total_runs=total_runs)
+        data_row = [d] + data_row
+        t.append(data_row)
+
+    df = pd.DataFrame(t, columns=['date'] + get_status_names())
+    df['date'] = pd.to_datetime(df['date'])
+    return df
+

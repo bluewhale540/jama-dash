@@ -97,26 +97,33 @@ for project, testplan, title in testing_list:
                                              colormap)]
             if chart_type == FIG_TYPE_HISTORICAL_STATUS_LINE_CHART:
                 chart_data_db[testplan_ui][testcycle_ui][chart_type] = \
-                    [get_historical_status_line_chart(client,
-                                                      project,
-                                                      testplan,
-                                                      testcycle,
-                                                      start_date,
-                                                      test_deadline,
-                                                      title,
-                                                      colormap,
+                    [get_historical_status_line_chart(df=df,
+                                                      testcycle=testcycle,
+                                                      testcase=testcase,
+                                                      start_date=start_date,
+                                                      test_deadline=test_deadline,
+                                                      title=title,
+                                                      colormap=colormap,
                                                       treat_blocked_as_not_run=True,
                                                       treat_inprogress_as_not_run=True)]
             if chart_type == FIG_TYPE_CURRENT_STATUS_PIE_CHART:
                 chart_data_db[testplan_ui][testcycle_ui][chart_type] = \
                     [get_current_status_pie_chart(df=df, title=title, colormap=colormap)]
+
             if chart_type == FIG_TYPE_CURRENT_STATUS_BY_SET_BAR_CHART:
                 chart_data_db[testplan_ui][testcycle_ui][chart_type] = \
                     [get_current_status_by_set_bar_chart(client, project, testplan, testcycle, title,
                                                       colormap)]
+
             if chart_type == FIG_TYPE_CURRENT_RUNS_TABLE:
                 chart_data_db[testplan_ui][testcycle_ui][chart_type] = \
-                    [html.H6(title), get_current_runs_table(client, project, testplan, testcycle, title, colormap)]
+                    [html.H6(title),
+                     get_current_runs_table(
+                         df,
+                         testcycle,
+                         testcase,
+                         title,
+                         colormap)]
 
 current_chart_type = next(iter(chart_types))
 current_testplan = next(iter(testplans))
