@@ -9,9 +9,9 @@ def get_status_names():
 def filter_df(df, testcycle_key, testcase_key):
     df1 = df
     if testcycle_key is not None:
-        df1 = df[df.testcycle.isin([testcycle_key])]
+        df1 = df1[df.testcycle.eq(testcycle_key)]
     if testcase_key is not None:
-        df1 = df[df.testcase.isin([testcase_key])]
+        df1 = df1[df.testcase.eq(testcase_key)]
     return df1
 
 
@@ -148,7 +148,7 @@ def get_testruns_for_current_week(df, testcycle_key=None, testcase_key=None):
     planned_weeks = df1.planned_week.unique()
     start_date = __get_current_planned_week(planned_weeks)
     if start_date is None:
-        print('Cannot find current planned week in dataframe')
+        # Cannot find current planned week in dataframe, return None
         return None
     # filter test runs by current week
     df1 = df1[df1['planned_week'] == start_date]
@@ -170,22 +170,19 @@ def get_testrun_status_historical(df, testcycle_key=None, testcase_key=None, sta
     t = []
     for d in daterange:
         # create a dataframe of all test runs created before date 'd'
-        df1 = df1[df1['created_date'] < d]
-        if df1.empty:
+        df2 = df1[df1['created_date'] < d]
+        if df2.empty:
             # no test runs found - we will not consider this date
             continue
-        total_runs = df1.shape[0]
-        df2 = df1[df1.modified_date < d]
+        total_runs = df2.shape[0]
+        df2 = df2[df2.modified_date < d]
         if df2.empty:
             continue
-        #df2 = df2[df1.execution_date is not None and df1.execution_date < d]
-        #if df2.empty:
-        #    continue
         status_list, data_row = __get_status_counts_as_list(df2, override_total_runs=total_runs)
         data_row = [d] + data_row
         t.append(data_row)
 
-    df = pd.DataFrame(t, columns=['date'] + get_status_names())
-    df['date'] = pd.to_datetime(df['date'])
-    return df
+    df3 = pd.DataFrame(t, columns=['date'] + get_status_names())
+    df3['date'] = pd.to_datetime(df3['date'])
+    return df3
 

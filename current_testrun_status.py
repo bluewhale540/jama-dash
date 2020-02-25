@@ -1,8 +1,10 @@
 import plotly.graph_objects as go
 import dash_core_components as dcc
+from testrun_utils import filter_df
 
-def get_current_status_pie_chart(df, testcase=None, title='Current Status', colormap=None):
-    counts = df['status'].value_counts()
+def get_current_status_pie_chart(df, testcycle=None, testcase=None, title='Current Status', colormap=None):
+    df1 = filter_df(df, testcycle, testcase)
+    counts = df1['status'].value_counts()
 
     status_names = []
     values = []

@@ -5,7 +5,6 @@ from testrun_utils import get_testruns_for_current_week, get_status_names
 def get_current_runs_table(df, testcycle, testcase, title, colormap):
     df = get_testruns_for_current_week(df=df, testcycle_key=testcycle, testcase_key=testcase)
     if df is None:
-        print(f'No test run data for test cycle {testcycle} and test case {testcase}')
         return html.P('No test runs found!')
 
     if testcycle is not None:

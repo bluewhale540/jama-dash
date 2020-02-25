@@ -2,32 +2,36 @@ import plotly.graph_objects as go
 import dash_core_components as dcc
 import pandas as pd
 from testrun_utils import get_testrun_status_historical, get_status_names
+from datetime import datetime
 
 def get_historical_status_line_chart(
         df, testcycle, testcase,
         start_date, test_deadline, title, colormap,
         treat_blocked_as_not_run=False,
         treat_inprogress_as_not_run=False):
-    df = get_testrun_status_historical(df, testcycle_key=testcycle, testcase_key=testcase,
+    df1 = get_testrun_status_historical(df, testcycle_key=testcycle, testcase_key=testcase,
                                               start_date=pd.to_datetime(start_date))
     if treat_blocked_as_not_run:
-        df['NOT_RUN'] = df['NOT_RUN'] + df['BLOCKED']
-        df.drop(columns=['BLOCKED'])
+        df1['NOT_RUN'] = df1['NOT_RUN'] + df1['BLOCKED']
+        df1.drop(columns=['BLOCKED'])
     if treat_inprogress_as_not_run:
-        df['NOT_RUN'] = df['NOT_RUN'] + df['INPROGRESS']
-        df.drop(columns=['INPROGRESS'])
+        df1['NOT_RUN'] = df1['NOT_RUN'] + df1['INPROGRESS']
+        df1.drop(columns=['INPROGRESS'])
 
     # create historical status scatter graph
     deadline_x = []
     deadline_y = []
 
-    x_list = [pd.to_datetime(d).date() for d in df['date'].values]
+    x_list = [pd.to_datetime(d).date() for d in df1['date'].values]
     y_dict = {} # dict of y-axis with status name as key
     for status in get_status_names():
-        y_dict[status] = df[status].values
+        y_dict[status] = df1[status].values
+
     if test_deadline is not None:
-        tail = df.tail(1)
-        current_date = pd.to_datetime(tail['date'].values[0])
+        tail = df1.tail(1)
+        if tail.empty:
+            print('tail is empty')
+        current_date = datetime.today()
         deadline_x = [current_date, pd.to_datetime(test_deadline)]
         deadline_y = [tail['NOT_RUN'].values[0], 0]
 
