@@ -38,7 +38,7 @@ if jama_api_password is None or jama_api_username is None:
 # list of project, test plan and chart title
 testing_list = [
     ('VRel', '2.7.1-3.1-FAT2 Testing (Priority1)', 'SIT FAT2 Testing Status'),
-#    ('PIT', 'GX5_Phase1_Stage1_FAT2_Dry_Run', 'PIT FAT2 Dry Run Status'),
+    ('PIT', 'GX5_Phase1_Stage1_FAT2_Dry_Run', 'PIT FAT2 Dry Run Status'),
 ]
 start_date = datetime.strptime('Feb 01 2020', '%b %d %Y')
 test_deadline = datetime.strptime('Feb 28 2020', '%b %d %Y')
@@ -83,6 +83,10 @@ for project, testplan, title in testing_list:
         if testcycle is None:
             # rename it to Overall
             testcycle_ui = 'Overall'
+
+        # get a list of test cases
+        df1 = df[df.testcycle.eq(testcycle)] if testcycle is not None else df
+        testcases = [c for c in iter(df1.testcase.unique())]
         print(f'Creating charts for {testplan_ui}:{testcycle_ui}...')
         chart_data_db[testplan_ui][testcycle_ui] = {}
         testcase = None

@@ -1,13 +1,21 @@
 import dash_table
+import dash_html_components as html
 from testrun_utils import get_testruns_for_current_week, get_status_names
 
 def get_current_runs_table(df, testcycle, testcase, title, colormap):
     df = get_testruns_for_current_week(df=df, testcycle_key=testcycle, testcase_key=testcase)
+    if df is None:
+        print(f'No test run data for test cycle {testcycle} and test case {testcase}')
+        return html.P('No test runs found!')
+
     if testcycle is not None:
         # drop test cycle column since we are printing it elsewhere
         df = df.drop(columns=['testcycle'])
+    if testcase is not None:
+        # drop test cycle column since we are printing it elsewhere
+        df = df.drop(columns=['testcase'])
 
-    table =  dash_table.DataTable(
+    table = dash_table.DataTable(
         id='datatable-testruns',
         columns=[
             {'name': i, 'id': i, 'deletable': False, 'selectable': False}
