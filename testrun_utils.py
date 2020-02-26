@@ -6,7 +6,7 @@ from tzlocal import get_localzone
 def get_status_names():
     return ['NOT_RUN', 'PASSED', 'FAILED', 'INPROGRESS', 'BLOCKED']
 
-def filter_df(df, testcycle_key, testcase_key):
+def filter_df(df, testcycle_key=None, testcase_key=None):
     df1 = df
     if testcycle_key is not None:
         df1 = df1[df.testcycle.eq(testcycle_key)]

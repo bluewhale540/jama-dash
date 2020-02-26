@@ -8,7 +8,7 @@ import dash_html_components as html
 from dash.dependencies import Input, Output
 from weekly_status import get_weekly_status_bar_chart, get_current_week_testruns_table
 from historical_status import get_historical_status_line_chart
-from current_status import get_current_status_pie_chart, get_current_status_by_testcase_bar_chart
+from current_status import get_current_status_pie_chart, get_testcase_status_bar_chart
 from testrun_utils import get_status_names
 from dateutil import parser
 
@@ -37,7 +37,7 @@ if jama_api_password is None or jama_api_username is None:
 # list of project, test plan and chart title
 testing_list = [
     ('VRel', '2.7.1-3.1-FAT2 Testing (Priority1)', 'SIT FAT2 Regression'),
-    ('PIT', 'GX5_Phase1_Stage1_FAT2_Dry_Run', 'PIT FAT2 Dry Run'),
+#    ('PIT', 'GX5_Phase1_Stage1_FAT2_Dry_Run', 'PIT FAT2 Dry Run'),
 ]
 start_date = parser.parse('Feb 01 2020').date()
 test_deadline = parser.parse('Feb 28 2020').date()
@@ -63,7 +63,7 @@ chart_types = [
     FIG_TYPE_WEEKLY_STATUS_BAR_CHART,
     FIG_TYPE_HISTORICAL_STATUS_LINE_CHART,
     FIG_TYPE_CURRENT_STATUS_PIE_CHART,
-#    FIG_TYPE_CURRENT_STATUS_BY_TESTCASE_BAR_CHART,
+    FIG_TYPE_CURRENT_STATUS_BY_TESTCASE_BAR_CHART,
     FIG_TYPE_CURRENT_RUNS_TABLE]
 current_chart_type = next(iter(chart_types))
 testplans = [] # list of all test plans
@@ -205,6 +205,11 @@ def get_chart(testplan_ui, testcycle_ui, testcase_ui, chart_type):
                 testcase=testcase,
                 title=title,
                 colormap=colormap)]
+
+    if chart_type == FIG_TYPE_CURRENT_STATUS_BY_TESTCASE_BAR_CHART:
+        chart = \
+            [get_testcase_status_bar_chart(df=df, testcycle=testcycle, testcase=testcase, title=title,
+                                           colormap=colormap, status_list=['BLOCKED', 'FAILED'])]
 
     chart_db[testplan_ui][testcycle_ui][testcase_ui][chart_type] = chart
     return chart
