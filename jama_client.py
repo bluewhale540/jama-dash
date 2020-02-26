@@ -254,10 +254,14 @@ class jama_client:
         new_df = pd.DataFrame(testruns_to_add, columns=['project', 'testplan', 'testcycle', 'testcase', 'testrun',
                                                         'created_date', 'modified_date', 'status', 'execution_date',
                                                         'planned_week', 'assigned_to', 'bug_id'])
+        new_df['created_date'] = pd.to_datetime(new_df['created_date'], format="%Y-%m-%d").dt.date
+        new_df['modified_date'] = pd.to_datetime(new_df['modified_date'], format="%Y-%m-%d").dt.date
+        new_df['execution_date'] = pd.to_datetime(new_df['execution_date'], format="%Y-%m-%d").dt.date
+        '''
         new_df['created_date'] = pd.to_datetime(new_df['created_date'], format="%Y-%m-%d").dt.floor("d")
         new_df['modified_date'] = pd.to_datetime(new_df['modified_date'], format="%Y-%m-%d").dt.floor("d")
         new_df['execution_date'] = pd.to_datetime(new_df['execution_date'], format="%Y-%m-%d").dt.floor("d")
-
+        '''
         self.df = self.df.append(new_df, sort=False)
 
         if testcycle_key is not None:

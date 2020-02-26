@@ -6,11 +6,11 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output
-from datetime import datetime
 from weekly_status import get_weekly_status_bar_chart, get_current_week_testruns_table
 from historical_status import get_historical_status_line_chart
 from current_status import get_current_status_pie_chart, get_current_status_by_testcase_bar_chart
 from testrun_utils import get_status_names
+from dateutil import parser
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
@@ -37,10 +37,10 @@ if jama_api_password is None or jama_api_username is None:
 # list of project, test plan and chart title
 testing_list = [
     ('VRel', '2.7.1-3.1-FAT2 Testing (Priority1)', 'SIT FAT2 Testing Status'),
-#    ('PIT', 'GX5_Phase1_Stage1_FAT2_Dry_Run', 'PIT FAT2 Dry Run Status'),
+    ('PIT', 'GX5_Phase1_Stage1_FAT2_Dry_Run', 'PIT FAT2 Dry Run Status'),
 ]
-start_date = datetime.strptime('Feb 01 2020', '%b %d %Y')
-test_deadline = datetime.strptime('Feb 28 2020', '%b %d %Y')
+start_date = parser.parse('Feb 01 2020').date()
+test_deadline = parser.parse('Feb 28 2020').date()
 
 proj_list = [x[0] for x in testing_list]
 
@@ -78,7 +78,7 @@ for project, testplan, title in testing_list:
 #    df = pd.DataFrame() # initialize an empty data frame
     df = client.retrieve_testruns(project_key=project, testplan_key=testplan)
     for testcycle in testcycles:
-        testcycle_ui = testcycle  if testcycle is not None else 'Overall'
+        testcycle_ui = testcycle  if testcycle is not None else 'All Test Cycles'
         # get a list of test cases
         df1 = df[df.testcycle.eq(testcycle)] if testcycle is not None else df
         testcases = [c for c in iter(df1.testcase.unique())]
@@ -86,7 +86,7 @@ for project, testplan, title in testing_list:
         chart_data_db[testplan_ui][testcycle_ui] = {}
         testcases = [None, ] + testcases
         for testcase in testcases:
-            testcase_ui = testcase if testcase is not None else 'Overall'
+            testcase_ui = testcase if testcase is not None else 'All Test Cases'
             chart_data_db[testplan_ui][testcycle_ui][testcase_ui] = {}
             for chart_type in chart_types:
                 title = f'{chart_type} - {testplan_ui}'

@@ -160,13 +160,13 @@ def get_testrun_status_historical(df, testcycle_key=None, testcase_key=None, sta
     df1 = filter_df(df, testcycle_key, testcase_key)
     # set lowest modified date - 1 as start date
     if start_date is None:
-        start_date = pd.to_datetime(df1['modified_date'].values.min()).date() - timedelta(days=1)
+        start_date = df1['modified_date'].values.min()
     # set tomorrow's date as end date
-    end_date = date.today() + timedelta(days=1) - timedelta(seconds=1)  # today 11:59:59 pm
+    end_date = datetime.now().date()  # today 11:59:59 pm
     # get local time zone
     local_tz = get_localzone()
     # create a date range using start and end dates from above set to the local TZ
-    daterange = pd.date_range(start_date, end_date, tz=local_tz)
+    daterange = pd.date_range(start_date, end_date)
     t = []
     for d in daterange:
         # create a dataframe of all test runs created before date 'd'

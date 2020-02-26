@@ -147,44 +147,6 @@ def main():
         for id, cycle in testcycle_db:
             testcycles.append(cycle)
         title_list = []
-        df_list = []
-        for cycle in testcycles:
-            '''
-            df = client.get_testruns_for_current_week(project_key=project, testplan_key=testplan, testcycle_key=cycle)
-            df = client.get_testrun_status_by_planned_weeks(project_key=project, testplan_key=testplan,
-                                                            testcycle_key=cycle)
-            display_weekly_status_bar_chart(df=df, status_names=status_names, colormap=colormap)
-            
-
-            if cycle is None:
-                title_list.append(title)
-            else:
-                title_list.append(cycle)
-
-            df = client.get_testrun_status_historical(project_key=project,
-                                                                     testplan_key=testplan,
-                                                                     testcycle_key=cycle)
-            '''
-
-
-        local_tz = get_localzone()
-        deadline_date = datetime.strptime('2020-02-28-05:00:00', '%Y-%m-%d-%H:%M:%S').replace(tzinfo=pytz.utc).astimezone(local_tz)
-        display_historical_status_chart(df_list=df_list,
-                                        status_names=status_names,
-                                        colormap=colormap,
-                                        title_list=title_list,
-                                        deadline=deadline_date)
-
-'''
-        for cycle in testcycles:
-            df_status_current = client.get_testrun_status_current(project_key=project,
-                                                                  testplan_key=testplan,
-                                                                  testcycle_key=cycle)
-            if df_status_current is None:
-                continue
-            display_current_status_chart(df_status=df_status_current,
-                                         status_names=status_names, colormap=colormap, title=chart_title)
-'''
 
 if __name__ == '__main__':
     main()
