@@ -83,8 +83,9 @@ def get_testgroup_status_bar_chart(df, testcycle, testgroup, title, colormap, st
                 'data': data,
                 'layout': dict(
                     title=title,
+                    height=600,
                     xaxis={
-                        'title': 'Testgroups',
+                        'title': 'Test Groups',
                         'automargin': True,
                     },
                     yaxis={
