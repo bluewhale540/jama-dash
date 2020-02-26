@@ -5,8 +5,8 @@ from testrun_utils import filter_df, get_status_names
 import pandas as pd
 
 
-def get_current_status_pie_chart(df, testcycle, testcase, title='Current Status', colormap=None):
-    df1 = filter_df(df, testcycle, testcase)
+def get_current_status_pie_chart(df, testcycle, testgroup, title='Current Status', colormap=None):
+    df1 = filter_df(df, testcycle, testgroup)
     counts = df1['status'].value_counts()
 
     status_names = []
@@ -33,20 +33,20 @@ def get_current_status_pie_chart(df, testcycle, testcase, title='Current Status'
             figure=fig)
 
 
-def get_testcase_status_bar_chart(df, testcycle, testcase, title, colormap, status_list):
+def get_testgroup_status_bar_chart(df, testcycle, testgroup, title, colormap, status_list):
     if len(status_list) == 0:
         return html.P('Status List is empty')
 
-    if testcase is not None:
+    if testgroup is not None:
         return html.P('Please select All Test Cases')
 
     df1 = filter_df(df, testcycle_key=testcycle)
 
-    testcases = [x for x  in iter(df1.testcase.unique())]
+    testgroups = [x for x  in iter(df1.testgroup.unique())]
 
     data = []
-    for tc in testcases:
-        df2 = filter_df(df, testcase_key=tc)
+    for tc in testgroups:
+        df2 = filter_df(df, testgroup_key=tc)
         counts = df2['status'].value_counts()
         total = 0
         for s in status_list:
@@ -57,7 +57,7 @@ def get_testcase_status_bar_chart(df, testcycle, testcase, title, colormap, stat
             continue
 
         d = {
-            'testcase': tc,
+            'testgroup': tc,
             'total': total
         }
         d.update(counts)
@@ -66,10 +66,10 @@ def get_testcase_status_bar_chart(df, testcycle, testcase, title, colormap, stat
     if len(data) == 0:
         return html.P(f'No test cases with status in {status_list}')
 
-    df3 = pd.DataFrame(data, columns=['testcase', 'total'] + status_list)
+    df3 = pd.DataFrame(data, columns=['testgroup', 'total'] + status_list)
     df3.sort_values(by=['total'], ascending=False, inplace=True)
     data = []
-    x_axis = df3['testcase'].values
+    x_axis = df3['testgroup'].values
 
     for status in status_list:
         y_axis = df3[status]
@@ -78,13 +78,13 @@ def get_testcase_status_bar_chart(df, testcycle, testcase, title, colormap, stat
                          textposition='auto',
                          marker=dict(color=colormap[status])))
     return dcc.Graph(
-            id='testcase-failed-blocked',
+            id='testgroup-failed-blocked',
             figure = {
                 'data': data,
                 'layout': dict(
                     title=title,
                     xaxis={
-                        'title': 'Testcases',
+                        'title': 'Testgroups',
                         'automargin': True,
                     },
                     yaxis={

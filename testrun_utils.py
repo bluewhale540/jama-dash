@@ -6,12 +6,12 @@ from tzlocal import get_localzone
 def get_status_names():
     return ['NOT_RUN', 'PASSED', 'FAILED', 'INPROGRESS', 'BLOCKED']
 
-def filter_df(df, testcycle_key=None, testcase_key=None):
+def filter_df(df, testcycle_key=None, testgroup_key=None):
     df1 = df
     if testcycle_key is not None:
         df1 = df1[df.testcycle.eq(testcycle_key)]
-    if testcase_key is not None:
-        df1 = df1[df.testcase.eq(testcase_key)]
+    if testgroup_key is not None:
+        df1 = df1[df.testgroup.eq(testgroup_key)]
     return df1
 
 
@@ -119,8 +119,8 @@ def __get_current_planned_week(planned_weeks):
     return None
 
 
-def get_testrun_status_by_planned_weeks(df, testcycle_key=None, testcase_key=None):
-    df1 = filter_df(df, testcycle_key, testcase_key)
+def get_testrun_status_by_planned_weeks(df, testcycle_key=None, testgroup_key=None):
+    df1 = filter_df(df, testcycle_key, testgroup_key)
     t = []
     status_list=[]
     planned_weeks = df1.planned_week.unique()
@@ -143,8 +143,8 @@ def get_testrun_status_by_planned_weeks(df, testcycle_key=None, testcase_key=Non
     df = pd.DataFrame(t, columns=['planned_week'] + status_list)
     return df
 
-def get_testruns_for_current_week(df, testcycle_key=None, testcase_key=None):
-    df1 = filter_df(df, testcycle_key, testcase_key)
+def get_testruns_for_current_week(df, testcycle_key=None, testgroup_key=None):
+    df1 = filter_df(df, testcycle_key, testgroup_key)
     planned_weeks = df1.planned_week.unique()
     start_date = __get_current_planned_week(planned_weeks)
     if start_date is None:
@@ -156,8 +156,8 @@ def get_testruns_for_current_week(df, testcycle_key=None, testcase_key=None):
     return df1
 
 
-def get_testrun_status_historical(df, testcycle_key=None, testcase_key=None, start_date=None):
-    df1 = filter_df(df, testcycle_key, testcase_key)
+def get_testrun_status_historical(df, testcycle_key=None, testgroup_key=None, start_date=None):
+    df1 = filter_df(df, testcycle_key, testgroup_key)
     # set lowest modified date - 1 as start date
     if start_date is None:
         start_date = df1['modified_date'].values.min()

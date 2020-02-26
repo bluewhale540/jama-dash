@@ -9,8 +9,8 @@ from datetime import timedelta
 from testrun_utils import get_testruns_for_current_week, get_status_names
 
 
-def get_weekly_status_bar_chart(df, testcycle, testcase, title, colormap):
-    df1 = testrun_utils.get_testrun_status_by_planned_weeks(df, testcycle_key=testcycle, testcase_key=testcase)
+def get_weekly_status_bar_chart(df, testcycle, testgroup, title, colormap):
+    df1 = testrun_utils.get_testrun_status_by_planned_weeks(df, testcycle_key=testcycle, testgroup_key=testgroup)
     # sort in ascending order with NaN value first
     df1.sort_values('planned_week', axis=0, ascending=True, inplace=True, na_position='first')
     fmt_date = lambda x: x.strftime('%b %d') + ' - ' + (x + timedelta(days=4)).strftime('%b %d') \
@@ -41,17 +41,17 @@ def get_weekly_status_bar_chart(df, testcycle, testcase, title, colormap):
         )
 
 
-def get_current_week_testruns_table(df, testcycle, testcase, title, colormap):
-    df = get_testruns_for_current_week(df=df, testcycle_key=testcycle, testcase_key=testcase)
+def get_current_week_testruns_table(df, testcycle, testgroup, title, colormap):
+    df = get_testruns_for_current_week(df=df, testcycle_key=testcycle, testgroup_key=testgroup)
     if df is None:
         return html.P('No test runs found!')
 
     if testcycle is not None:
         # drop test cycle column since we are printing it elsewhere
         df = df.drop(columns=['testcycle'])
-    if testcase is not None:
+    if testgroup is not None:
         # drop test cycle column since we are printing it elsewhere
-        df = df.drop(columns=['testcase'])
+        df = df.drop(columns=['testgroup'])
 
     table = dash_table.DataTable(
         id='datatable-testruns',

@@ -4,11 +4,11 @@ import pandas as pd
 from testrun_utils import get_testrun_status_historical, get_status_names
 
 def get_historical_status_line_chart(
-        df, testcycle, testcase,
+        df, testcycle, testgroup,
         start_date, test_deadline, title, colormap,
         treat_blocked_as_not_run=False,
         treat_inprogress_as_not_run=False):
-    df1 = get_testrun_status_historical(df, testcycle_key=testcycle, testcase_key=testcase,
+    df1 = get_testrun_status_historical(df, testcycle_key=testcycle, testgroup_key=testgroup,
                                               start_date=start_date)
     if treat_blocked_as_not_run:
         df1['NOT_RUN'] = df1['NOT_RUN'] + df1['BLOCKED']

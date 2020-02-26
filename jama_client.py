@@ -251,7 +251,7 @@ class jama_client:
         print('found {} test runs!'.format(len(testruns_to_add)))
 
         # append the retrieved test runs to the existing data frame
-        new_df = pd.DataFrame(testruns_to_add, columns=['project', 'testplan', 'testcycle', 'testcase', 'testrun',
+        new_df = pd.DataFrame(testruns_to_add, columns=['project', 'testplan', 'testcycle', 'testgroup', 'testrun',
                                                         'created_date', 'modified_date', 'status', 'execution_date',
                                                         'planned_week', 'assigned_to', 'bug_id'])
         new_df['created_date'] = pd.to_datetime(new_df['created_date'], format="%Y-%m-%d").dt.date
