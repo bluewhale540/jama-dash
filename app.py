@@ -153,7 +153,7 @@ def get_chart(testplan_ui, testcycle_ui, testcase_ui, chart_type):
     c = b.get(testcase_ui)
     if c is None:
         return []
-    chart = c[chart_type]
+    chart = c.get(chart_type)
     if chart is not None:
         return chart
     testcycle, testcase, df = chart_params_db[testplan_ui][testcycle_ui][testcase_ui]
