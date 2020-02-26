@@ -36,8 +36,8 @@ if jama_api_password is None or jama_api_username is None:
 
 # list of project, test plan and chart title
 testing_list = [
-    ('VRel', '2.7.1-3.1-FAT2 Testing (Priority1)', 'SIT FAT2 Testing Status'),
-    ('PIT', 'GX5_Phase1_Stage1_FAT2_Dry_Run', 'PIT FAT2 Dry Run Status'),
+    ('VRel', '2.7.1-3.1-FAT2 Testing (Priority1)', 'SIT FAT2 Regression'),
+    ('PIT', 'GX5_Phase1_Stage1_FAT2_Dry_Run', 'PIT FAT2 Dry Run'),
 ]
 start_date = parser.parse('Feb 01 2020').date()
 test_deadline = parser.parse('Feb 28 2020').date()
@@ -68,86 +68,40 @@ chart_types = [
 current_chart_type = next(iter(chart_types))
 testplans = [] # list of all test plans
 
-# DB of chart data by type, testplan and test cycle
-chart_data_db = {}
+# DB of plotly chart data by type, testplan, test cycle, test case and chart type
+chart_db = {}
+# a mapping of chart params to aid in lazy chart creation
+chart_params_db = {}
+
 for project, testplan, title in testing_list:
     testplan_ui = title  # we will use title to mean testplan in the UI
     testplans.append(testplan_ui)
-    chart_data_db[testplan_ui] = {}
+    chart_db[testplan_ui] = {}
+    chart_params_db[testplan_ui] = {}
     testcycles = [None, ] + [c for i,c in client.retrieve_testcycles(project_key=project, testplan_key=testplan)]
-#    df = pd.DataFrame() # initialize an empty data frame
     df = client.retrieve_testruns(project_key=project, testplan_key=testplan)
     for testcycle in testcycles:
         testcycle_ui = testcycle  if testcycle is not None else 'All Test Cycles'
         # get a list of test cases
         df1 = df[df.testcycle.eq(testcycle)] if testcycle is not None else df
         testcases = [c for c in iter(df1.testcase.unique())]
-        print(f'Creating charts for {testplan_ui}:{testcycle_ui}...')
-        chart_data_db[testplan_ui][testcycle_ui] = {}
+        chart_db[testplan_ui][testcycle_ui] = {}
+        chart_params_db[testplan_ui][testcycle_ui] = {}
         testcases = [None, ] + testcases
         for testcase in testcases:
             testcase_ui = testcase if testcase is not None else 'All Test Cases'
-            chart_data_db[testplan_ui][testcycle_ui][testcase_ui] = {}
+            chart_db[testplan_ui][testcycle_ui][testcase_ui] = {}
+            chart_params_db[testplan_ui][testcycle_ui][testcase_ui] = (testcycle, testcase, df)
             for chart_type in chart_types:
-                title = f'{chart_type} - {testplan_ui}'
-                if testcycle is not None:
-                    title += f':{testcycle_ui}'
-                if testcase is not None:
-                    title += f':{testcase_ui}'
+                # set chart to none so we can create on demand
+                # set chart to none so we can create on demand
+                chart_db[testplan_ui][testcycle_ui][testcase_ui][chart_type] = None
 
-                if chart_type == FIG_TYPE_WEEKLY_STATUS_BAR_CHART:
-                    chart_data_db[testplan_ui][testcycle_ui][testcase_ui][chart_type] = \
-                        [get_weekly_status_bar_chart(
-                            df=df,
-                            testcycle=testcycle,
-                            testcase=testcase,
-                            title=title,
-                            colormap=colormap)]
-
-                if chart_type == FIG_TYPE_HISTORICAL_STATUS_LINE_CHART:
-                    chart_data_db[testplan_ui][testcycle_ui][testcase_ui][chart_type] = \
-                        [get_historical_status_line_chart(
-                            df=df,
-                            testcycle=testcycle,
-                            testcase=testcase,
-                            start_date=start_date,
-                            test_deadline=test_deadline,
-                            title=title,
-                            colormap=colormap,
-                            treat_blocked_as_not_run=True,
-                            treat_inprogress_as_not_run=True)]
-
-                if chart_type == FIG_TYPE_CURRENT_STATUS_PIE_CHART:
-                    chart_data_db[testplan_ui][testcycle_ui][testcase_ui][chart_type] = \
-                        [get_current_status_pie_chart(
-                            df=df,
-                            testcycle=testcycle,
-                            testcase=testcase,
-                            title=title,
-                            colormap=colormap)]
-
-                if chart_type == FIG_TYPE_CURRENT_RUNS_TABLE:
-                    chart_data_db[testplan_ui][testcycle_ui][testcase_ui][chart_type] = \
-                        [html.H6(title), get_current_week_testruns_table(
-                            df=df,
-                            testcycle=testcycle,
-                            testcase=testcase,
-                            title=title,
-                            colormap=colormap)]
-
-                    if chart_type == FIG_TYPE_CURRENT_STATUS_BY_TESTCASE_BAR_CHART:
-                        chart_data_db[testplan_ui][testcycle_ui][testcase_ui][chart_type] = \
-                            [get_current_status_by_testcase_bar_chart(
-                                df=df,
-                                testcycle=testcycle,
-                                testcase=testcase,
-                                title=title,
-                                colormap=colormap)]
 
 current_chart_type = next(iter(chart_types))
 current_testplan = next(iter(testplans))
-current_testcycle = next(iter(chart_data_db[current_testplan]))
-current_testcase = next(iter(chart_data_db[current_testplan][current_testcycle]))
+current_testcycle = next(iter(chart_db[current_testplan]))
+current_testcase = next(iter(chart_db[current_testplan][current_testcycle]))
 
 
 app.layout = html.Div([
@@ -163,7 +117,7 @@ app.layout = html.Div([
         html.Div([
             dcc.Dropdown(
                 id='id-test-cycle',
-                options=[{'label': i, 'value': i} for i in iter(chart_data_db[current_testplan])],
+                options=[{'label': i, 'value': i} for i in iter(chart_db[current_testplan])],
                 value=current_testcycle
             ),
         ],
@@ -171,7 +125,7 @@ app.layout = html.Div([
         html.Div([
             dcc.Dropdown(
                 id='id-test-case',
-                options=[{'label': i, 'value': i} for i in iter(chart_data_db[current_testplan][current_testcycle])],
+                options=[{'label': i, 'value': i} for i in iter(chart_db[current_testplan][current_testcycle])],
                 value=current_testcase
             ),
         ],
@@ -188,6 +142,73 @@ app.layout = html.Div([
     html.Div(id='chart-container'),
 ])
 
+def get_chart(testplan_ui, testcycle_ui, testcase_ui, chart_type):
+
+    a = chart_db.get(testplan_ui)
+    if a is None:
+        return []
+    b = a.get(testcycle_ui)
+    if b is None:
+        return []
+    c = b.get(testcase_ui)
+    if c is None:
+        return []
+    chart = c[chart_type]
+    if chart is not None:
+        return chart
+    testcycle, testcase, df = chart_params_db[testplan_ui][testcycle_ui][testcase_ui]
+
+    title = f'{chart_type} - {testplan_ui}'
+    if testcycle is not None:
+        title += f':{testcycle_ui}'
+    if testcase is not None:
+        title += f':{testcase_ui}'
+
+    print(f'Creating charts for {title}...')
+
+    if chart_type == FIG_TYPE_WEEKLY_STATUS_BAR_CHART:
+        chart = \
+            [get_weekly_status_bar_chart(
+                df=df,
+                testcycle=testcycle,
+                testcase=testcase,
+                title=title,
+                colormap=colormap)]
+
+    if chart_type == FIG_TYPE_HISTORICAL_STATUS_LINE_CHART:
+        chart = \
+            [get_historical_status_line_chart(
+                df=df,
+                testcycle=testcycle,
+                testcase=testcase,
+                start_date=start_date,
+                test_deadline=test_deadline,
+                title=title,
+                colormap=colormap,
+                treat_blocked_as_not_run=True,
+                treat_inprogress_as_not_run=True)]
+
+    if chart_type == FIG_TYPE_CURRENT_STATUS_PIE_CHART:
+        chart = \
+            [get_current_status_pie_chart(
+                df=df,
+                testcycle=testcycle,
+                testcase=testcase,
+                title=title,
+                colormap=colormap)]
+
+    if chart_type == FIG_TYPE_CURRENT_RUNS_TABLE:
+        chart = \
+            [html.H6(title), get_current_week_testruns_table(
+                df=df,
+                testcycle=testcycle,
+                testcase=testcase,
+                title=title,
+                colormap=colormap)]
+
+    chart_db[testplan_ui][testcycle_ui][testcase_ui][chart_type] = chart
+    return chart
+
 @app.callback(
     [Output('id-test-cycle', 'options'),
      Output('id-test-cycle', 'value')],
@@ -197,7 +218,7 @@ def update_testcycle_options(testplan):
     global current_testplan
     global current_testcycle
     current_testplan = testplan
-    testcycles = [i for i in iter(chart_data_db[current_testplan])]
+    testcycles = [i for i in iter(chart_db[current_testplan])]
     if current_testcycle not in testcycles:
         current_testcycle = next(iter(testcycles))
     options = [{'label': i, 'value': i} for i in testcycles]
@@ -215,7 +236,7 @@ def update_testcase_options(testplan, testcycle):
     global current_testcase
     current_testplan = testplan
     current_testcycle = testcycle
-    testcases = [i for i in iter(chart_data_db[current_testplan][current_testcycle])]
+    testcases = [i for i in iter(chart_db[current_testplan][current_testcycle])]
     if current_testcase not in testcases:
         current_testcase = next(iter(testcases))
     options = [{'label': i, 'value': i} for i in testcases]
@@ -228,19 +249,7 @@ def update_testcase_options(testplan, testcycle):
      Input('id-test-case', 'value'),
      Input('id-chart-type', 'value')])
 def update_graph(testplan, testcycle, testcase, chart_type):
-    global current_chart_type
-    global current_testcycle
-    global current_testcase
-    current_chart_type = chart_type
-    current_testcycle = testcycle
-    current_testcase = testcase
-    testcycles = [i for i in iter(chart_data_db[testplan])]
-    if current_testcycle not in testcycles:
-        current_testcycle = next(iter(testcycles))
-    testcases = [i for i in iter(chart_data_db[current_testplan][current_testcycle])]
-    if current_testcase not in testcases:
-        current_testcase = next(iter(testcases))
-    chart =  chart_data_db[testplan][current_testcycle][current_testcase][chart_type]
+    chart = get_chart(testplan, testcycle, testcase, chart_type)
     return chart
 
 if __name__ == '__main__':
