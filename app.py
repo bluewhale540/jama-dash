@@ -1,5 +1,6 @@
 
 import os
+from os.path import expanduser
 from jama_client import jama_client
 import login_dialog
 import dash
@@ -11,6 +12,7 @@ from historical_status import get_historical_status_line_chart
 from current_status import get_current_status_pie_chart, get_testgroup_status_bar_chart
 from testrun_utils import get_status_names
 from dateutil import parser
+import json
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
@@ -34,23 +36,43 @@ if jama_api_password is None or jama_api_username is None:
     jama_api_username = result[0]
     jama_api_password = result[1]
 
-# list of project, test plan and chart title
-testing_list = [
-    ('VRel', '2.7.1-3.1-FAT2 Testing (Priority1)', 'SIT FAT2 Regression'),
-    ('PIT', 'GX5_Phase1_Stage1_FAT2_Dry_Run', 'PIT FAT2 Dry Run'),
-]
-start_date = parser.parse('Feb 01 2020').date()
-test_deadline = parser.parse('Feb 28 2020').date()
 
-proj_list = [x[0] for x in testing_list]
+settings = {}
+settings_file = expanduser('~') + '/' + 'jama-report-config.json'
+try:
+    with open(settings_file) as f:
+        settings = json.load(f)
+except json.decoder.JSONDecodeError as e:
+    print(f'Settings file {settings_file} has invalid format')
+    print(f'{e}')
+    exit(1)
+except Exception as e:
+    print(f'Error opening settings file {settings_file}')
+    print(f'{e}')
+    exit(1)
+
+testplan_list = settings.get('testplans')
+if testplan_list is None:
+    print('No testplans listed in config. Exiting!')
+    exit(1)
+
+colormap = None
+chart_settings = settings.get('chartSettings')
+if chart_settings is not None:
+    colormap = chart_settings.get('colormap')
+
+proj_list = [x['project'] for x in testplan_list]
+
+dt = settings.get('testStart')
+start_date = parser.parse(dt) if dt is not None else None
+dt = settings.get('testDeadline')
+test_deadline = parser.parse(dt) if dt is not None else None
 
 client = jama_client(blocking_as_not_run=False, inprogress_as_not_run=False)
 if not client.connect(url=jama_url, username=jama_api_username, password=jama_api_password, projkey_list=proj_list):
     exit(1)
 
 
-colormap = \
-    {'NOT_RUN': 'darkslategray', 'PASSED': 'green', 'FAILED': 'firebrick', 'BLOCKED': 'royalblue', 'INPROGRESS': 'darkorange'}
 status_names = get_status_names()
 
 FIG_TYPE_WEEKLY_STATUS_BAR_CHART = 'Weekly Status'
@@ -77,7 +99,20 @@ chart_db = {}
 # a mapping of chart params to aid in lazy chart creation
 chart_params_db = {}
 
-for project, testplan, title in testing_list:
+#for project, testplan, title in testing_list:
+for t in testplan_list:
+    project = t.get('project')
+    if project is None:
+        print('Missing \'project\' field under testplan in config. Skipping...')
+        continue
+    testplan = t.get('name')
+    if project is None:
+        print('Missing testplan name in config. Skipping...')
+        continue
+    title = t.get('displayName')
+    if title is None:
+        title = project + ':' + testplan
+
     testplan_ui = title  # we will use title to mean testplan in the UI
     testplans.append(testplan_ui)
     chart_db[testplan_ui] = {}

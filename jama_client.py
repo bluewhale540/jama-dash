@@ -1,8 +1,6 @@
 from py_jama_rest_client.client import JamaClient
 from testrun_utils import get_start_and_end_date
 import pandas as pd
-from datetime import timedelta, date, datetime
-from tzlocal import get_localzone
 import requests
 from requests.exceptions import HTTPError
 
