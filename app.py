@@ -1,6 +1,6 @@
 
 import os
-from os.path import expanduser
+from os.path import expanduser, isfile
 from jama_client import jama_client
 import login_dialog
 import dash
@@ -37,8 +37,20 @@ if jama_api_password is None or jama_api_username is None:
     jama_api_password = result[1]
 
 
-settings = {}
-settings_file = expanduser('~') + '/' + 'jama-report-config.json'
+settings_file_name = 'jama-report-config.json'
+settings_file = None
+for settings_dir in [expanduser('~'), '.']:
+    path = settings_dir + '/' + settings_file_name
+    if isfile(path):
+        settings_file = path
+        print(f'settings file {path} found!')
+        break
+
+if settings_file is None:
+    print(f'settings file {settings_file_name} not found!')
+    exit(1)
+
+
 try:
     with open(settings_file) as f:
         settings = json.load(f)
@@ -63,9 +75,9 @@ if chart_settings is not None:
 
 proj_list = [x['project'] for x in testplan_list]
 
-dt = settings.get('testStart')
+dt = chart_settings.get('testStart')
 start_date = parser.parse(dt) if dt is not None else None
-dt = settings.get('testDeadline')
+dt = chart_settings.get('testDeadline')
 test_deadline = parser.parse(dt) if dt is not None else None
 
 client = jama_client(blocking_as_not_run=False, inprogress_as_not_run=False)
