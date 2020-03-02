@@ -137,9 +137,6 @@ class jama_client:
     def retrieve_testcycles(self, project_key, testplan_key, update=False):
         testcycles = self.testcycle_db.get((project_key, testplan_key))
         if not update and self.testcycle_db is not None and testcycles is not None:
-            # already in DB
-            print('Test cycles for project {} and test plan {} already in DB. Will not re-query'
-                  .format(project_key, testplan_key))
             return testcycles
 
         project_id = self.project_id_lookup[project_key]
@@ -205,11 +202,7 @@ class jama_client:
                     self.df = self.df[self.df.project != project_key or self.df.testplan != testplan_key]
 
         print('retrieving test runs for project {} and test plan {}...'.format(project_key, testplan_key))
-        testcycles = self.testcycle_db.get((project_key, testplan_key))
-        if testcycles is None:
-            print('No test cycles found for test plan. please call retrieve_testcycles() first')
-            return None
-
+        testcycles = self.retrieve_testcycles(project_key=project_key, testplan_key=testplan_key)
         testruns_to_add = []
         for (testcycle_id, testcycle_name) in testcycles:
             try:

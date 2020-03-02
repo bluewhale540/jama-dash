@@ -13,10 +13,24 @@ from current_status import get_current_status_pie_chart, get_testgroup_status_ba
 from testrun_utils import get_status_names
 from dateutil import parser
 import json
+from flask_caching import Cache
+
+
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+
+CACHE_CONFIG = {
+    # 'redis' or 'filesystem'
+    'CACHE_TYPE': 'filesystem',
+    'CACHE_DIR': expanduser('~'),
+    # 'CACHE_REDIS_URL': os.environ.get('REDIS_URL', 'redis://localhost:6379')
+    'DEBUG': True
+}
+cache = Cache()
+cache.init_app(app.server, config=CACHE_CONFIG)
+
 
 
 jama_url = os.environ.get('JAMA_API_URL')
@@ -84,9 +98,6 @@ client = jama_client(blocking_as_not_run=False, inprogress_as_not_run=False)
 if not client.connect(url=jama_url, username=jama_api_username, password=jama_api_password, projkey_list=proj_list):
     exit(1)
 
-
-status_names = get_status_names()
-
 FIG_TYPE_WEEKLY_STATUS_BAR_CHART = 'Weekly Status'
 FIG_TYPE_HISTORICAL_STATUS_LINE_CHART = 'Historical Status'
 FIG_TYPE_CURRENT_STATUS_PIE_CHART = 'Current Status'
@@ -95,120 +106,148 @@ FIG_TYPE_BLOCKED_FAILED_TESTGROUP_BAR_CHART = 'Test Groups with Blocked/Failed R
 FIG_TYPE_NOTRUN_INPROGRESS_TESTGROUP_BAR_CHART = 'Test Groups with Not Run/In Progress Runs'
 FIG_TYPE_CURRENT_RUNS_TABLE = 'Test Runs For Current Week'
 
-chart_types = [
-    FIG_TYPE_WEEKLY_STATUS_BAR_CHART,
-    FIG_TYPE_HISTORICAL_STATUS_LINE_CHART,
-    FIG_TYPE_CURRENT_STATUS_PIE_CHART,
-    FIG_TYPE_CURRENT_STATUS_BY_TESTGROUP_BAR_CHART,
-    FIG_TYPE_BLOCKED_FAILED_TESTGROUP_BAR_CHART,
-    FIG_TYPE_NOTRUN_INPROGRESS_TESTGROUP_BAR_CHART,
-    FIG_TYPE_CURRENT_RUNS_TABLE]
-current_chart_type = next(iter(chart_types))
-testplans = [] # list of all test plans
+ALL_TEST_CYCLES = 'All Test Cycles'
+ALL_TEST_GROUPS = 'All Test Groups'
 
-# DB of plotly chart data by type, testplan, test cycle, test case and chart type
-chart_db = {}
-# a mapping of chart params to aid in lazy chart creation
-chart_params_db = {}
+def get_chart_types():
+    chart_types = [
+        FIG_TYPE_WEEKLY_STATUS_BAR_CHART,
+        FIG_TYPE_HISTORICAL_STATUS_LINE_CHART,
+        FIG_TYPE_CURRENT_STATUS_PIE_CHART,
+        FIG_TYPE_CURRENT_STATUS_BY_TESTGROUP_BAR_CHART,
+        FIG_TYPE_BLOCKED_FAILED_TESTGROUP_BAR_CHART,
+        FIG_TYPE_NOTRUN_INPROGRESS_TESTGROUP_BAR_CHART,
+        FIG_TYPE_CURRENT_RUNS_TABLE]
+    return chart_types
 
-#for project, testplan, title in testing_list:
-for t in testplan_list:
-    project = t.get('project')
-    if project is None:
-        print('Missing \'project\' field under testplan in config. Skipping...')
-        continue
-    testplan = t.get('name')
-    if project is None:
-        print('Missing testplan name in config. Skipping...')
-        continue
-    title = t.get('displayName')
-    if title is None:
-        title = project + ':' + testplan
+def get_testplans_ui():
+    testplans_ui = []
+    for t in testplan_list:
+        display_name = t.get('displayName')
+        if display_name is not None:
+            testplans_ui.append(display_name)
+    return testplans_ui
 
-    testplan_ui = title  # we will use title to mean testplan in the UI
-    testplans.append(testplan_ui)
-    chart_db[testplan_ui] = {}
-    chart_params_db[testplan_ui] = {}
-    testcycles = [None, ] + [c for i,c in client.retrieve_testcycles(project_key=project, testplan_key=testplan)]
+@cache.memoize()
+def get_project_and_testplan(testplan_ui_key):
+    for t in testplan_list:
+        project = t.get('project')
+        if project is None:
+            print('Missing \'project\' field under testplan in config. Skipping...')
+            continue
+        testplan = t.get('name')
+        if project is None:
+            print('Missing testplan name in config. Skipping...')
+            continue
+        title = t.get('displayName')
+        if title is None:
+            title = project + ':' + testplan
+        if title == testplan_ui_key:
+            return project, testplan
+    return None, None
+
+
+
+@cache.memoize()
+def get_testcycles(testplan_ui_key):
+    project, testplan = get_project_and_testplan(testplan_ui_key=testplan_ui_key)
+    if project is None or testplan is None:
+        return []
+    testcycles = [c for i,c in client.retrieve_testcycles(project_key=project, testplan_key=testplan)]
+    if not len(testcycles) == 0:
+        return [ALL_TEST_CYCLES, ] + testcycles
+
+@cache.memoize()
+def get_testcycle(testcycle_ui_key):
+    return None if testcycle_ui_key == ALL_TEST_CYCLES else testcycle_ui_key
+
+
+@cache.memoize()
+def get_testruns(testplan_ui_key, testcycle_ui_key=None):
+    project, testplan = get_project_and_testplan(testplan_ui_key=testplan_ui_key)
+    if project is None or testplan is None:
+        return None
     df = client.retrieve_testruns(project_key=project, testplan_key=testplan)
-    for testcycle in testcycles:
-        testcycle_ui = testcycle  if testcycle is not None else 'All Test Cycles'
-        # get a list of test cases
-        df1 = df[df.testcycle.eq(testcycle)] if testcycle is not None else df
-        testgroups = [c for c in iter(df1.testgroup.unique())]
-        chart_db[testplan_ui][testcycle_ui] = {}
-        chart_params_db[testplan_ui][testcycle_ui] = {}
-        testgroups = [None, ] + testgroups
-        for testgroup in testgroups:
-            testgroup_ui = testgroup if testgroup is not None else 'All Test Cases'
-            chart_db[testplan_ui][testcycle_ui][testgroup_ui] = {}
-            chart_params_db[testplan_ui][testcycle_ui][testgroup_ui] = (testcycle, testgroup, df)
-            for chart_type in chart_types:
-                # set chart to none so we can create on demand
-                # set chart to none so we can create on demand
-                chart_db[testplan_ui][testcycle_ui][testgroup_ui][chart_type] = None
+    testcycle = get_testcycle(testcycle_ui_key=testcycle_ui_key)
+    if testcycle is not None:
+        df1 = df[df.testcycle.eq(testcycle)]
+        return df1
+    return df
 
 
-current_chart_type = next(iter(chart_types))
-current_testplan = next(iter(testplans))
-current_testcycle = next(iter(chart_db[current_testplan]))
-current_testgroup = next(iter(chart_db[current_testplan][current_testcycle]))
+@cache.memoize()
+def get_testgroups(testplan_ui_key, testcycle_ui_key=None):
+    df = get_testruns(testplan_ui_key=testplan_ui_key, testcycle_ui_key=testcycle_ui_key)
+    testgroups = [ALL_TEST_GROUPS, ] + [c for c in iter(df.testgroup.unique())]
+    return testgroups
+
+@cache.memoize()
+def get_testgroup(testgroup_ui_key):
+    return None if testgroup_ui_key == ALL_TEST_GROUPS else testgroup_ui_key
 
 
-app.layout = html.Div([
-    html.Div([
+def get_app_layout():
+    testplans_ui = get_testplans_ui()
+    # get all test runs the first time
+    for t in testplans_ui:
+        get_testcycles(testplan_ui_key=t)
+        get_testruns(testplan_ui_key=t)
+    initial_chart_type = next(iter(get_chart_types()))
+    initial_testplan_ui = next(iter(testplans_ui))
+    testcycles_ui = get_testcycles(testplan_ui_key=initial_testplan_ui)
+    initial_testcycle_ui = next(iter(testcycles_ui))
+    testgroups_ui = get_testgroups(testplan_ui_key=initial_testplan_ui, testcycle_ui_key=initial_testcycle_ui)
+    initial_testgroup = next(iter(testgroups_ui))
+    chart_types = get_chart_types()
+
+    layout = html.Div([
         html.Div([
-            dcc.Dropdown(
-                id='id-test-plan',
-                options=[{'label': i, 'value': i} for i in testplans],
-                value=current_testplan
-            ),
-        ],
-        style={'width': '50%', 'display': 'inline-block'}),
-        html.Div([
-            dcc.Dropdown(
-                id='id-test-cycle',
-                options=[{'label': i, 'value': i} for i in iter(chart_db[current_testplan])],
-                value=current_testcycle
-            ),
-        ],
-        style={'width': '50%', 'display': 'inline-block'}),
-        html.Div([
-            dcc.Dropdown(
-                id='id-test-case',
-                options=[{'label': i, 'value': i} for i in iter(chart_db[current_testplan][current_testcycle])],
-                value=current_testgroup
-            ),
-        ],
-        style={'width': '50%', 'display': 'inline-block'}),
-        html.Div([
-            dcc.Dropdown(
-                id='id-chart-type',
-                options=[{'label': i, 'value': i} for i in chart_types],
-                value=current_chart_type
-            ),
-        ],
-        style={'width': '50%', 'display': 'inline-block'})
-    ]),
-    html.Div(id='chart-container'),
-])
+            html.Div([
+                dcc.Dropdown(
+                    id='id-test-plan',
+                    options=[{'label': i, 'value': i} for i in testplans_ui],
+                    value=initial_testplan_ui
+                ),
+            ],
+            style={'width': '50%', 'display': 'inline-block'}),
+            html.Div([
+                dcc.Dropdown(
+                    id='id-test-cycle',
+                    options=[{'label': i, 'value': i} for i in testcycles_ui],
+                    value=initial_testcycle_ui
+                ),
+            ],
+            style={'width': '50%', 'display': 'inline-block'}),
+            html.Div([
+                dcc.Dropdown(
+                    id='id-test-case',
+                    options=[{'label': i, 'value': i} for i in testgroups_ui],
+                    value=initial_testgroup
+                ),
+            ],
+            style={'width': '50%', 'display': 'inline-block'}),
+            html.Div([
+                dcc.Dropdown(
+                    id='id-chart-type',
+                    options=[{'label': i, 'value': i} for i in chart_types],
+                    value=initial_chart_type
+                ),
+            ],
+            style={'width': '50%', 'display': 'inline-block'})
+        ]),
+        html.Div(id='chart-container'),
+    ])
+    return layout
 
+app.layout = get_app_layout()
+
+@cache.memoize()
 def get_chart(testplan_ui, testcycle_ui, testgroup_ui, chart_type):
-
-    a = chart_db.get(testplan_ui)
-    if a is None:
-        return []
-    b = a.get(testcycle_ui)
-    if b is None:
-        return []
-    c = b.get(testgroup_ui)
-    if c is None:
-        return []
-    chart = c.get(chart_type)
-    if chart is not None:
-        return chart
-    testcycle, testgroup, df = chart_params_db[testplan_ui][testcycle_ui][testgroup_ui]
-
+    testcycle = get_testcycle(testcycle_ui)
+    testgroup = get_testgroup(testgroup_ui)
+    df = get_testruns(testplan_ui)
+    if df is None:
+        return  None
     title = f'{chart_type} - {testplan_ui}'
     if testcycle is not None:
         title += f':{testcycle_ui}'
@@ -262,21 +301,15 @@ def get_chart(testplan_ui, testcycle_ui, testgroup_ui, chart_type):
             [get_testgroup_status_bar_chart(df=df, testcycle=testcycle, testgroup=testgroup, title=title,
                                            colormap=colormap, status_list=get_status_names())]
 
-    chart_db[testplan_ui][testcycle_ui][testgroup_ui][chart_type] = chart
-
     if chart_type == FIG_TYPE_BLOCKED_FAILED_TESTGROUP_BAR_CHART:
         chart = \
             [get_testgroup_status_bar_chart(df=df, testcycle=testcycle, testgroup=testgroup, title=title,
                                            colormap=colormap, status_list=['BLOCKED', 'FAILED'])]
 
-    chart_db[testplan_ui][testcycle_ui][testgroup_ui][chart_type] = chart
-
     if chart_type == FIG_TYPE_NOTRUN_INPROGRESS_TESTGROUP_BAR_CHART:
         chart = \
             [get_testgroup_status_bar_chart(df=df, testcycle=testcycle, testgroup=testgroup, title=title,
                                            colormap=colormap, status_list=['NOT_RUN', 'INPROGRESS'])]
-
-    chart_db[testplan_ui][testcycle_ui][testgroup_ui][chart_type] = chart
 
     return chart
 
@@ -285,15 +318,11 @@ def get_chart(testplan_ui, testcycle_ui, testgroup_ui, chart_type):
      Output('id-test-cycle', 'value')],
     [Input('id-test-plan', 'value')]
 )
-def update_testcycle_options(testplan):
-    global current_testplan
-    global current_testcycle
-    current_testplan = testplan
-    testcycles = [i for i in iter(chart_db[current_testplan])]
-    if current_testcycle not in testcycles:
-        current_testcycle = next(iter(testcycles))
+def update_testcycle_options(testplan_ui):
+    testcycles = get_testcycles(testplan_ui_key=testplan_ui)
+    testcycle = next(iter(testcycles))
     options = [{'label': i, 'value': i} for i in testcycles]
-    return options, current_testcycle
+    return options, testcycle
 
 @app.callback(
     [Output('id-test-case', 'options'),
@@ -301,17 +330,11 @@ def update_testcycle_options(testplan):
     [Input('id-test-plan', 'value'),
     Input('id-test-cycle', 'value')]
 )
-def update_testgroup_options(testplan, testcycle):
-    global current_testplan
-    global current_testcycle
-    global current_testgroup
-    current_testplan = testplan
-    current_testcycle = testcycle
-    testgroups = [i for i in iter(chart_db[current_testplan][current_testcycle])]
-    if current_testgroup not in testgroups:
-        current_testgroup = next(iter(testgroups))
+def update_testgroup_options(testplan_ui, testcycle_ui):
+    testgroups = get_testgroups(testplan_ui_key=testplan_ui, testcycle_ui_key=testcycle_ui)
+    testgroup = next(iter(testgroups))
     options = [{'label': i, 'value': i} for i in testgroups]
-    return options, current_testgroup
+    return options, testgroup
 
 @app.callback(
     Output('chart-container', 'children'),
@@ -319,8 +342,8 @@ def update_testgroup_options(testplan, testcycle):
      Input('id-test-cycle', 'value'),
      Input('id-test-case', 'value'),
      Input('id-chart-type', 'value')])
-def update_graph(testplan, testcycle, testgroup, chart_type):
-    chart = get_chart(testplan, testcycle, testgroup, chart_type)
+def update_graph(testplan_ui, testcycle_ui, testgroup_ui, chart_type):
+    chart = get_chart(testplan_ui, testcycle_ui, testgroup_ui, chart_type)
     return chart
 
 if __name__ == '__main__':
