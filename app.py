@@ -1,6 +1,7 @@
 
 import os
 from os.path import expanduser, isfile
+import datetime
 from jama_client import jama_client
 import login_dialog
 import dash
@@ -24,7 +25,7 @@ app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 CACHE_CONFIG = {
     # 'redis' or 'filesystem'
     'CACHE_TYPE': 'filesystem',
-    'CACHE_DIR': expanduser('~'),
+    'CACHE_DIR': './.cachedir',
     # 'CACHE_REDIS_URL': os.environ.get('REDIS_URL', 'redis://localhost:6379')
     'DEBUG': True
 }
@@ -51,48 +52,56 @@ if jama_api_password is None or jama_api_username is None:
     jama_api_password = result[1]
 
 
-settings_file_name = 'jama-report-config.json'
-settings_file = None
-for settings_dir in [expanduser('~'), '.']:
-    path = settings_dir + '/' + settings_file_name
-    if isfile(path):
-        settings_file = path
-        print(f'settings file {path} found!')
-        break
 
-if settings_file is None:
-    print(f'settings file {settings_file_name} not found!')
+
+def read_config_file():
+    config_file_name = 'jama-report-config.json'
+    config_file = None
+    for settings_dir in [expanduser('~'), '.']:
+        path = settings_dir + '/' + config_file_name
+        if isfile(path):
+            config_file = path
+            print(f'settings file {path} found!')
+            break
+
+    if config_file is None:
+        print(f'settings file {config_file_name} not found!')
+        exit(1)
+
+    try:
+        with open(config_file) as f:
+            config = json.load(f)
+    except json.decoder.JSONDecodeError as e:
+        print(f'Settings file {config_file} has invalid format')
+        print(f'{e}')
+        return None
+    except Exception as e:
+        print(f'Error opening settings file {config_file}')
+        print(f'{e}')
+        return None
+    return config
+
+config = read_config_file()
+if config is None:
     exit(1)
 
-
-try:
-    with open(settings_file) as f:
-        settings = json.load(f)
-except json.decoder.JSONDecodeError as e:
-    print(f'Settings file {settings_file} has invalid format')
-    print(f'{e}')
-    exit(1)
-except Exception as e:
-    print(f'Error opening settings file {settings_file}')
-    print(f'{e}')
-    exit(1)
-
-testplan_list = settings.get('testplans')
+testplan_list = config.get('testplans')
 if testplan_list is None:
     print('No testplans listed in config. Exiting!')
     exit(1)
 
 colormap = None
-chart_settings = settings.get('chartSettings')
+chart_settings = config.get('chartSettings')
 if chart_settings is not None:
     colormap = chart_settings.get('colormap')
-
-proj_list = [x['project'] for x in testplan_list]
 
 dt = chart_settings.get('testStart')
 start_date = parser.parse(dt) if dt is not None else None
 dt = chart_settings.get('testDeadline')
 test_deadline = parser.parse(dt) if dt is not None else None
+
+
+proj_list = [x['project'] for x in testplan_list]
 
 client = jama_client(blocking_as_not_run=False, inprogress_as_not_run=False)
 if not client.connect(url=jama_url, username=jama_api_username, password=jama_api_password, projkey_list=proj_list):
@@ -190,7 +199,6 @@ def get_app_layout():
     testplans_ui = get_testplans_ui()
     # get all test runs the first time
     for t in testplans_ui:
-        get_testcycles(testplan_ui_key=t)
         get_testruns(testplan_ui_key=t)
     initial_chart_type = next(iter(get_chart_types()))
     initial_testplan_ui = next(iter(testplans_ui))
@@ -235,11 +243,25 @@ def get_app_layout():
             ],
             style={'width': '50%', 'display': 'inline-block'})
         ]),
+        html.P('Current Time: {}'.format(str(datetime.datetime.now()))),
+        html.P(id='data-update-text'),
         html.Div(id='chart-container'),
+        dcc.Interval(
+            id='interval-component',
+            interval= 1 * 1000,  # in milliseconds
+            n_intervals=0)
     ])
     return layout
 
-app.layout = get_app_layout()
+app.layout = get_app_layout
+
+
+@app.callback(Output('data-update-text', 'children'),
+              [Input('interval-component', 'n_intervals')])
+def update_chart_data(n):
+    print('In interval call back {}'.format(str(datetime.datetime.now())))
+    return 'Last Updated: {}'.format(str(datetime.datetime.now()))
+
 
 @cache.memoize()
 def get_chart(testplan_ui, testcycle_ui, testgroup_ui, chart_type):

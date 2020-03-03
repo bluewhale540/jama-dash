@@ -1,7 +1,93 @@
 import re
 from datetime import timedelta, date, datetime
+from dateutil import parser
 import pandas as pd
 from tzlocal import get_localzone
+from os.path import expanduser, isfile
+import json
+
+
+class config:
+    config = None
+    colormap = None
+    testplan_lookup = {}
+    config_file_name = 'jama-report-config.json'
+
+    def __init__(self):
+        pass
+
+    def read_config_file(self):
+        config_file = None
+        for settings_dir in [expanduser('~'), '.']:
+            path = settings_dir + '/' + self.config_file_name
+            if isfile(path):
+                config_file = path
+                print(f'settings file {path} found!')
+                break
+
+        if config_file is None:
+            print(f'settings file {self.config_file_name} not found!')
+            return False
+
+        try:
+            with open(config_file) as f:
+                self.config = json.load(f)
+        except json.decoder.JSONDecodeError as e:
+            print(f'Settings file {config_file} has invalid format')
+            print(f'{e}')
+            return False
+        except Exception as e:
+            print(f'Error opening settings file {config_file}')
+            print(f'{e}')
+            return False
+
+        testplans = self.config.get('testplans')
+        if testplans is None:
+            print('Invalid congfig. No testplans found!')
+            return False
+        for t in testplans:
+            title = t.get('displayName')
+            project = t.get('project')
+            testplan = t.get('name')
+            if project is None or testplan is None:
+                print('missing project or testplan in config. Skipping...')
+                continue
+            if title is None:
+                title = project + ':' + testplan
+            # add to lookup
+            self.testplan_lookup[title] = (project, testplan)
+
+        chart_settings = self.config.get('chartSettings')
+        if chart_settings is not None:
+            self.colormap = chart_settings.get('colormap')
+        dt = chart_settings.get('testStart')
+        self.start_date = parser.parse(dt) if dt is not None else None
+        dt = chart_settings.get('testDeadline')
+        self.test_deadline = parser.parse(dt) if dt is not None else None
+        return True
+
+    def get_projects(self):
+        if self.testplan_lookup is None:
+            return None
+        proj_list = [x[0] for x in iter(self.testplan_lookup)]
+        return proj_list
+
+    def get_testplans_ui(self):
+        return iter(self.testplan_lookup)
+
+    def get_project_and_testplan(self, testplan_ui_key):
+        return self.testplan_lookup.get(testplan_ui_key)
+
+    def get_colormap(self):
+        return self.colormap
+
+    def get_start_date(self):
+        return self.start_date
+
+    def get_test_deadline(self):
+        return self.test_deadline
+
+
 
 def get_status_names():
     return ['NOT_RUN', 'PASSED', 'FAILED', 'INPROGRESS', 'BLOCKED']
