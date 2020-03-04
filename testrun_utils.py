@@ -252,7 +252,7 @@ def get_testrun_status_historical(df, testcycle_key=None, testgroup_key=None, st
     if start_date is None:
         start_date = df1['modified_date'].values.min()
     # set tomorrow's date as end date
-    end_date = datetime.now().date()  # today 11:59:59 pm
+    end_date = datetime.now().date() # today 11:59:59 pm
     # get local time zone
     local_tz = get_localzone()
     # create a date range using start and end dates from above set to the local TZ
@@ -260,12 +260,12 @@ def get_testrun_status_historical(df, testcycle_key=None, testgroup_key=None, st
     t = []
     for d in daterange:
         # create a dataframe of all test runs created before date 'd'
-        df2 = df1[df1['created_date'] < d]
+        df2 = df1[df1['created_date'] <= d]
         if df2.empty:
             # no test runs found - we will not consider this date
             continue
         total_runs = df2.shape[0]
-        df2 = df2[df2.modified_date < d]
+        df2 = df2[df2.modified_date <= d]
         if df2.empty:
             continue
         status_list, data_row = __get_status_counts_as_list(df2, override_total_runs=total_runs)

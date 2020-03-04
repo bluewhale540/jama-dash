@@ -133,10 +133,6 @@ class jama_client:
         self.url = url
         return True
 
-
-    def get_status_names(self):
-        return self.status_list
-
     def retrieve_testcycles(self, project_key, testplan_key, update=False):
         testcycles = self.testcycle_db.get((project_key, testplan_key))
         if not update and self.testcycle_db is not None and testcycles is not None:
@@ -192,9 +188,7 @@ class jama_client:
             if not query_df.empty and testcycle_key is not None:
                 # filter by test cycle key
                 query_df = query_df[query_df.testcycle.isin([testcycle_key])]
-            if query_df.empty:
-                print('no cached test runs found!')
-            else:
+            if not query_df.empty:
                 print('{} cached test runs found!'.format(query_df.shape[0]))
                 if update == False:
                     # return cached test runs
@@ -251,11 +245,6 @@ class jama_client:
         new_df['created_date'] = pd.to_datetime(new_df['created_date'], format="%Y-%m-%d").dt.date
         new_df['modified_date'] = pd.to_datetime(new_df['modified_date'], format="%Y-%m-%d").dt.date
         new_df['execution_date'] = pd.to_datetime(new_df['execution_date'], format="%Y-%m-%d").dt.date
-        '''
-        new_df['created_date'] = pd.to_datetime(new_df['created_date'], format="%Y-%m-%d").dt.floor("d")
-        new_df['modified_date'] = pd.to_datetime(new_df['modified_date'], format="%Y-%m-%d").dt.floor("d")
-        new_df['execution_date'] = pd.to_datetime(new_df['execution_date'], format="%Y-%m-%d").dt.floor("d")
-        '''
         self.df = self.df.append(new_df, sort=False)
 
         if testcycle_key is not None:
