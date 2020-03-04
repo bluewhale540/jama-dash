@@ -11,7 +11,7 @@ from dash.dependencies import Input, Output
 from weekly_status import get_weekly_status_bar_chart, get_current_week_testruns_table
 from historical_status import get_historical_status_line_chart
 from current_status import get_current_status_pie_chart, get_testgroup_status_bar_chart
-from testrun_utils import get_status_names
+from testrun_utils import get_status_names, JamaReportsConfig
 from dateutil import parser
 import json
 from flask_caching import Cache
@@ -31,81 +31,6 @@ CACHE_CONFIG = {
 }
 cache = Cache()
 cache.init_app(app.server, config=CACHE_CONFIG)
-
-
-
-jama_url = os.environ.get('JAMA_API_URL')
-jama_api_username = os.environ.get('JAMA_API_USERNAME')
-jama_api_password = os.environ.get('JAMA_API_PASSWORD')
-
-if jama_url is None:
-    jama_url = 'https://paperclip.idirect.net'
-
-if jama_api_password is None or jama_api_username is None:
-    # get Jama/contour login credentials using a dialog box
-    while True:
-        result = login_dialog.run()
-        if result is None:
-            exit(1)
-        break
-    jama_api_username = result[0]
-    jama_api_password = result[1]
-
-
-
-
-def read_config_file():
-    config_file_name = 'jama-report-config.json'
-    config_file = None
-    for settings_dir in [expanduser('~'), '.']:
-        path = settings_dir + '/' + config_file_name
-        if isfile(path):
-            config_file = path
-            print(f'settings file {path} found!')
-            break
-
-    if config_file is None:
-        print(f'settings file {config_file_name} not found!')
-        exit(1)
-
-    try:
-        with open(config_file) as f:
-            config = json.load(f)
-    except json.decoder.JSONDecodeError as e:
-        print(f'Settings file {config_file} has invalid format')
-        print(f'{e}')
-        return None
-    except Exception as e:
-        print(f'Error opening settings file {config_file}')
-        print(f'{e}')
-        return None
-    return config
-
-config = read_config_file()
-if config is None:
-    exit(1)
-
-testplan_list = config.get('testplans')
-if testplan_list is None:
-    print('No testplans listed in config. Exiting!')
-    exit(1)
-
-colormap = None
-chart_settings = config.get('chartSettings')
-if chart_settings is not None:
-    colormap = chart_settings.get('colormap')
-
-dt = chart_settings.get('testStart')
-start_date = parser.parse(dt) if dt is not None else None
-dt = chart_settings.get('testDeadline')
-test_deadline = parser.parse(dt) if dt is not None else None
-
-
-proj_list = [x['project'] for x in testplan_list]
-
-client = jama_client(blocking_as_not_run=False, inprogress_as_not_run=False)
-if not client.connect(url=jama_url, username=jama_api_username, password=jama_api_password, projkey_list=proj_list):
-    exit(1)
 
 FIG_TYPE_WEEKLY_STATUS_BAR_CHART = 'Weekly Status'
 FIG_TYPE_HISTORICAL_STATUS_LINE_CHART = 'Historical Status'
@@ -129,37 +54,53 @@ def get_chart_types():
         FIG_TYPE_CURRENT_RUNS_TABLE]
     return chart_types
 
-def get_testplans_ui():
-    testplans_ui = []
-    for t in testplan_list:
-        display_name = t.get('displayName')
-        if display_name is not None:
-            testplans_ui.append(display_name)
-    return testplans_ui
+@cache.memoize()
+def connect(config):
+    jama_url = os.environ.get('JAMA_API_URL')
+    jama_api_username = os.environ.get('JAMA_API_USERNAME')
+    jama_api_password = os.environ.get('JAMA_API_PASSWORD')
+
+    if jama_url is None:
+        jama_url = 'https://paperclip.idirect.net'
+
+    if jama_api_password is None or jama_api_username is None:
+        # get Jama/contour login credentials using a dialog box
+        while True:
+            result = login_dialog.run()
+            if result is None:
+                exit(1)
+            break
+        jama_api_username = result[0]
+        jama_api_password = result[1]
+
+    config = JamaReportsConfig()
+    if config.read_config_file() is False:
+        print('Error reading config')
+        return None
+
+    proj_list = config.get_projects()
+
+    client = jama_client(blocking_as_not_run=False, inprogress_as_not_run=False)
+    if not client.connect(url=jama_url, username=jama_api_username, password=jama_api_password, projkey_list=proj_list):
+        print('Error getting data from Jama/Contour')
+        return None
+    return client
 
 @cache.memoize()
-def get_project_and_testplan(testplan_ui_key):
-    for t in testplan_list:
-        project = t.get('project')
-        if project is None:
-            print('Missing \'project\' field under testplan in config. Skipping...')
-            continue
-        testplan = t.get('name')
-        if project is None:
-            print('Missing testplan name in config. Skipping...')
-            continue
-        title = t.get('displayName')
-        if title is None:
-            title = project + ':' + testplan
-        if title == testplan_ui_key:
-            return project, testplan
-    return None, None
-
-
+def read_config(config):
+    return config.read_config_file()
 
 @cache.memoize()
-def get_testcycles(testplan_ui_key):
-    project, testplan = get_project_and_testplan(testplan_ui_key=testplan_ui_key)
+def get_testplans_ui(config):
+    return config.get_testplan_names()
+
+@cache.memoize()
+def get_project_and_testplan(config, testplan_ui_key):
+    return config.get_project_and_testplan(testplan_ui_key)
+
+@cache.memoize()
+def get_testcycles(client, config, testplan_ui_key):
+    project, testplan = get_project_and_testplan(config=config, testplan_ui_key=testplan_ui_key)
     if project is None or testplan is None:
         return []
     testcycles = [c for i,c in client.retrieve_testcycles(project_key=project, testplan_key=testplan)]
@@ -172,8 +113,8 @@ def get_testcycle(testcycle_ui_key):
 
 
 @cache.memoize()
-def get_testruns(testplan_ui_key, testcycle_ui_key=None):
-    project, testplan = get_project_and_testplan(testplan_ui_key=testplan_ui_key)
+def get_testruns(client, config, testplan_ui_key, testcycle_ui_key=None):
+    project, testplan = config.get_project_and_testplan(testplan_ui_key=testplan_ui_key)
     if project is None or testplan is None:
         return None
     df = client.retrieve_testruns(project_key=project, testplan_key=testplan)
@@ -183,10 +124,9 @@ def get_testruns(testplan_ui_key, testcycle_ui_key=None):
         return df1
     return df
 
-
 @cache.memoize()
-def get_testgroups(testplan_ui_key, testcycle_ui_key=None):
-    df = get_testruns(testplan_ui_key=testplan_ui_key, testcycle_ui_key=testcycle_ui_key)
+def get_testgroups(client, config, testplan_ui_key, testcycle_ui_key=None):
+    df = get_testruns(client=client, config=config, testplan_ui_key=testplan_ui_key, testcycle_ui_key=testcycle_ui_key)
     testgroups = [ALL_TEST_GROUPS, ] + [c for c in iter(df.testgroup.unique())]
     return testgroups
 
@@ -194,22 +134,55 @@ def get_testgroups(testplan_ui_key, testcycle_ui_key=None):
 def get_testgroup(testgroup_ui_key):
     return None if testgroup_ui_key == ALL_TEST_GROUPS else testgroup_ui_key
 
+@cache.memoize()
+def get_colormap(config):
+    return config.get_colormap()
+
+@cache.memoize()
+def get_start_date(config):
+    return config.get_start_date()
+
+@cache.memoize()
+def get_test_deadline(config):
+    return config.get_test_deadline()
+
+
 
 def get_app_layout():
-    testplans_ui = get_testplans_ui()
-    # get all test runs the first time
-    for t in testplans_ui:
-        get_testruns(testplan_ui_key=t)
+    config = JamaReportsConfig()
+    if read_config(config=config) is False:
+        return html.Div('Invalid config file')
+
+    testplans_ui= get_testplans_ui(config=config)
+    if testplans_ui is None:
+        return html.Div('No testplans found. Please check your config file')
+
+    # call all config APIs to cache the results
+    get_colormap(config=config)
+    get_start_date(config=config)
+    get_test_deadline(config=config)
+
+    client = connect(config=config)
+    if client is None:
+        return html.Div('Unable to connect to Contour. Check credentials')
+
     initial_chart_type = next(iter(get_chart_types()))
     initial_testplan_ui = next(iter(testplans_ui))
-    testcycles_ui = get_testcycles(testplan_ui_key=initial_testplan_ui)
+    testcycles_ui = get_testcycles(client=client, config=config, testplan_ui_key=initial_testplan_ui)
     initial_testcycle_ui = next(iter(testcycles_ui))
-    testgroups_ui = get_testgroups(testplan_ui_key=initial_testplan_ui, testcycle_ui_key=initial_testcycle_ui)
+    testgroups_ui = get_testgroups(client=client, config=config, testplan_ui_key=initial_testplan_ui, testcycle_ui_key=initial_testcycle_ui)
     initial_testgroup = next(iter(testgroups_ui))
     chart_types = get_chart_types()
 
+    # get all test runs the first time so we can cache the results
+    for t in testplans_ui:
+        for c in get_testcycles(client=client, config=config, testplan_ui_key=t):
+            get_testruns(client=client, config=config, testplan_ui_key=t, testcycle_ui_key=c)
+
     layout = html.Div([
         html.Div([
+            html.P('Current Time: {}'.format(str(datetime.datetime.now()))),
+            html.P(id='data-update-text'),
             html.Div([
                 dcc.Dropdown(
                     id='id-test-plan',
@@ -243,8 +216,6 @@ def get_app_layout():
             ],
             style={'width': '50%', 'display': 'inline-block'})
         ]),
-        html.P('Current Time: {}'.format(str(datetime.datetime.now()))),
-        html.P(id='data-update-text'),
         html.Div(id='chart-container'),
         dcc.Interval(
             id='interval-component',
@@ -265,9 +236,14 @@ def update_chart_data(n):
 
 @cache.memoize()
 def get_chart(testplan_ui, testcycle_ui, testgroup_ui, chart_type):
-    testcycle = get_testcycle(testcycle_ui)
-    testgroup = get_testgroup(testgroup_ui)
-    df = get_testruns(testplan_ui)
+    config = JamaReportsConfig()
+    client = jama_client()
+    testcycle = get_testcycle(testcycle_ui_key=testcycle_ui)
+    testgroup = get_testgroup(testgroup_ui_key=testgroup_ui)
+    colormap = get_colormap(config=config)
+    start_date = get_start_date(config=config)
+    test_deadline = get_test_deadline(config=config)
+    df = get_testruns(client=client, config=config, testplan_ui_key=testplan_ui)
     if df is None:
         return  None
     title = f'{chart_type} - {testplan_ui}'
@@ -341,7 +317,9 @@ def get_chart(testplan_ui, testcycle_ui, testgroup_ui, chart_type):
     [Input('id-test-plan', 'value')]
 )
 def update_testcycle_options(testplan_ui):
-    testcycles = get_testcycles(testplan_ui_key=testplan_ui)
+    config = JamaReportsConfig()
+    client = jama_client()
+    testcycles = get_testcycles(client=client, config=config, testplan_ui_key=testplan_ui)
     testcycle = next(iter(testcycles))
     options = [{'label': i, 'value': i} for i in testcycles]
     return options, testcycle
@@ -353,7 +331,9 @@ def update_testcycle_options(testplan_ui):
     Input('id-test-cycle', 'value')]
 )
 def update_testgroup_options(testplan_ui, testcycle_ui):
-    testgroups = get_testgroups(testplan_ui_key=testplan_ui, testcycle_ui_key=testcycle_ui)
+    config = JamaReportsConfig()
+    client = jama_client()
+    testgroups = get_testgroups(client=client, config=config, testplan_ui_key=testplan_ui, testcycle_ui_key=testcycle_ui)
     testgroup = next(iter(testgroups))
     options = [{'label': i, 'value': i} for i in testgroups]
     return options, testgroup

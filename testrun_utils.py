@@ -6,38 +6,42 @@ from tzlocal import get_localzone
 from os.path import expanduser, isfile
 import json
 
-
-class config:
+class JamaReportsConfig:
     config = None
     colormap = None
+    start_date = None
+    test_deadline = None
     testplan_lookup = {}
+    config_file_path = '<Invalid>'
     config_file_name = 'jama-report-config.json'
 
     def __init__(self):
         pass
 
+    def __repr__(self):
+        return f'{self.__class__.__name__})'
+
     def read_config_file(self):
-        config_file = None
         for settings_dir in [expanduser('~'), '.']:
             path = settings_dir + '/' + self.config_file_name
             if isfile(path):
-                config_file = path
+                self.config_file_path = path
                 print(f'settings file {path} found!')
                 break
 
-        if config_file is None:
+        if self.config_file_path is None:
             print(f'settings file {self.config_file_name} not found!')
             return False
 
         try:
-            with open(config_file) as f:
+            with open(self.config_file_path) as f:
                 self.config = json.load(f)
         except json.decoder.JSONDecodeError as e:
-            print(f'Settings file {config_file} has invalid format')
+            print(f'Settings file {self.config_file_path} has invalid format')
             print(f'{e}')
             return False
         except Exception as e:
-            print(f'Error opening settings file {config_file}')
+            print(f'Error opening settings file {self.config_file_path}')
             print(f'{e}')
             return False
 
@@ -69,11 +73,11 @@ class config:
     def get_projects(self):
         if self.testplan_lookup is None:
             return None
-        proj_list = [x[0] for x in iter(self.testplan_lookup)]
-        return proj_list
+        return [x[0] for x in self.testplan_lookup.values()]
 
-    def get_testplans_ui(self):
-        return iter(self.testplan_lookup)
+    # return UI friendly testplan names
+    def get_testplan_names(self):
+        return [x for x in iter(self.testplan_lookup)]
 
     def get_project_and_testplan(self, testplan_ui_key):
         return self.testplan_lookup.get(testplan_ui_key)

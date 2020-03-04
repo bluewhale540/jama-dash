@@ -14,6 +14,9 @@ class jama_client:
     project_id_lookup = {} # dict of project keys to id
     user_id_lookup = {} # dict of user ids to names
 
+    def __repr__(self):
+        return f'{self.__class__.__name__})'
+
     def __init__(self, blocking_as_not_run=False, inprogress_as_not_run=False):
         # Test run DF columns
         self.df_columns = ['project', 'testplan', 'testcycle', 'testrun',
