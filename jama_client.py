@@ -196,7 +196,7 @@ class jama_client:
                 else:
                     print('removing cached test runs to prepare for update...')
                     # remove any cached runs for this test plan
-                    self.df = self.df[self.df.project != project_key or self.df.testplan != testplan_key]
+                    self.df = self.df[~self.df.testplan.eq(testplan_key)]
 
         print('retrieving test runs for project {} and test plan {}...'.format(project_key, testplan_key))
         testcycles = self.retrieve_testcycles(project_key=project_key, testplan_key=testplan_key)

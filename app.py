@@ -31,6 +31,8 @@ CACHE_CONFIG = {
 }
 cache = Cache()
 cache.init_app(app.server, config=CACHE_CONFIG)
+with app.server.app_context():
+    cache.clear()
 
 FIG_TYPE_WEEKLY_STATUS_BAR_CHART = 'Weekly Status'
 FIG_TYPE_HISTORICAL_STATUS_LINE_CHART = 'Historical Status'
@@ -73,11 +75,6 @@ def connect(config):
         jama_api_username = result[0]
         jama_api_password = result[1]
 
-    config = JamaReportsConfig()
-    if config.read_config_file() is False:
-        print('Error reading config')
-        return None
-
     proj_list = config.get_projects()
 
     client = jama_client(blocking_as_not_run=False, inprogress_as_not_run=False)
@@ -86,7 +83,6 @@ def connect(config):
         return None
     return client
 
-@cache.memoize()
 def read_config(config):
     return config.read_config_file()
 
@@ -146,43 +142,42 @@ def get_start_date(config):
 def get_test_deadline(config):
     return config.get_test_deadline()
 
+config = JamaReportsConfig()
+if read_config(config=config) is False:
+    exit(1)
+
+client = connect(config=config)
+if client is None:
+    exit(1)
+
+testplans_ui_global= get_testplans_ui(config=config)
+# get all test runs the first time so we can cache the results
+for t in testplans_ui_global:
+    for c in get_testcycles(client=client, config=config, testplan_ui_key=t):
+        get_testruns(client=client, config=config, testplan_ui_key=t, testcycle_ui_key=c)
+
+# call all config APIs to cache the results
+get_colormap(config=config)
+get_start_date(config=config)
+get_test_deadline(config=config)
 
 
 def get_app_layout():
-    config = JamaReportsConfig()
-    if read_config(config=config) is False:
-        return html.Div('Invalid config file')
-
-    testplans_ui= get_testplans_ui(config=config)
-    if testplans_ui is None:
-        return html.Div('No testplans found. Please check your config file')
-
-    # call all config APIs to cache the results
-    get_colormap(config=config)
-    get_start_date(config=config)
-    get_test_deadline(config=config)
-
-    client = connect(config=config)
-    if client is None:
-        return html.Div('Unable to connect to Contour. Check credentials')
-
-    initial_chart_type = next(iter(get_chart_types()))
+    testplans_ui = get_testplans_ui(config=config)
     initial_testplan_ui = next(iter(testplans_ui))
     testcycles_ui = get_testcycles(client=client, config=config, testplan_ui_key=initial_testplan_ui)
     initial_testcycle_ui = next(iter(testcycles_ui))
-    testgroups_ui = get_testgroups(client=client, config=config, testplan_ui_key=initial_testplan_ui, testcycle_ui_key=initial_testcycle_ui)
+    testgroups_ui = get_testgroups(client=client, config=config,
+                                   testplan_ui_key=initial_testplan_ui,
+                                   testcycle_ui_key=initial_testcycle_ui)
     initial_testgroup = next(iter(testgroups_ui))
     chart_types = get_chart_types()
+    initial_chart_type = next(iter(get_chart_types()))
 
-    # get all test runs the first time so we can cache the results
-    for t in testplans_ui:
-        for c in get_testcycles(client=client, config=config, testplan_ui_key=t):
-            get_testruns(client=client, config=config, testplan_ui_key=t, testcycle_ui_key=c)
 
     layout = html.Div([
         html.Div([
-            html.P('Current Time: {}'.format(str(datetime.datetime.now()))),
-            html.P(id='data-update-text'),
+            html.H2(id='updated-time-text'),
             html.Div([
                 dcc.Dropdown(
                     id='id-test-plan',
@@ -219,7 +214,7 @@ def get_app_layout():
         html.Div(id='chart-container'),
         dcc.Interval(
             id='interval-component',
-            interval= 1 * 1000,  # in milliseconds
+            interval= 300 * 1000,  # in milliseconds
             n_intervals=0)
     ])
     return layout
@@ -227,17 +222,22 @@ def get_app_layout():
 app.layout = get_app_layout
 
 
-@app.callback(Output('data-update-text', 'children'),
+@app.callback(Output('updated-time-text', 'children'),
               [Input('interval-component', 'n_intervals')])
 def update_chart_data(n):
-    print('In interval call back {}'.format(str(datetime.datetime.now())))
+    '''
+    for t in testplans_ui_global:
+        project, testplan = config.get_project_and_testplan(testplan_ui_key=t)
+        if project is None or testplan is None:
+            return 'Project or Testplan missing in config'
+        client.retrieve_testruns(project_key=project, testplan_key=testplan, update=True)
+    cache.delete_memoized(get_testruns)
+    '''
     return 'Last Updated: {}'.format(str(datetime.datetime.now()))
 
 
 @cache.memoize()
 def get_chart(testplan_ui, testcycle_ui, testgroup_ui, chart_type):
-    config = JamaReportsConfig()
-    client = jama_client()
     testcycle = get_testcycle(testcycle_ui_key=testcycle_ui)
     testgroup = get_testgroup(testgroup_ui_key=testgroup_ui)
     colormap = get_colormap(config=config)
@@ -349,4 +349,4 @@ def update_graph(testplan_ui, testcycle_ui, testgroup_ui, chart_type):
     return chart
 
 if __name__ == '__main__':
-    app.run_server(debug=False)
+    app.run_server(debug=True)

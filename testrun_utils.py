@@ -47,7 +47,7 @@ class JamaReportsConfig:
 
         testplans = self.config.get('testplans')
         if testplans is None:
-            print('Invalid congfig. No testplans found!')
+            print('Invalid config. No testplans found!')
             return False
         for t in testplans:
             title = t.get('displayName')
