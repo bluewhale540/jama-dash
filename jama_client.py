@@ -1,7 +1,8 @@
 from py_jama_rest_client.client import JamaClient
-from testrun_utils import get_start_and_end_date
+from datetime import date
 import pandas as pd
 import requests
+import re
 from requests.exceptions import HTTPError
 
 class jama_client:
@@ -86,6 +87,51 @@ class jama_client:
             for proj in projkey_list:
                 print(f'\t{proj}')
 
+    # process the week string in the format SprintX_mmmdd_mmmdd or SprintX_mmmdd_dd
+    # and return the start and end dates in the string. Returns None, None if format is
+    # invalid
+    def __get_start_and_end_date(self, week_str):
+        # strip 'Sprint\d_' prefix if it exists
+        result = re.findall('^Sprint\d+_', week_str)
+        if len(result) == 0:
+            return None, None
+        dates = week_str[len(result[0]):]
+        result = re.findall('^\D+', dates)
+        month_map = {'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5,
+                     'Jun': 6, 'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10,
+                     'Nov': 11, 'Dec': 12}
+        if len(result) == 0 or result[0] not in iter(month_map):
+            return None, None
+        start_month = month_map[result[0]]
+        end_month = start_month
+        days = re.split('-', dates[len(result[0]):])
+        if len(days) < 2:
+            return None, None
+        start_day = int(days[0])
+        # check for second month
+        result = re.findall('^\D+', days[1])
+        if len(result) != 0:
+            if result[0] not in iter(month_map):
+                return None, None
+            else:
+                end_month = month_map[result[0]]
+                days[1] = days[1][len(result[0]):]
+        end_day = int(days[1])
+
+        current_year = date.today().year
+        current_month = date.today().month
+        start_year = current_year
+        end_year = current_year
+        # empirically check if we are straddling years
+        # (assume month > current month + 6) as the threshold
+        if start_month > current_month + 6:
+            start_year -= 1
+        if end_month > current_month + 6:
+            end_year -= 1
+        start_date = date(year=start_year, month=start_month, day=start_day)
+        end_date = date(year=end_year, month=end_month, day=end_day)
+        return start_date, end_date
+
     def connect(self, url, username, password, projkey_list):
         # Create the Jama client
         try:
@@ -115,7 +161,7 @@ class jama_client:
 
             weeks = self.client.get_pick_list_options(planned_week_id)
             for x in weeks:
-                start_date, end_date = get_start_and_end_date(x['name'])
+                start_date, end_date = self.__get_start_and_end_date(x['name'])
                 if start_date is None:
                     # will we ever get here?
                     continue
@@ -141,7 +187,7 @@ class jama_client:
         project_id = self.project_id_lookup[project_key]
         if project_id is None:
             print(f'Invalid project {project_key}')
-        print(f'querying for test plan {testplan_key}...')
+        #print(f'querying for test plan {testplan_key}...')
         # get all test plans in project
         try:
             testplans = self.client.get_abstract_items(item_type=self.testplan_type,
@@ -157,7 +203,7 @@ class jama_client:
         # we will assume that within a project, Jama only allows you to create testplans with unique names
         testplan_id = testplans[0]['id']
         print('found test plan {}!'.format(testplan_key))
-        print('querying for test cycles under test plan {}...'.format(testplan_key))
+        #print('querying for test cycles under test plan {}...'.format(testplan_key))
         # get all test cycles in project
         try:
             tc = self.client.get_abstract_items(item_type=self.testcycle_type,

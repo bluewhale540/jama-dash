@@ -1,21 +1,17 @@
-
 import os
-from os.path import expanduser, isfile
-import datetime
+from datetime import datetime
 from jama_client import jama_client
 import login_dialog
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
-from dash.dependencies import Input, Output
+from dash.dependencies import Input, Output, State
+from dash.exceptions import PreventUpdate
 from weekly_status import get_weekly_status_bar_chart, get_current_week_testruns_table
 from historical_status import get_historical_status_line_chart
 from current_status import get_current_status_pie_chart, get_testgroup_status_bar_chart
 from testrun_utils import get_status_names, JamaReportsConfig
-from dateutil import parser
-import json
 from flask_caching import Cache
-
 
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
@@ -177,7 +173,6 @@ def get_app_layout():
 
     layout = html.Div([
         html.Div([
-            html.H2(id='updated-time-text'),
             html.Div([
                 dcc.Dropdown(
                     id='id-test-plan',
@@ -196,7 +191,7 @@ def get_app_layout():
             style={'width': '50%', 'display': 'inline-block'}),
             html.Div([
                 dcc.Dropdown(
-                    id='id-test-case',
+                    id='id-test-group',
                     options=[{'label': i, 'value': i} for i in testgroups_ui],
                     value=initial_testgroup
                 ),
@@ -212,32 +207,40 @@ def get_app_layout():
             style={'width': '50%', 'display': 'inline-block'})
         ]),
         html.Div(id='chart-container'),
+        html.Div(id='id-updated-time'),
         dcc.Interval(
-            id='interval-component',
-            interval= 300 * 1000,  # in milliseconds
+            id='id-interval',
+            interval= 60 * 1000,  # in milliseconds
             n_intervals=0)
     ])
     return layout
 
 app.layout = get_app_layout
 
-
-@app.callback(Output('updated-time-text', 'children'),
-              [Input('interval-component', 'n_intervals')])
-def update_chart_data(n):
+@app.callback(Output('id-updated-time', 'children'),
+              [Input('id-interval', 'n_intervals')],
+              [State('id-test-plan', 'value'),
+               State('id-test-cycle', 'value'),
+               State('id-test-group', 'value')])
+def update_chart_data(n, testplan, testcycle, tesgroup):
     '''
+    if n== 0:
+        return [html.Span('Initial Data')]
     for t in testplans_ui_global:
         project, testplan = config.get_project_and_testplan(testplan_ui_key=t)
         if project is None or testplan is None:
             return 'Project or Testplan missing in config'
         client.retrieve_testruns(project_key=project, testplan_key=testplan, update=True)
     cache.delete_memoized(get_testruns)
+    cache.delete_memoized(get_chart)
     '''
-    return 'Last Updated: {}'.format(str(datetime.datetime.now()))
+    update_text = 'Last Updated: {} - Refresh to see updates'.format(datetime.now().strftime('%m-%d-%Y %H:%M:%S'))
+    return [html.Span(update_text)]
 
 
 @cache.memoize()
 def get_chart(testplan_ui, testcycle_ui, testgroup_ui, chart_type):
+    print('In Get chart: {}'.format(str(datetime.now().strftime('%M %d-%Y %H:%M:%S'))))
     testcycle = get_testcycle(testcycle_ui_key=testcycle_ui)
     testgroup = get_testgroup(testgroup_ui_key=testgroup_ui)
     colormap = get_colormap(config=config)
@@ -308,45 +311,43 @@ def get_chart(testplan_ui, testcycle_ui, testgroup_ui, chart_type):
         chart = \
             [get_testgroup_status_bar_chart(df=df, testcycle=testcycle, testgroup=testgroup, title=title,
                                            colormap=colormap, status_list=['NOT_RUN', 'INPROGRESS'])]
-
     return chart
 
 @app.callback(
     [Output('id-test-cycle', 'options'),
      Output('id-test-cycle', 'value')],
-    [Input('id-test-plan', 'value')]
+    [Input('id-test-plan', 'value')],
+    [State('id-test-cycle', 'value')]
 )
-def update_testcycle_options(testplan_ui):
-    config = JamaReportsConfig()
-    client = jama_client()
+def update_testcycle_options(testplan_ui, current_test_cycle):
     testcycles = get_testcycles(client=client, config=config, testplan_ui_key=testplan_ui)
-    testcycle = next(iter(testcycles))
+    testcycle = current_test_cycle
+    if current_test_cycle not in testcycles:
+        testcycle = next(iter(testcycles))
     options = [{'label': i, 'value': i} for i in testcycles]
     return options, testcycle
 
 @app.callback(
-    [Output('id-test-case', 'options'),
-     Output('id-test-case', 'value')],
+    [Output('id-test-group', 'options'),
+     Output('id-test-group', 'value')],
     [Input('id-test-plan', 'value'),
     Input('id-test-cycle', 'value')]
 )
 def update_testgroup_options(testplan_ui, testcycle_ui):
-    config = JamaReportsConfig()
-    client = jama_client()
     testgroups = get_testgroups(client=client, config=config, testplan_ui_key=testplan_ui, testcycle_ui_key=testcycle_ui)
     testgroup = next(iter(testgroups))
     options = [{'label': i, 'value': i} for i in testgroups]
     return options, testgroup
 
 @app.callback(
-    Output('chart-container', 'children'),
+    [Output('chart-container', 'children')],
     [Input('id-test-plan', 'value'),
      Input('id-test-cycle', 'value'),
-     Input('id-test-case', 'value'),
+     Input('id-test-group', 'value'),
      Input('id-chart-type', 'value')])
 def update_graph(testplan_ui, testcycle_ui, testgroup_ui, chart_type):
     chart = get_chart(testplan_ui, testcycle_ui, testgroup_ui, chart_type)
     return chart
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run_server(debug=False)

@@ -1,10 +1,13 @@
-import re
 from datetime import timedelta, date, datetime
 from dateutil import parser
 import pandas as pd
+import json
 from tzlocal import get_localzone
 from os.path import expanduser, isfile
-import json
+from jama_client import jama_client
+
+ALL_TEST_CYCLES = 'All Test Cycles'
+ALL_TEST_GROUPS = 'All Test Groups'
 
 class JamaReportsConfig:
     config = None
@@ -154,52 +157,6 @@ def __get_status_counts_as_list(df, override_total_runs=None,
     return status_list, data_row
 
 
-# process the week string in the format SprintX_mmmdd_mmmdd or SprintX_mmmdd_dd
-# and return the start and end dates in the string. Returns None, None if format is
-# invalid
-def get_start_and_end_date(week_str):
-    # strip 'Sprint\d_' prefix if it exists
-    result = re.findall('^Sprint\d+_', week_str)
-    if len(result) == 0:
-        return None, None
-    dates = week_str[len(result[0]):]
-    result = re.findall('^\D+', dates)
-    month_map = {'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5,
-                 'Jun': 6, 'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10,
-                 'Nov': 11, 'Dec': 12}
-    if len(result) == 0 or result[0] not in iter(month_map):
-        return None, None
-    start_month = month_map[result[0]]
-    end_month = start_month
-    days = re.split('-', dates[len(result[0]):])
-    if len(days) < 2:
-        return None, None
-    start_day = int(days[0])
-    # check for second month
-    result = re.findall('^\D+', days[1])
-    if len(result) != 0:
-        if result[0] not in iter(month_map):
-            return None, None
-        else:
-            end_month = month_map[result[0]]
-            days[1] = days[1][len(result[0]):]
-    end_day = int(days[1])
-
-    current_year = date.today().year
-    current_month = date.today().month
-    start_year = current_year
-    end_year = current_year
-    # empirically check if we are straddling years
-    # (assume month > current month + 6) as the threshold
-    if start_month > current_month + 6:
-        start_year -= 1
-    if end_month > current_month + 6:
-        end_year -= 1
-
-    start_date = date(year=start_year, month=start_month, day=start_day)
-    end_date = date(year=end_year, month=end_month, day=end_day)
-    return start_date, end_date
-
 def __get_current_planned_week(planned_weeks):
     for start_date in planned_weeks:
         if start_date is None:
@@ -275,4 +232,31 @@ def get_testrun_status_historical(df, testcycle_key=None, testgroup_key=None, st
     df3 = pd.DataFrame(t, columns=['date'] + get_status_names())
     df3['date'] = pd.to_datetime(df3['date'])
     return df3
+
+# connect to JAMA server, download testruns for all testplans in config and return testruns as a JSON
+def retrieve_testruns(jama_url: str, jama_username: str, jama_password: str):
+    config = JamaReportsConfig()
+    if not config.read_config_file():
+        print('Error reading config file!')
+        return None
+    client = jama_client(blocking_as_not_run=False, inprogress_as_not_run=False)
+    projects = config.get_projects()
+    if len(projects) == 0:
+        print('No projects found in config file')
+        return None
+    if not client.connect(url=jama_url, username=jama_username, password=jama_password, projkey_list=config.get_projects()):
+        print('Error getting data from Jama/Contour')
+        return None
+    # download test runs
+    testruns = {}
+    testruns['testplan'] = []
+    for testplan_name in config.get_testplan_names():
+        project, testplan = config.get_project_and_testplan(testplan_ui_key=testplan_name)
+        df = client.retrieve_testruns(project_key=project, testplan_key=testplan)
+        d = {}
+        d['name'] = testplan_name
+        d['data'] = df.to_dict()
+        testruns['testplan'].append(d)
+    return testruns
+
 
