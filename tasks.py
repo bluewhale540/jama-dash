@@ -38,7 +38,7 @@ def update_data():
     if jama_url is None:
         jama_url = 'https://paperclip.idirect.net'
 
-    testrun_dict = testrun_utils.retrieve_testruns(jama_url=jama_url,
+    df = testrun_utils.retrieve_testruns(jama_url=jama_url,
                                                    jama_username=jama_api_username,
                                                    jama_password=jama_api_password)
     # Save testrun dataframes in redis so that the Dash app, running on a separate
@@ -47,7 +47,7 @@ def update_data():
         REDIS_HASH_NAME,
         REDIS_DATASET_KEY,
         json.dumps(
-            testrun_dict,
+            df.to_dict(),
             # This JSON Encoder will handle things like numpy arrays
             # and datetimes
             cls=plotly.utils.PlotlyJSONEncoder,
@@ -55,5 +55,5 @@ def update_data():
     )
     # Save the timestamp that the dataframe was updated
     redis_instance.hset(
-        REDIS_HASH_NAME, REDIS_UPDATED_KEY, str(datetime.datetime.now())
+        REDIS_HASH_NAME, REDIS_UPDATED_KEY, str(datetime.datetime.now().strftime('%a, %b %d %Y %H:%M:%S'))
     )
