@@ -9,6 +9,17 @@ from jama_client import jama_client
 ALL_TEST_CYCLES = 'All Test Cycles'
 ALL_TEST_GROUPS = 'All Test Groups'
 
+# Dataframe columns
+COL_PROJECT = 'project'
+COL_TESTPLAN = 'testplan'
+COL_TESTCYCLE = 'testcycle'
+COL_TESTGROUP = 'testgroup'
+COL_CREATED_DATE = 'created_date'
+COL_MODIFIED_DATE = 'modified_date'
+COL_EXECUTION_DATE = 'execution_date'
+COL_PLANNED_WEEK = 'planned_week'
+COL_STATUS = 'status'
+
 class JamaReportsConfig:
     config = None
     colormap = None
@@ -54,7 +65,7 @@ class JamaReportsConfig:
             return False
         for t in testplans:
             title = t.get('displayName')
-            project = t.get('project')
+            project = t.get(COL_PROJECT)
             testplan = t.get('name')
             if project is None or testplan is None:
                 print('missing project or testplan in config. Skipping...')
@@ -95,12 +106,13 @@ class JamaReportsConfig:
         return self.test_deadline
 
 
-
 def get_status_names():
     return ['NOT_RUN', 'PASSED', 'FAILED', 'INPROGRESS', 'BLOCKED']
 
-def filter_df(df, testcycle_key=None, testgroup_key=None):
+def filter_df(df, testplan_key=None, testcycle_key=None, testgroup_key=None):
     df1 = df
+    if testplan_key is not None:
+        df1 = df1[df.testplan.eq(testplan_key)]
     if testcycle_key is not None:
         df1 = df1[df.testcycle.eq(testcycle_key)]
     if testgroup_key is not None:
@@ -167,7 +179,7 @@ def __get_current_planned_week(planned_weeks):
 
 
 def get_testrun_status_by_planned_weeks(df, testcycle_key=None, testgroup_key=None):
-    df1 = filter_df(df, testcycle_key, testgroup_key)
+    df1 = filter_df(df, testcycle_key=testcycle_key, testgroup_key=testgroup_key)
     t = []
     status_list=[]
     planned_weeks = df1.planned_week.unique()
@@ -176,7 +188,7 @@ def get_testrun_status_by_planned_weeks(df, testcycle_key=None, testgroup_key=No
         if week is None:
             df2 = df1[df1.planned_week.isnull()]
         else:
-            df2 = df1[df1['planned_week'] == week]
+            df2 = df1[df1[COL_PLANNED_WEEK] == week]
         # get the counts of each status
         status_list, data_row = __get_status_counts_as_list(df=df2)
         if not any(data_row):
@@ -187,27 +199,27 @@ def get_testrun_status_by_planned_weeks(df, testcycle_key=None, testgroup_key=No
 
         t.append([week] + data_row)
 
-    df = pd.DataFrame(t, columns=['planned_week'] + status_list)
+    df = pd.DataFrame(t, columns=[COL_PLANNED_WEEK] + status_list)
     return df
 
 def get_testruns_for_current_week(df, testcycle_key=None, testgroup_key=None):
-    df1 = filter_df(df, testcycle_key, testgroup_key)
+    df1 = filter_df(df, testcycle_key=testcycle_key, testgroup_key=testgroup_key)
     planned_weeks = df1.planned_week.unique()
     start_date = __get_current_planned_week(planned_weeks)
     if start_date is None:
         # Cannot find current planned week in dataframe, return None
         return None
     # filter test runs by current week
-    df1 = df1[df1['planned_week'] == start_date]
-    df1 = df1.drop(columns=['project', 'testplan', 'created_date', 'modified_date', 'planned_week'])
+    df1 = df1[df1[COL_PLANNED_WEEK] == start_date]
+    df1 = df1.drop(columns=[COL_PROJECT, COL_TESTPLAN, COL_CREATED_DATE, COL_MODIFIED_DATE, COL_PLANNED_WEEK])
     return df1
 
 
 def get_testrun_status_historical(df, testcycle_key=None, testgroup_key=None, start_date=None):
-    df1 = filter_df(df, testcycle_key, testgroup_key)
+    df1 = filter_df(df, testcycle_key=testcycle_key, testgroup_key=testgroup_key)
     # set lowest modified date - 1 as start date
     if start_date is None:
-        start_date = df1['modified_date'].values.min()
+        start_date = df1[COL_MODIFIED_DATE].values.min()
     # set tomorrow's date as end date
     end_date = datetime.now().date() # today 11:59:59 pm
     # get local time zone
@@ -217,7 +229,7 @@ def get_testrun_status_historical(df, testcycle_key=None, testgroup_key=None, st
     t = []
     for d in daterange:
         # create a dataframe of all test runs created before date 'd'
-        df2 = df1[df1['created_date'] <= d]
+        df2 = df1[df1[COL_CREATED_DATE] <= d]
         if df2.empty:
             # no test runs found - we will not consider this date
             continue
@@ -254,10 +266,32 @@ def retrieve_testruns(jama_url: str, jama_username: str, jama_password: str):
         project, testplan = config.get_project_and_testplan(testplan_ui_key=testplan_name)
         df = client.retrieve_testruns(project_key=project, testplan_key=testplan)
         # remove project column and replace testplan with testplan_name
-        df1 = df.drop(columns=['project'])
-        df1['testplan'].replace({testplan: testplan_name}, inplace=True)
+        df1 = df.drop(columns=[COL_PROJECT])
+        df1[COL_TESTPLAN].replace({testplan: testplan_name}, inplace=True)
         frames.append(df1)
     df = pd.concat(frames)
     return df
 
+# get list of testplans in DF
+def get_testplan_labels(df):
+    return df.testplan.unique() if COL_TESTPLAN in df.columns else []
 
+# get list of testcycles in DF given testplan
+def get_testcycle_labels(df, testplan_key):
+    labels = [ALL_TEST_CYCLES, ]
+    df1 = filter_df(df=df, testplan_key=testplan_key)
+    labels += [x for x in df1.testcycle.unique()] if COL_TESTCYCLE in df.columns else []
+    return labels
+
+# get list of testcycles in DF given testplan
+def get_testgroup_labels(df, testplan_key, testcycle_key):
+    labels = [ALL_TEST_GROUPS, ]
+    df1 = filter_df(df=df, testplan_key=testplan_key, testcycle_key=testcycle_key)
+    labels += [x for x in df1.testgroup.unique()] if COL_TESTGROUP in df.columns else []
+    return labels
+
+def get_testcycle_from_label(label):
+    return None if label == ALL_TEST_CYCLES else label
+
+def get_testgroup_from_label(label):
+    return None if label == ALL_TEST_GROUPS else label

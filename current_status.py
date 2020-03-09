@@ -6,7 +6,7 @@ import pandas as pd
 
 
 def get_current_status_pie_chart(df, testcycle, testgroup, title='Current Status', colormap=None):
-    df1 = filter_df(df, testcycle, testgroup)
+    df1 = filter_df(df, testcycle_key=testcycle, testgroup_key=testgroup)
     counts = df1['status'].value_counts()
 
     status_names = []
