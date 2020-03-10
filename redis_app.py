@@ -12,7 +12,8 @@ from testrun_utils import get_testplan_labels, \
     get_testcycle_from_label, \
     json_to_df
 
-from charts import get_chart_types, get_chart, get_default_colormap
+import charts
+from charts import get_chart_types, get_default_colormap
 import tasks
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
@@ -108,6 +109,11 @@ def get_testgroup_options(testplan, testcycle):
                                                  testcycle_key=get_testcycle_from_label(testcycle))]
     return testgroups
 
+@cache.memoize()
+def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, chart_type, colormap, start_date, test_deadline):
+    return charts.get_chart(
+        df, testplan_ui, testcycle_ui, testgroup_ui, chart_type, colormap, start_date, test_deadline)
+
 def serve_layout():
     testplans = get_testplan_options()
     initial_testplan = init_value(testplans)
@@ -153,7 +159,13 @@ def serve_layout():
                 ],
                 style={'width': '50%', 'display': 'inline-block'}),
             ]),
-            html.Div(id='id-chart'),
+            dcc.Loading(
+                id='id-loading',
+                children=[
+                    html.Div(id='id-chart')
+                ],
+                type='graph',
+            ),
             html.Div(id='id-status'),
         ]
     )

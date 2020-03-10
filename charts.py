@@ -36,7 +36,6 @@ def get_chart_types():
 
 
 def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, chart_type, colormap, start_date, test_deadline):
-    print('In Get chart: {}'.format(str(datetime.now().strftime('%M %d-%Y %H:%M:%S'))))
     testcycle = get_testcycle_from_label(label=testcycle_ui)
     testgroup = get_testgroup_from_label(label=testgroup_ui)
     if df is None:
@@ -47,7 +46,7 @@ def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, chart_type, colormap,
     if testgroup is not None:
         title += f':{testgroup_ui}'
 
-    print(f'Creating charts for {title}...')
+    print(f'Creating chart for {title}...')
     chart = None
     if chart_type == FIG_TYPE_WEEKLY_STATUS_BAR_CHART:
         chart = \
