@@ -2,6 +2,7 @@ from datetime import timedelta, date, datetime
 from dateutil import parser
 import pandas as pd
 import json
+import plotly
 from tzlocal import get_localzone
 from os.path import expanduser, isfile
 from jama_client import jama_client
@@ -105,9 +106,14 @@ class JamaReportsConfig:
     def get_test_deadline(self):
         return self.test_deadline
 
+STATUS_NOT_RUN = 'NOT_RUN'
+STATUS_PASSED = 'PASSED'
+STATUS_FAILED = 'FAILED'
+STATUS_INPROGRESS = 'INPROGRESS'
+STATUS_BLOCKED = 'BLOCKED'
 
 def get_status_names():
-    return ['NOT_RUN', 'PASSED', 'FAILED', 'INPROGRESS', 'BLOCKED']
+    return [STATUS_NOT_RUN, STATUS_PASSED, STATUS_FAILED, STATUS_INPROGRESS, STATUS_BLOCKED]
 
 def filter_df(df, testplan_key=None, testcycle_key=None, testgroup_key=None):
     df1 = df
@@ -295,3 +301,21 @@ def get_testcycle_from_label(label):
 
 def get_testgroup_from_label(label):
     return None if label == ALL_TEST_GROUPS else label
+
+def df_to_json(df):
+    return json.dumps(
+        df.to_dict(),
+        # This JSON Encoder will handle things like numpy arrays
+        # and datetimes
+        cls=plotly.utils.PlotlyJSONEncoder,
+    )
+
+def json_to_df(json_str):
+    df = pd.DataFrame(json.loads(json_str))
+    convert_date_column = lambda df, col, fmt: pd.to_datetime(df[col], format=fmt).dt.date
+    date_format='%Y-%m-%d'
+    df[COL_CREATED_DATE] = convert_date_column(df, COL_CREATED_DATE, date_format)
+    df[COL_MODIFIED_DATE] = convert_date_column(df, COL_MODIFIED_DATE, date_format)
+    df[COL_EXECUTION_DATE] = convert_date_column(df, COL_EXECUTION_DATE, date_format)
+    df[COL_PLANNED_WEEK] = convert_date_column(df, COL_PLANNED_WEEK, date_format)
+    return df

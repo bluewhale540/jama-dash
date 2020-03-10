@@ -2,24 +2,36 @@ import dash
 from dash.dependencies import Input, Output, State
 import dash_core_components as dcc
 import dash_html_components as html
-from datetime import datetime as dt
-import flask
-import json
+from flask_caching import Cache
 import redis
-import time
+from dateutil import parser
 import os
-import pandas as pd
 from testrun_utils import get_testplan_labels, \
     get_testcycle_labels, \
     get_testgroup_labels,\
     get_testcycle_from_label, \
-    get_testgroup_from_label
+    json_to_df
 
+from charts import get_chart_types, get_chart, get_default_colormap
 import tasks
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+
+CACHE_CONFIG = {
+    # 'redis' or 'filesystem'
+    'CACHE_TYPE': 'filesystem',
+    'CACHE_DIR': './.cachedir',
+    # 'CACHE_REDIS_URL': os.environ.get('REDIS_URL', 'redis://localhost:6379')
+    'DEBUG': True
+}
+
+cache = Cache()
+cache.init_app(app.server, config=CACHE_CONFIG)
+with app.server.app_context():
+    cache.clear()
+
 
 server = app.server
 
@@ -48,7 +60,7 @@ def get_chart_types():
     ]
     return chart_types
 
-
+@cache.memoize()
 def get_data():
     '''Retrieve the dataframe from Redis
     This dataframe is periodically updated through the redis task
@@ -58,9 +70,9 @@ def get_data():
     ).decode('utf-8')
     return jsonified_df
 
-json_to_df = lambda a: pd.DataFrame(json.loads(a))
 init_value = lambda a: a[0]['value'] if len(a) > 0 and 'value' in a[0] else None
 make_options = lambda lst: [{'label': i, 'value': i} for i in lst]
+
 
 def get_value_from_options(options, current_value=None):
     if current_value is None:
@@ -72,21 +84,28 @@ def get_value_from_options(options, current_value=None):
     return init_value(options)
 
 # get testplans and first value
+@cache.memoize()
 def get_testplan_options():
     df = json_to_df(get_data())
     testplans =  [{'label': i, 'value': i} for i in get_testplan_labels(df)]
     return testplans
 
 # get testplans and first value
+@cache.memoize()
 def get_testcycle_options(testplan):
     df = json_to_df(get_data())
-    testcycles =  [{'label': i, 'value': i} for i in get_testcycle_labels(df, testplan_key=testplan)]
+    testcycles = [{'label': i, 'value': i}
+                   for i in get_testcycle_labels(df, testplan_key=testplan)]
     return testcycles
 
 # get testplans and first value
+@cache.memoize()
 def get_testgroup_options(testplan, testcycle):
     df = json_to_df(get_data())
-    testgroups =  [{'label': i, 'value': i} for i in get_testgroup_labels(df, testplan_key=testplan, testcycle_key=testcycle)]
+    testgroups = [{'label': i, 'value': i}
+                   for i in get_testgroup_labels(df,
+                                                 testplan_key=testplan,
+                                                 testcycle_key=get_testcycle_from_label(testcycle))]
     return testgroups
 
 def serve_layout():
@@ -96,10 +115,9 @@ def serve_layout():
     initial_testcycle = init_value(testcycles)
     testgroups = get_testgroup_options(testplan=initial_testplan, testcycle=initial_testcycle)
     initial_testgroup = init_value(testgroups)
-
     return html.Div(
         [
-            dcc.Interval(interval=1 * 60 * 1000, id='interval'),
+            dcc.Interval(interval=1 * 60 * 1000, id='id-interval'),
             html.H1('iDirect Test Reports'),
             html.Div([
                 html.Div([
@@ -135,8 +153,8 @@ def serve_layout():
                 ],
                 style={'width': '50%', 'display': 'inline-block'}),
             ]),
-            html.Div(id='status'),
-            html.Div(id='chart'),
+            html.Div(id='id-chart'),
+            html.Div(id='id-status'),
         ]
     )
 
@@ -146,7 +164,7 @@ app.layout = serve_layout()
 @app.callback(
     [Output('id-test-plan', 'options'),
     Output('id-test-plan', 'value')],
-    [Input('interval', 'n_intervals')],
+    [Input('id-interval', 'n_intervals')],
     [State('id-test-plan', 'value')]
 )
 def update_graph(_, current_value):
@@ -179,14 +197,32 @@ def update_testgroup_options(testplan_ui, testcycle_ui, current_value):
     return options, value
 
 @app.callback(
-    Output('status', 'children'),
-    [Input('interval', 'n_intervals')],
+    Output('id-status', 'children'),
+    [Input('id-interval', 'n_intervals')],
 )
 def update_status(_):
     data_last_updated = redis_instance.hget(
         tasks.REDIS_HASH_NAME, tasks.REDIS_UPDATED_KEY
     ).decode('utf-8')
     return 'Data last updated at {}'.format(data_last_updated)
+
+@app.callback(
+    [Output('id-chart', 'children')],
+    [Input('id-test-plan', 'value'),
+     Input('id-test-cycle', 'value'),
+     Input('id-test-group', 'value'),
+     Input('id-chart-type', 'value')])
+def update_graph(testplan_ui, testcycle_ui, testgroup_ui, chart_type):
+    df = json_to_df(get_data())
+    chart = get_chart(df,
+                      testplan_ui,
+                      testcycle_ui,
+                      testgroup_ui,
+                      chart_type=chart_type,
+                      colormap=get_default_colormap(),
+                      start_date=parser.parse('Feb 1 2020') ,
+                      test_deadline=parser.parse('Mar 13 2020'))
+    return chart
 
 
 if __name__ == '__main__':

@@ -38,7 +38,7 @@ def get_testgroup_status_bar_chart(df, testcycle, testgroup, title, colormap, st
         return html.P('Status List is empty')
 
     if testgroup is not None:
-        return html.P('Please select All Test Cases')
+        return html.P('Please select All Test Groups')
 
     df1 = filter_df(df, testcycle_key=testcycle)
 

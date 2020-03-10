@@ -41,17 +41,14 @@ def update_data():
     df = testrun_utils.retrieve_testruns(jama_url=jama_url,
                                                    jama_username=jama_api_username,
                                                    jama_password=jama_api_password)
+    json_str = testrun_utils.df_to_json(df)
+
     # Save testrun dataframes in redis so that the Dash app, running on a separate
     # process, can read it
     redis_instance.hset(
         REDIS_HASH_NAME,
         REDIS_DATASET_KEY,
-        json.dumps(
-            df.to_dict(),
-            # This JSON Encoder will handle things like numpy arrays
-            # and datetimes
-            cls=plotly.utils.PlotlyJSONEncoder,
-        ),
+        json_str
     )
     # Save the timestamp that the dataframe was updated
     redis_instance.hset(
