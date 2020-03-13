@@ -303,15 +303,18 @@ def get_testgroup_from_label(label):
     return None if label == ALL_TEST_GROUPS else label
 
 def df_to_json(df: pd.DataFrame):
+    return df.to_json(date_format='iso', orient='split')
+    '''
     return json.dumps(
         df.to_dict(),
         # This JSON Encoder will handle things like numpy arrays
         # and datetimes
         cls=plotly.utils.PlotlyJSONEncoder,
     )
+    '''
 
 def json_to_df(json_str):
-    df = pd.DataFrame(json.loads(json_str))
+    df = pd.read_json(json_str, orient='split')
     convert_date_column = lambda df, col, fmt: pd.to_datetime(df[col], format=fmt).dt.date
     date_format='%Y-%m-%d'
     df[COL_CREATED_DATE] = convert_date_column(df, COL_CREATED_DATE, date_format)

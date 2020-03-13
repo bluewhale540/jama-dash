@@ -124,6 +124,8 @@ def serve_layout():
     return html.Div(
         [
             dcc.Interval(interval=1 * 60 * 1000, id='id-interval'),
+            # Hidden div inside the app that stores last updated date and time
+            html.Div(id='id-last-update-hidden', style={'display': 'none'}),
             html.H1('iDirect Test Reports'),
             html.Div([
                 html.Div([
@@ -174,15 +176,41 @@ def serve_layout():
 app.layout = serve_layout()
 
 @app.callback(
-    [Output('id-test-plan', 'options'),
+    [Output('id-last-update-hidden', 'children'),
+     Output('id-status', 'children'),
+    Output('id-test-plan', 'options'),
     Output('id-test-plan', 'value')],
     [Input('id-interval', 'n_intervals')],
-    [State('id-test-plan', 'value')]
+    [State('id-test-plan', 'value'),
+     State('id-last-update-hidden', 'children')]
 )
-def update_graph(_, current_value):
+def update_graph(_, current_testplan, prev_date):
+    data_last_updated = redis_instance.hget(
+        tasks.REDIS_HASH_NAME, tasks.REDIS_UPDATED_KEY
+    ).decode('utf-8')
+    first = False
+    prev = None
+    try:
+        prev = parser.parse(prev_date)
+    except Exception:
+        first = True
+    current = parser.parse(data_last_updated)
+    if (prev is not None and current > prev) or first is True:
+        if not first:
+            print(f'Data is from prev update at {prev_date}. '
+                  f'Deleting caches to get data from '
+                  f'current update at {data_last_updated}')
+        # invalidate caches
+        cache.delete_memoized(get_data)
+        cache.delete_memoized(get_testplan_options)
+        cache.delete_memoized(get_testcycle_options)
+        cache.delete_memoized(get_testgroup_options)
+        cache.delete_memoized(get_chart)
+
     options = get_testplan_options()
-    value = get_value_from_options(options, current_value)
-    return options, value
+    value = get_value_from_options(options, current_testplan)
+    status = f'Data last updated:{data_last_updated}'
+    return data_last_updated, status, options, value
 
 @app.callback(
     [Output('id-test-cycle', 'options'),
@@ -207,16 +235,6 @@ def update_testgroup_options(testplan_ui, testcycle_ui, current_value):
     options = get_testgroup_options(testplan=testplan_ui, testcycle=testcycle_ui)
     value = get_value_from_options(options, current_value)
     return options, value
-
-@app.callback(
-    Output('id-status', 'children'),
-    [Input('id-interval', 'n_intervals')],
-)
-def update_status(_):
-    data_last_updated = redis_instance.hget(
-        tasks.REDIS_HASH_NAME, tasks.REDIS_UPDATED_KEY
-    ).decode('utf-8')
-    return 'Data last updated at {}'.format(data_last_updated)
 
 @app.callback(
     [Output('id-chart', 'children')],

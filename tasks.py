@@ -1,7 +1,6 @@
 import datetime
-import json
+import tzlocal
 import os
-import plotly
 import redis
 import testrun_utils
 
@@ -21,7 +20,7 @@ REDIS_UPDATED_KEY = 'TESTRUN_UPDATED_TIME'
 def setup_periodic_tasks(sender, **kwargs):
     print('----> setup_periodic_tasks')
     sender.add_periodic_task(
-        300,  # seconds
+        140,  # seconds
         # an alternative to the @app.task decorator:
         # wrap the function in the app.task function
         update_data.s(),
@@ -56,5 +55,9 @@ def update_data():
     )
     # Save the timestamp that the dataframe was updated
     redis_instance.hset(
-        REDIS_HASH_NAME, REDIS_UPDATED_KEY, str(datetime.datetime.now().strftime('%a, %b %d %Y %H:%M:%S'))
+        REDIS_HASH_NAME,
+        REDIS_UPDATED_KEY,
+        str(datetime.datetime.now(
+            tzlocal.get_localzone()).strftime(
+            '%a, %b %d %Y %H:%M:%S %Z'))
     )
