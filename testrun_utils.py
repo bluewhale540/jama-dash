@@ -217,7 +217,7 @@ def get_testruns_for_current_week(df, testcycle_key=None, testgroup_key=None):
         return None
     # filter test runs by current week
     df1 = df1[df1[COL_PLANNED_WEEK] == start_date]
-    df1 = df1.drop(columns=[COL_PROJECT, COL_TESTPLAN, COL_CREATED_DATE, COL_MODIFIED_DATE, COL_PLANNED_WEEK])
+    df1 = df1.drop(columns=[COL_TESTPLAN, COL_CREATED_DATE, COL_MODIFIED_DATE, COL_PLANNED_WEEK])
     return df1
 
 
@@ -302,7 +302,7 @@ def get_testcycle_from_label(label):
 def get_testgroup_from_label(label):
     return None if label == ALL_TEST_GROUPS else label
 
-def df_to_json(df):
+def df_to_json(df: pd.DataFrame):
     return json.dumps(
         df.to_dict(),
         # This JSON Encoder will handle things like numpy arrays

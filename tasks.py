@@ -41,6 +41,10 @@ def update_data():
     df = testrun_utils.retrieve_testruns(jama_url=jama_url,
                                                    jama_username=jama_api_username,
                                                    jama_password=jama_api_password)
+    if df is None:
+        print('ERROR retrieving data from Jama/Contour server. Check config file!')
+        return
+
     json_str = testrun_utils.df_to_json(df)
 
     # Save testrun dataframes in redis so that the Dash app, running on a separate

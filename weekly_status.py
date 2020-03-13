@@ -46,13 +46,6 @@ def get_current_week_testruns_table(df, testcycle, testgroup, title, colormap):
     if df is None:
         return html.P('No test runs found!')
 
-    if testcycle is not None:
-        # drop test cycle column since we are printing it elsewhere
-        df = df.drop(columns=['testcycle'])
-    if testgroup is not None:
-        # drop test cycle column since we are printing it elsewhere
-        df = df.drop(columns=['testgroup'])
-
     table = dash_table.DataTable(
         id='datatable-testruns',
         columns=[

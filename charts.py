@@ -81,7 +81,7 @@ def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, chart_type, colormap,
 
     if chart_type == FIG_TYPE_CURRENT_RUNS_TABLE:
         chart = \
-            [html.H6(title), get_current_week_testruns_table(
+            [get_current_week_testruns_table(
                 df=df,
                 testcycle=testcycle,
                 testgroup=testgroup,
