@@ -1,4 +1,4 @@
-from datetime import datetime
+import logging
 from testrun_utils import get_testcycle_from_label, \
     get_testgroup_from_label, \
     get_status_names, \
@@ -10,6 +10,9 @@ from testrun_utils import get_testcycle_from_label, \
 from weekly_status import get_weekly_status_bar_chart, get_current_week_testruns_table
 from historical_status import get_historical_status_line_chart
 from current_status import get_current_status_pie_chart, get_testgroup_status_bar_chart
+
+logging.basicConfig(format='%(asctime)s - %(levelname)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
+
 
 
 FIG_TYPE_WEEKLY_STATUS_BAR_CHART = 'Weekly Status'
@@ -40,13 +43,15 @@ def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, chart_type, colormap,
     testgroup = get_testgroup_from_label(label=testgroup_ui)
     if df is None:
         return  None
+    # filter df by testplan
+    df = df[df.testplan == testplan_ui]
     title = f'{chart_type} - {testplan_ui}'
     if testcycle is not None:
         title += f':{testcycle_ui}'
     if testgroup is not None:
         title += f':{testgroup_ui}'
 
-    print(f'Creating chart for {title}...')
+    logging.info(f'Creating chart for {title}...')
     chart = None
     if chart_type == FIG_TYPE_WEEKLY_STATUS_BAR_CHART:
         chart = \
