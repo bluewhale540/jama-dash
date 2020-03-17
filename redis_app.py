@@ -1,9 +1,11 @@
 import dash
+import redis
 from dash.dependencies import Input, Output, State
 import dash_core_components as dcc
 import dash_html_components as html
 from flask_caching import Cache
-import redis
+from datetime import datetime as dt
+from datetime import timedelta
 from dateutil import parser
 import os
 from testrun_utils import get_testplan_labels, \
@@ -40,26 +42,6 @@ server = app.server
 #tasks.update_data()
 
 redis_instance = redis.StrictRedis.from_url(os.environ['REDIS_URL'])
-
-FIG_TYPE_WEEKLY_STATUS_BAR_CHART = 'Weekly Status'
-FIG_TYPE_HISTORICAL_STATUS_LINE_CHART = 'Historical Status'
-FIG_TYPE_CURRENT_STATUS_PIE_CHART = 'Current Status'
-FIG_TYPE_CURRENT_STATUS_BY_TESTGROUP_BAR_CHART = 'Current Status By Test Group'
-FIG_TYPE_BLOCKED_FAILED_TESTGROUP_BAR_CHART = 'Test Groups with Blocked/Failed Runs'
-FIG_TYPE_NOTRUN_INPROGRESS_TESTGROUP_BAR_CHART = 'Test Groups with Not Run/In Progress Runs'
-FIG_TYPE_CURRENT_RUNS_TABLE = 'Test Runs For Current Week'
-
-def get_chart_types():
-    chart_types = [
-        FIG_TYPE_HISTORICAL_STATUS_LINE_CHART,
-        FIG_TYPE_WEEKLY_STATUS_BAR_CHART,
-        FIG_TYPE_CURRENT_STATUS_PIE_CHART,
-        FIG_TYPE_CURRENT_STATUS_BY_TESTGROUP_BAR_CHART,
-        FIG_TYPE_BLOCKED_FAILED_TESTGROUP_BAR_CHART,
-        FIG_TYPE_NOTRUN_INPROGRESS_TESTGROUP_BAR_CHART,
-        FIG_TYPE_CURRENT_RUNS_TABLE
-    ]
-    return chart_types
 
 @cache.memoize()
 def get_data():
@@ -155,22 +137,45 @@ def serve_layout():
                 html.Div([
                     dcc.Dropdown(
                         id='id-chart-type',
-                        options=make_options(get_chart_types()),
-                        value=FIG_TYPE_HISTORICAL_STATUS_LINE_CHART
+                        options=make_options(charts.get_chart_types()),
+                        value=charts.FIG_TYPE_HISTORICAL_STATUS_LINE_CHART
                     ),
                 ],
                 style={'width': '50%', 'display': 'inline-block'}),
             ]),
+            html.Div(id='id-controls-container-1',
+                     children=[
+                         html.Div('Start Date'),
+                         dcc.DatePickerSingle(
+                             id='id-start-date',
+                             min_date_allowed=dt.today() - timedelta(days=30),
+                             initial_visible_month=dt.today() - timedelta(days=30),
+                             date=dt.today() - timedelta(days=30)
+                     )],
+                     style= {'display': 'none'}
+            ),
+            html.Div(id='id-controls-container-2',
+                     children=[
+                         html.Div('Test Deadline'),
+                         dcc.DatePickerSingle(
+                             id='id-test-deadline',
+                             min_date_allowed=dt.today() + timedelta(days=1),
+                             initial_visible_month=dt.today(),
+                             date=dt.today() + timedelta(days=1)
+                     )],
+                     style= {'display': 'none'}
+            ),
             dcc.Loading(
                 id='id-loading',
                 children=[
                     html.Div(id='id-chart')
                 ],
-                type='graph',
+                type='graph'
             ),
             html.Div(id='id-status'),
         ]
     )
+
 
 
 app.layout = serve_layout()
@@ -197,7 +202,7 @@ def update_graph(_, current_testplan, prev_date):
     current = parser.parse(data_last_updated)
     if (prev is not None and current > prev) or first is True:
         if not first:
-            print(f'Data is from prev update at {prev_date}. '
+            app.logger.info(f'Data is from prev update at {prev_date}. '
                   f'Deleting caches to get data from '
                   f'current update at {data_last_updated}')
         # invalidate caches
@@ -237,12 +242,19 @@ def update_testgroup_options(testplan_ui, testcycle_ui, current_value):
     return options, value
 
 @app.callback(
-    [Output('id-chart', 'children')],
+    [Output('id-chart', 'children'),
+     Output('id-controls-container-1', 'style'),
+     Output('id-controls-container-2', 'style')],
     [Input('id-test-plan', 'value'),
      Input('id-test-cycle', 'value'),
      Input('id-test-group', 'value'),
-     Input('id-chart-type', 'value')])
-def update_graph(testplan_ui, testcycle_ui, testgroup_ui, chart_type):
+     Input('id-chart-type', 'value'),
+     Input('id-start-date', 'date'),
+     Input('id-test-deadline', 'date')
+     ])
+def update_graph(testplan_ui, testcycle_ui, testgroup_ui, chart_type, date1, date2):
+    start_date = parser.parse(date1) if date1 is not None else None
+    test_deadline = parser.parse(date2) if date2 is not None else None
     df = json_to_df(get_data())
     chart = get_chart(df,
                       testplan_ui,
@@ -250,9 +262,12 @@ def update_graph(testplan_ui, testcycle_ui, testgroup_ui, chart_type):
                       testgroup_ui,
                       chart_type=chart_type,
                       colormap=get_default_colormap(),
-                      start_date=parser.parse('Feb 1 2020') ,
-                      test_deadline=parser.parse('Mar 13 2020'))
-    return chart
+                      start_date=start_date ,
+                      test_deadline=test_deadline)
+    style = {'display': 'none'}
+    if chart_type == charts.FIG_TYPE_HISTORICAL_STATUS_LINE_CHART:
+        style = {'display': 'inline-block'}
+    return chart, style, style
 
 
 if __name__ == '__main__':
