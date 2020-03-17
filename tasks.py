@@ -3,6 +3,7 @@ import tzlocal
 import os
 import redis
 import testrun_utils
+import redis_params
 
 
 from celery import Celery
@@ -10,10 +11,6 @@ from celery import Celery
 celery_app = Celery('iDirect Contour Reports App', broker=os.environ['REDIS_URL'])
 redis_instance = redis.StrictRedis.from_url(os.environ['REDIS_URL'])
 
-
-REDIS_HASH_NAME = 'IDIRECT_CONTOUR_TESTRUN_HASH'
-REDIS_DATASET_KEY = 'TESTRUN_DATASET'
-REDIS_UPDATED_KEY = 'TESTRUN_UPDATED_TIME'
 
 
 @celery_app.on_after_configure.connect
@@ -49,14 +46,14 @@ def update_data():
     # Save testrun dataframes in redis so that the Dash app, running on a separate
     # process, can read it
     redis_instance.hset(
-        REDIS_HASH_NAME,
-        REDIS_DATASET_KEY,
+        redis_params.REDIS_HASH_NAME,
+        redis_params.REDIS_DATASET_KEY,
         json_str
     )
     # Save the timestamp that the dataframe was updated
     redis_instance.hset(
-        REDIS_HASH_NAME,
-        REDIS_UPDATED_KEY,
+        redis_params.REDIS_HASH_NAME,
+        redis_params.REDIS_UPDATED_KEY,
         str(datetime.datetime.now(
             tzlocal.get_localzone()).strftime(
             '%a, %b %d %Y %H:%M:%S %Z'))

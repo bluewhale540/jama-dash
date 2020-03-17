@@ -14,7 +14,7 @@ from testrun_utils import get_testplan_labels, \
 
 import charts
 from charts import get_chart_types, get_default_colormap
-import tasks
+import redis_params
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
@@ -67,7 +67,7 @@ def get_data():
     This dataframe is periodically updated through the redis task
     '''
     jsonified_df = redis_instance.hget(
-        tasks.REDIS_HASH_NAME, tasks.REDIS_DATASET_KEY
+        redis_params.REDIS_HASH_NAME, redis_params.REDIS_DATASET_KEY
     ).decode('utf-8')
     return jsonified_df
 
@@ -186,7 +186,7 @@ app.layout = serve_layout()
 )
 def update_graph(_, current_testplan, prev_date):
     data_last_updated = redis_instance.hget(
-        tasks.REDIS_HASH_NAME, tasks.REDIS_UPDATED_KEY
+        redis_params.REDIS_HASH_NAME, redis_params.REDIS_UPDATED_KEY
     ).decode('utf-8')
     first = False
     prev = None
