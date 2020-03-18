@@ -304,14 +304,6 @@ def get_testgroup_from_label(label):
 
 def df_to_json(df: pd.DataFrame):
     return df.to_json(date_format='iso', orient='split')
-    '''
-    return json.dumps(
-        df.to_dict(),
-        # This JSON Encoder will handle things like numpy arrays
-        # and datetimes
-        cls=plotly.utils.PlotlyJSONEncoder,
-    )
-    '''
 
 def json_to_df(json_str):
     df = pd.read_json(json_str, orient='split')
