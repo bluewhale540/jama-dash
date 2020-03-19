@@ -1,5 +1,4 @@
-import datetime
-import tzlocal
+import pandas
 import os
 import redis
 import testrun_utils
@@ -7,10 +6,14 @@ import redis_data
 import logging
 
 from celery import Celery
+from celery.utils.log import get_task_logger
+
+
+
 
 celery_app = Celery('iDirect Contour Reports App', broker=os.environ['REDIS_URL'])
 redis_instance = redis.StrictRedis.from_url(os.environ['REDIS_URL'])
-logger = logging.getLogger('Celery Backend')
+logger = get_task_logger(__name__)
 log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 logging.basicConfig(format=log_format,
         datefmt='%Y-%m-%d %I:%M:%S %p %z',
@@ -21,7 +24,7 @@ logging.basicConfig(format=log_format,
 def setup_periodic_tasks(sender, **kwargs):
     print('----> setup_periodic_tasks')
     sender.add_periodic_task(
-        140,  # seconds
+        300,  # seconds
         # an alternative to the @app.task decorator:
         # wrap the function in the app.task function
         update_data.s(),
@@ -48,15 +51,16 @@ def update_data():
     # compare data with existing data in redis
     redis_df = redis_data.get_dataframe(redis_instance)
 
+    df_json = testrun_utils.df_to_json(df)
+    redif_df_json = testrun_utils.df_to_json(redis_df)
+
     modified = True
-    if redis_df is not None and redis_df.equals(df):
-        logger.debug('Data unchanged, will not update in Redis data store')
-        modified = False
+    if redif_df_json is not None and df_json == redif_df_json:
+        logger.warning('Data unchanged, will not update in Redis data store')
+    else:
+        logger.warning('Data changed. will update in Redis data store')
+        redis_data.set_dataframe(redis_instance, df)
+        redis_data.set_modified_datetime(redis_instance)
 
     # set updated time
     redis_data.set_updated_datetime(redis_instance)
-
-    if modified is True:
-        logger.debug('Data changed. will update in Redis data store')
-        redis_data.set_dataframe(redis_instance, df)
-        redis_data.set_modified_datetime(redis_instance)

@@ -303,7 +303,8 @@ def get_testgroup_from_label(label):
     return None if label == ALL_TEST_GROUPS else label
 
 def df_to_json(df: pd.DataFrame):
-    return df.to_json(date_format='iso', orient='split')
+    return df.to_json(date_format='iso', orient='split') \
+        if df is not None else None
 
 def json_to_df(json_str):
     df = pd.read_json(json_str, orient='split')
