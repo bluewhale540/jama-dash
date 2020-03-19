@@ -97,6 +97,7 @@ def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, chart_type, colormap,
         df, testplan_ui, testcycle_ui, testgroup_ui, chart_type, colormap, start_date, test_deadline)
 
 def serve_layout():
+
     testplans = get_testplan_options()
     initial_testplan = init_value(testplans)
     testcycles = get_testcycle_options(initial_testplan)
@@ -104,13 +105,22 @@ def serve_layout():
     testgroups = get_testgroup_options(testplan=initial_testplan, testcycle=initial_testcycle)
     initial_testgroup = init_value(testgroups)
     modified_datetime = redis_data.get_modified_datetime(redis_inst)
+    '''
+    testplans = []
+    initial_testplan = None
+    testcycles = []
+    initial_testcycle = None
+    testgroups = []
+    initial_testgroup = None
+    modified_datetime = None
+   '''
 
     return html.Div(
         [
             dcc.Interval(interval=1 * 60 * 1000, id='id-interval'),
             # Hidden div inside the app that stores last updated date and time
             html.Div(id='id-last-modified-hidden',
-                     children=[modified_datetime,],
+                     children=modified_datetime,
                      style={'display': 'none'}),
             html.H1('iDirect Test Reports'),
             html.Div([
@@ -118,31 +128,39 @@ def serve_layout():
                     dcc.Dropdown(
                         id='id-test-plan',
                         options=testplans,
-                        value=initial_testplan
+                        value=initial_testplan,
+                        persistence=True
                     ),
                 ],
                 style={'width': '50%', 'display': 'inline-block'}),
-                html.Div([
+                html.Div(
                     dcc.Dropdown(
                         id='id-test-cycle',
                         options=testcycles,
-                        value=initial_testcycle
+                        value=initial_testcycle,
+                        persistence_type='session',
+                        persistence=initial_testplan
                     ),
-                ],
-                style={'width': '50%', 'display': 'inline-block'}),
-                html.Div([
+                    id='id-test-cycle-container',
+                    style={'width': '50%', 'display': 'inline-block'}
+                ),
+                html.Div(
                     dcc.Dropdown(
                         id='id-test-group',
                         options=testgroups,
-                        value=initial_testgroup
+                        value=initial_testgroup,
+                        persistence_type='session',
+                        persistence = initial_testcycle
                     ),
-                ],
-                style={'width': '50%', 'display': 'inline-block'}),
+                    id='id-test-group-container',
+                    style={'width': '50%', 'display': 'inline-block'}
+                ),
                 html.Div([
                     dcc.Dropdown(
                         id='id-chart-type',
                         options=make_options(charts.get_chart_types()),
-                        value=charts.FIG_TYPE_HISTORICAL_STATUS_LINE_CHART
+                        value=charts.FIG_TYPE_HISTORICAL_STATUS_LINE_CHART,
+                        persistence=True
                     ),
                 ],
                 style={'width': '50%', 'display': 'inline-block'}),
@@ -174,9 +192,7 @@ def serve_layout():
                 type='graph'
             ),
             html.Div(id='id-status',
-                     children=[
-                         f'Data was last updated at:{modified_datetime}',
-                     ]),
+                     children=f'Data was last updated at:{modified_datetime}'),
         ]
     )
 
@@ -186,7 +202,7 @@ app.layout = serve_layout()
 
 
 @app.callback(
-    [Output('id-last-modified-hidden', 'children')],
+    Output('id-last-modified-hidden', 'children'),
     [Input('id-interval', 'n_intervals')],
     [State('id-last-modified-hidden', 'children')]
 )
@@ -219,7 +235,7 @@ def update_last_modified(n, prev_last_modified):
             app.logger.warning(f'Current data is from {prev_last_modified}. '
                   f'Deleting caches to get data from '
                   f'data modified at {last_modified}')
-        return [last_modified,]
+        return last_modified
     else:
         raise PreventUpdate
 
@@ -243,25 +259,28 @@ def update_graph(modified_datetime, current_testplan):
     cache.delete_memoized(get_chart)
     options = get_testplan_options()
     value = get_value_from_options(options, current_testplan)
-    status = [f'Data was last updated at:{modified_datetime}',]
+    status = f'Data was last updated at:{modified_datetime}'
     return status, options, value
 
 
 @app.callback(
-    [Output('id-test-cycle', 'options'),
-     Output('id-test-cycle', 'value')],
+    Output('id-test-cycle-container', 'children'),
     [Input('id-test-plan', 'value')],
     [State('id-test-cycle', 'value')]
 )
 def update_testcycle_options(testplan_ui, current_value):
     options = get_testcycle_options(testplan=testplan_ui)
     value = get_value_from_options(options, current_value)
-    return options, value
-
+    return dcc.Dropdown(
+        id='id-test-cycle',
+        options=options,
+        value=value,
+        persistence_type='session',
+        persistence=testplan_ui
+    )
 
 @app.callback(
-    [Output('id-test-group', 'options'),
-     Output('id-test-group', 'value')],
+    Output('id-test-group-container', 'children'),
     [Input('id-test-plan', 'value'),
      Input('id-test-cycle', 'value')],
     [State('id-test-group', 'value')]
@@ -269,7 +288,13 @@ def update_testcycle_options(testplan_ui, current_value):
 def update_testgroup_options(testplan_ui, testcycle_ui, current_value):
     options = get_testgroup_options(testplan=testplan_ui, testcycle=testcycle_ui)
     value = get_value_from_options(options, current_value)
-    return options, value
+    return dcc.Dropdown(
+        id='id-test-group',
+        options=options,
+        value=value,
+        persistence_type='session',
+        persistence = testcycle_ui
+    )
 
 @app.callback(
     [Output('id-chart', 'children'),
