@@ -196,10 +196,13 @@ def update_graph(n, current_testplan, prev_date):
 
     first = False
     prev = None
-    try:
-        prev = parser.parse(prev_date)
-    except Exception:
+    if prev_date is None:
         first = True
+    else:
+        try:
+            prev = parser.parse(prev_date)
+        except Exception:
+            first = True
     current = parser.parse(last_modified)
     if (prev is not None and current > prev) or first is True:
         if not first:
@@ -212,11 +215,11 @@ def update_graph(n, current_testplan, prev_date):
         cache.delete_memoized(get_testcycle_options)
         cache.delete_memoized(get_testgroup_options)
         cache.delete_memoized(get_chart)
-
-    options = get_testplan_options()
-    value = get_value_from_options(options, current_testplan)
-    status = f'Data last updated:{last_updated}'
-    return last_updated, status, options, value
+        options = get_testplan_options()
+        value = get_value_from_options(options, current_testplan)
+        status = f'Data last updated:{last_updated}'
+        return last_updated, status, options, value
+    raise PreventUpdate
 
 @app.callback(
     [Output('id-test-cycle', 'options'),
