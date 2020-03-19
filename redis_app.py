@@ -129,7 +129,8 @@ def serve_layout():
                         id='id-test-plan',
                         options=testplans,
                         value=initial_testplan,
-                        persistence=True
+                        persistence=True,
+                        persistence_type='local'
                     ),
                 ],
                 style={'width': '50%', 'display': 'inline-block'}),
@@ -138,7 +139,7 @@ def serve_layout():
                         id='id-test-cycle',
                         options=testcycles,
                         value=initial_testcycle,
-                        persistence_type='session',
+                        persistence_type='local',
                         persistence=initial_testplan
                     ),
                     id='id-test-cycle-container',
@@ -149,7 +150,7 @@ def serve_layout():
                         id='id-test-group',
                         options=testgroups,
                         value=initial_testgroup,
-                        persistence_type='session',
+                        persistence_type='local',
                         persistence = initial_testcycle
                     ),
                     id='id-test-group-container',
@@ -160,7 +161,8 @@ def serve_layout():
                         id='id-chart-type',
                         options=make_options(charts.get_chart_types()),
                         value=charts.FIG_TYPE_HISTORICAL_STATUS_LINE_CHART,
-                        persistence=True
+                        persistence=True,
+                        persistence_type='local'
                     ),
                 ],
                 style={'width': '50%', 'display': 'inline-block'}),
@@ -275,7 +277,7 @@ def update_testcycle_options(testplan_ui, current_value):
         id='id-test-cycle',
         options=options,
         value=value,
-        persistence_type='session',
+        persistence_type='local',
         persistence=testplan_ui
     )
 
@@ -292,7 +294,7 @@ def update_testgroup_options(testplan_ui, testcycle_ui, current_value):
         id='id-test-group',
         options=options,
         value=value,
-        persistence_type='session',
+        persistence_type='local',
         persistence = testcycle_ui
     )
 
