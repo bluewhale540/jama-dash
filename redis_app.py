@@ -3,6 +3,7 @@ import redis
 from dash.dependencies import Input, Output, State
 import dash_core_components as dcc
 import dash_html_components as html
+from dash.exceptions import PreventUpdate
 from flask_caching import Cache
 from datetime import datetime as dt
 from datetime import timedelta
@@ -16,7 +17,7 @@ from testrun_utils import get_testplan_labels, \
 
 import charts
 from charts import get_chart_types, get_default_colormap
-import redis_params
+import redis_data
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
@@ -41,17 +42,16 @@ server = app.server
 # initialize the data when the app starts
 #tasks.update_data()
 
-redis_instance = redis.StrictRedis.from_url(os.environ['REDIS_URL'])
+redis_inst = redis_data.get_redis_inst()
 
 @cache.memoize()
 def get_data():
-    '''Retrieve the dataframe from Redis
+    '''
+    Retrieve the dataframe from Redis
     This dataframe is periodically updated through the redis task
     '''
-    jsonified_df = redis_instance.hget(
-        redis_params.REDIS_HASH_NAME, redis_params.REDIS_DATASET_KEY
-    ).decode('utf-8')
-    return jsonified_df
+    return redis_data.get_dataframe_json(redis_inst)
+
 
 init_value = lambda a: a[0]['value'] if len(a) > 0 and 'value' in a[0] else None
 make_options = lambda lst: [{'label': i, 'value': i} for i in lst]
@@ -148,9 +148,7 @@ def serve_layout():
                          html.Div('Start Date'),
                          dcc.DatePickerSingle(
                              id='id-start-date',
-                             min_date_allowed=dt.today() - timedelta(days=30),
-                             initial_visible_month=dt.today() - timedelta(days=30),
-                             date=dt.today() - timedelta(days=30)
+                             initial_visible_month=dt.today() - timedelta(days=90),
                      )],
                      style= {'display': 'none'}
             ),
@@ -161,7 +159,6 @@ def serve_layout():
                              id='id-test-deadline',
                              min_date_allowed=dt.today() + timedelta(days=1),
                              initial_visible_month=dt.today(),
-                             date=dt.today() + timedelta(days=1)
                      )],
                      style= {'display': 'none'}
             ),
@@ -189,22 +186,26 @@ app.layout = serve_layout()
     [State('id-test-plan', 'value'),
      State('id-last-update-hidden', 'children')]
 )
-def update_graph(_, current_testplan, prev_date):
-    data_last_updated = redis_instance.hget(
-        redis_params.REDIS_HASH_NAME, redis_params.REDIS_UPDATED_KEY
-    ).decode('utf-8')
+def update_graph(n, current_testplan, prev_date):
+    if n is None:
+        raise PreventUpdate
+    last_updated = redis_data.get_updated_datetime(redis_inst)
+    last_modified = redis_data.get_modified_datetime(redis_inst)
+    if last_updated is None or last_modified is None:
+        raise PreventUpdate
+
     first = False
     prev = None
     try:
         prev = parser.parse(prev_date)
     except Exception:
         first = True
-    current = parser.parse(data_last_updated)
+    current = parser.parse(last_modified)
     if (prev is not None and current > prev) or first is True:
         if not first:
-            app.logger.info(f'Data is from prev update at {prev_date}. '
+            app.logger.warning(f'Current data is from {prev_date}. '
                   f'Deleting caches to get data from '
-                  f'current update at {data_last_updated}')
+                  f'data modified at {last_modified}')
         # invalidate caches
         cache.delete_memoized(get_data)
         cache.delete_memoized(get_testplan_options)
@@ -214,8 +215,8 @@ def update_graph(_, current_testplan, prev_date):
 
     options = get_testplan_options()
     value = get_value_from_options(options, current_testplan)
-    status = f'Data last updated:{data_last_updated}'
-    return data_last_updated, status, options, value
+    status = f'Data last updated:{last_updated}'
+    return last_updated, status, options, value
 
 @app.callback(
     [Output('id-test-cycle', 'options'),
@@ -271,4 +272,4 @@ def update_graph(testplan_ui, testcycle_ui, testgroup_ui, chart_type, date1, dat
 
 
 if __name__ == '__main__':
-    app.run_server(debug=False)
+    app.run_server(debug=True)
