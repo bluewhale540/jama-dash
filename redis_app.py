@@ -103,11 +103,15 @@ def serve_layout():
     initial_testcycle = init_value(testcycles)
     testgroups = get_testgroup_options(testplan=initial_testplan, testcycle=initial_testcycle)
     initial_testgroup = init_value(testgroups)
+    modified_datetime = redis_data.get_modified_datetime(redis_inst)
+
     return html.Div(
         [
             dcc.Interval(interval=1 * 60 * 1000, id='id-interval'),
             # Hidden div inside the app that stores last updated date and time
-            html.Div(id='id-last-update-hidden', style={'display': 'none'}),
+            html.Div(id='id-last-modified-hidden',
+                     children=[modified_datetime,],
+                     style={'display': 'none'}),
             html.H1('iDirect Test Reports'),
             html.Div([
                 html.Div([
@@ -169,7 +173,10 @@ def serve_layout():
                 ],
                 type='graph'
             ),
-            html.Div(id='id-status'),
+            html.Div(id='id-status',
+                     children=[
+                         f'Data was last updated at:{modified_datetime}',
+                     ]),
         ]
     )
 
@@ -177,49 +184,68 @@ def serve_layout():
 
 app.layout = serve_layout()
 
+
 @app.callback(
-    [Output('id-last-update-hidden', 'children'),
-     Output('id-status', 'children'),
-    Output('id-test-plan', 'options'),
-    Output('id-test-plan', 'value')],
+    [Output('id-last-modified-hidden', 'children')],
     [Input('id-interval', 'n_intervals')],
-    [State('id-test-plan', 'value'),
-     State('id-last-update-hidden', 'children')]
+    [State('id-last-modified-hidden', 'children')]
 )
-def update_graph(n, current_testplan, prev_date):
+def update_last_modified(n, prev_last_modified):
     if n is None:
-        raise PreventUpdate
-    last_updated = redis_data.get_updated_datetime(redis_inst)
-    last_modified = redis_data.get_modified_datetime(redis_inst)
-    if last_updated is None or last_modified is None:
+        # TODO: When is this callback called with n == None
         raise PreventUpdate
 
-    first = False
-    prev = None
-    if prev_date is None:
-        first = True
+    last_modified = redis_data.get_modified_datetime(redis_inst)
+    if last_modified is None:
+        # no data in Redis. TODO: Need to handle differently?
+        raise PreventUpdate
+
+    first_time = False
+    prev_datetime = None
+    if prev_last_modified is None:
+        first_time = True
     else:
         try:
-            prev = parser.parse(prev_date)
+            prev_datetime = parser.parse(prev_last_modified)
         except Exception:
-            first = True
-    current = parser.parse(last_modified)
-    if (prev is not None and current > prev) or first is True:
-        if not first:
-            app.logger.warning(f'Current data is from {prev_date}. '
+            # TODO: could be badly formatted date?
+            # assume first time for now
+            first_time = True
+    current_datetime = parser.parse(last_modified)
+    if (prev_datetime is not None and current_datetime > prev_datetime) or first_time is True:
+        if first_time:
+            app.logger.warning('Data in server found. Last modified: {last_modified}')
+        else:
+            app.logger.warning(f'Current data is from {prev_last_modified}. '
                   f'Deleting caches to get data from '
                   f'data modified at {last_modified}')
-        # invalidate caches
-        cache.delete_memoized(get_data)
-        cache.delete_memoized(get_testplan_options)
-        cache.delete_memoized(get_testcycle_options)
-        cache.delete_memoized(get_testgroup_options)
-        cache.delete_memoized(get_chart)
-        options = get_testplan_options()
-        value = get_value_from_options(options, current_testplan)
-        status = f'Data last updated:{last_updated}'
-        return last_updated, status, options, value
-    raise PreventUpdate
+        return [last_modified,]
+    else:
+        raise PreventUpdate
+
+
+
+@app.callback(
+    [Output('id-status', 'children'),
+    Output('id-test-plan', 'options'),
+    Output('id-test-plan', 'value')],
+    [Input('id-last-modified-hidden', 'children')],
+    [State('id-test-plan', 'value')]
+)
+def update_graph(modified_datetime, current_testplan):
+    if modified_datetime is None:
+        raise PreventUpdate
+    # invalidate caches
+    cache.delete_memoized(get_data)
+    cache.delete_memoized(get_testplan_options)
+    cache.delete_memoized(get_testcycle_options)
+    cache.delete_memoized(get_testgroup_options)
+    cache.delete_memoized(get_chart)
+    options = get_testplan_options()
+    value = get_value_from_options(options, current_testplan)
+    status = [f'Data was last updated at:{modified_datetime}',]
+    return status, options, value
+
 
 @app.callback(
     [Output('id-test-cycle', 'options'),
