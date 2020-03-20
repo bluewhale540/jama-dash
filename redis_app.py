@@ -105,15 +105,6 @@ def serve_layout():
     testgroups = get_testgroup_options(testplan=initial_testplan, testcycle=initial_testcycle)
     initial_testgroup = init_value(testgroups)
     modified_datetime = redis_data.get_modified_datetime(redis_inst)
-    '''
-    testplans = []
-    initial_testplan = None
-    testcycles = []
-    initial_testcycle = None
-    testgroups = []
-    initial_testgroup = None
-    modified_datetime = None
-   '''
 
     return html.Div(
         [
@@ -122,7 +113,31 @@ def serve_layout():
             html.Div(id='id-last-modified-hidden',
                      children=modified_datetime,
                      style={'display': 'none'}),
-            html.H1('iDirect Test Reports'),
+            html.A([
+                    html.Img(
+                        src='https://www.idirect.net/wp-content/uploads/2018/10/logo-color.svg',
+                        style={
+                            'height' : '50px',
+                            'width' : '200px',
+                            'float' : 'left',
+                            'position' : 'relative',
+                            'padding-top' : 0,
+                            'padding-right' : '20px',
+                            'display': 'inline-block'
+                        }
+                    )
+                ],
+                href='https://www.idirect.net'),
+            html.H4(
+                'Test Execution Reports',
+                style={
+                    'color': 'blue',
+                    'font-style': 'italic',
+                    'font-weight': 'bold',
+                    'height': '50px',
+                    'display': 'inline-block'
+                }
+            ),
             html.Div([
                 html.Div([
                     dcc.Dropdown(
