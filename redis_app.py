@@ -112,37 +112,71 @@ def serve_layout():
             html.Div(id='id-last-modified-hidden',
                      children=modified_datetime,
                      style={'display': 'none'}),
-            html.H1('iDirect Test Reports'),
+            html.A([
+                    html.Img(
+                        src='https://www.idirect.net/wp-content/uploads/2018/10/logo-color.svg',
+                        style={
+                            'height' : '50px',
+                            'width' : '200px',
+                            'float' : 'left',
+                            'position' : 'relative',
+                            'padding-top' : 0,
+                            'padding-right' : '20px',
+                            'display': 'inline-block'
+                        }
+                    )
+                ],
+                href='https://www.idirect.net'),
+            html.H4(
+                'Test Execution Reports',
+                style={
+                    'color': 'blue',
+                    'font-style': 'italic',
+                    'font-weight': 'bold',
+                    'height': '50px',
+                    'display': 'inline-block'
+                }
+            ),
             html.Div([
                 html.Div([
                     dcc.Dropdown(
                         id='id-test-plan',
                         options=testplans,
-                        value=initial_testplan
+                        value=initial_testplan,
+                        persistence=True,
+                        persistence_type='local'
                     ),
                 ],
                 style={'width': '50%', 'display': 'inline-block'}),
-                html.Div([
+                html.Div(
                     dcc.Dropdown(
                         id='id-test-cycle',
                         options=testcycles,
-                        value=initial_testcycle
+                        value=initial_testcycle,
+                        persistence_type='local',
+                        persistence=initial_testplan
                     ),
-                ],
-                style={'width': '50%', 'display': 'inline-block'}),
-                html.Div([
+                    id='id-test-cycle-container',
+                    style={'width': '50%', 'display': 'inline-block'}
+                ),
+                html.Div(
                     dcc.Dropdown(
                         id='id-test-group',
                         options=testgroups,
-                        value=initial_testgroup
+                        value=initial_testgroup,
+                        persistence_type='local',
+                        persistence = initial_testcycle
                     ),
-                ],
-                style={'width': '50%', 'display': 'inline-block'}),
+                    id='id-test-group-container',
+                    style={'width': '50%', 'display': 'inline-block'}
+                ),
                 html.Div([
                     dcc.Dropdown(
                         id='id-chart-type',
                         options=make_options(charts.get_chart_types()),
-                        value=charts.FIG_TYPE_HISTORICAL_STATUS_LINE_CHART
+                        value=charts.FIG_TYPE_HISTORICAL_STATUS_LINE_CHART,
+                        persistence=True,
+                        persistence_type='local'
                     ),
                 ],
                 style={'width': '50%', 'display': 'inline-block'}),
@@ -174,8 +208,7 @@ def serve_layout():
                 type='graph'
             ),
             html.Div(id='id-status',
-                 children= f'Data was last updated at:{modified_datetime}'
-            ),
+                     children=f'Data was last updated at:{modified_datetime}'),
         ]
     )
 
@@ -185,7 +218,7 @@ app.layout = serve_layout()
 
 
 @app.callback(
-    [Output('id-last-modified-hidden', 'children')],
+    Output('id-last-modified-hidden', 'children'),
     [Input('id-interval', 'n_intervals')],
     [State('id-last-modified-hidden', 'children')]
 )
@@ -247,20 +280,23 @@ def update_graph(modified_datetime, current_testplan):
 
 
 @app.callback(
-    [Output('id-test-cycle', 'options'),
-     Output('id-test-cycle', 'value')],
+    Output('id-test-cycle-container', 'children'),
     [Input('id-test-plan', 'value')],
     [State('id-test-cycle', 'value')]
 )
 def update_testcycle_options(testplan_ui, current_value):
     options = get_testcycle_options(testplan=testplan_ui)
     value = get_value_from_options(options, current_value)
-    return options, value
-
+    return dcc.Dropdown(
+        id='id-test-cycle',
+        options=options,
+        value=value,
+        persistence_type='local',
+        persistence=testplan_ui
+    )
 
 @app.callback(
-    [Output('id-test-group', 'options'),
-     Output('id-test-group', 'value')],
+    Output('id-test-group-container', 'children'),
     [Input('id-test-plan', 'value'),
      Input('id-test-cycle', 'value')],
     [State('id-test-group', 'value')]
@@ -268,7 +304,13 @@ def update_testcycle_options(testplan_ui, current_value):
 def update_testgroup_options(testplan_ui, testcycle_ui, current_value):
     options = get_testgroup_options(testplan=testplan_ui, testcycle=testcycle_ui)
     value = get_value_from_options(options, current_value)
-    return options, value
+    return dcc.Dropdown(
+        id='id-test-group',
+        options=options,
+        value=value,
+        persistence_type='local',
+        persistence = testcycle_ui
+    )
 
 @app.callback(
     [Output('id-chart', 'children'),

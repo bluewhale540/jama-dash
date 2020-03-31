@@ -118,11 +118,11 @@ def get_status_names():
 def filter_df(df, testplan_key=None, testcycle_key=None, testgroup_key=None):
     df1 = df
     if testplan_key is not None:
-        df1 = df1[df.testplan.eq(testplan_key)]
+        df1 = df1[df1.testplan.eq(testplan_key)]
     if testcycle_key is not None:
-        df1 = df1[df.testcycle.eq(testcycle_key)]
+        df1 = df1[df1.testcycle.eq(testcycle_key)]
     if testgroup_key is not None:
-        df1 = df1[df.testgroup.eq(testgroup_key)]
+        df1 = df1[df1.testgroup.eq(testgroup_key)]
     return df1
 
 
