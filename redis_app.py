@@ -110,7 +110,7 @@ def serve_layout():
             dcc.Interval(interval=1 * 60 * 1000, id='id-interval'),
             # Hidden div inside the app that stores last updated date and time
             html.Div(id='id-last-modified-hidden',
-                     children=[modified_datetime,],
+                     children=modified_datetime,
                      style={'display': 'none'}),
             html.H1('iDirect Test Reports'),
             html.Div([
@@ -174,9 +174,8 @@ def serve_layout():
                 type='graph'
             ),
             html.Div(id='id-status',
-                     children=[
-                         f'Data was last updated at:{modified_datetime}',
-                     ]),
+                 children= f'Data was last updated at:{modified_datetime}'
+            ),
         ]
     )
 
@@ -219,7 +218,7 @@ def update_last_modified(n, prev_last_modified):
             app.logger.warning(f'Current data is from {prev_last_modified}. '
                   f'Deleting caches to get data from '
                   f'data modified at {last_modified}')
-        return [last_modified,]
+        return last_modified
     else:
         raise PreventUpdate
 
@@ -243,7 +242,7 @@ def update_graph(modified_datetime, current_testplan):
     cache.delete_memoized(get_chart)
     options = get_testplan_options()
     value = get_value_from_options(options, current_testplan)
-    status = [f'Data was last updated at:{modified_datetime}',]
+    status = f'Data was last updated at:{modified_datetime}'
     return status, options, value
 
 

@@ -246,6 +246,9 @@ class jama_client:
 
         print('retrieving test runs for project {} and test plan {}...'.format(project_key, testplan_key))
         testcycles = self.retrieve_testcycles(project_key=project_key, testplan_key=testplan_key)
+        if testcycles is None:
+            print(f'invalid testplan {testplan_key}')
+            return None
         testruns_to_add = []
         for (testcycle_id, testcycle_name) in testcycles:
             try:

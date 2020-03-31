@@ -52,7 +52,7 @@ def update_data():
     redis_df = redis_data.get_dataframe(redis_instance)
 
     df_json = testrun_utils.df_to_json(df)
-    redif_df_json = testrun_utils.df_to_json(redis_df)
+    redif_df_json = testrun_utils.df_to_json(redis_df) if redis_df is not None else None
 
     modified = True
     if redif_df_json is not None and df_json == redif_df_json:

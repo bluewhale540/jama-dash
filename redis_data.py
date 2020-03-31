@@ -30,9 +30,12 @@ def get_dataframe_json(redis_inst):
     '''
     Get dataframe from redis in json format
     '''
-    jsonified_df = redis_inst.hget(
+    data = redis_inst.hget(
         redis_params.REDIS_HASH_NAME, redis_params.REDIS_DATASET_KEY
-    ).decode('utf-8')
+    )
+    if data is None:
+        return None
+    jsonified_df = data.decode('utf-8')
     return jsonified_df
 
 def get_dataframe(redis_inst):
@@ -40,7 +43,7 @@ def get_dataframe(redis_inst):
     get dataframe from redis in pandas dataframe format
     '''
     jsonified_df = get_dataframe_json(redis_inst)
-    return testrun_utils.json_to_df(jsonified_df)
+    return testrun_utils.json_to_df(jsonified_df) if jsonified_df is not None else None
 
 
 
@@ -88,5 +91,7 @@ def get_modified_datetime(redis_inst):
         redis_params.REDIS_HASH_NAME,
         redis_params.REDIS_MODIFIED_KEY
     ).decode('utf-8')
+    if data_last_modified is None:
+        data_last_modified = ''
     return data_last_modified
 
