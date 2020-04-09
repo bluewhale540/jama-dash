@@ -41,9 +41,14 @@ def update_data():
     if jama_url is None:
         jama_url = 'https://paperclip.idirect.net'
 
-    df = testrun_utils.retrieve_testruns(jama_url=jama_url,
-                                                   jama_username=jama_api_username,
-                                                   jama_password=jama_api_password)
+    try:
+        df = testrun_utils.retrieve_testruns(jama_url=jama_url,
+                                                       jama_username=jama_api_username,
+                                                       jama_password=jama_api_password)
+    except Exception as e:
+        logger.error(f'caught exception {e} trying to get test runs')
+        return
+
     if df is None:
         logger.error('cannot retrieve data from Jama/Contour server. Check config file!')
         return
