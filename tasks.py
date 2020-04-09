@@ -60,12 +60,15 @@ def update_data():
     redif_df_json = testrun_utils.df_to_json(redis_df) if redis_df is not None else None
 
     modified = True
-    if redif_df_json is not None and df_json == redif_df_json:
-        logger.warning('Data unchanged, will not update in Redis data store')
-    else:
-        logger.warning('Data changed. will update in Redis data store')
-        redis_data.set_dataframe(redis_instance, df)
-        redis_data.set_modified_datetime(redis_instance)
+    if redif_df_json is not None:
+        if df_json == redif_df_json:
+            logger.warning('Data unchanged, will not update in Redis data store')
+            redis_data.set_updated_datetime(redis_instance)
+            return
+
+    logger.warning('Data changed. will update in Redis data store')
+    redis_data.set_dataframe(redis_instance, df)
+    redis_data.set_modified_datetime(redis_instance)
 
     # set updated time
     redis_data.set_updated_datetime(redis_instance)
