@@ -271,6 +271,9 @@ def retrieve_testruns(jama_url: str, jama_username: str, jama_password: str):
     for testplan_name in config.get_testplan_names():
         project, testplan = config.get_project_and_testplan(testplan_ui_key=testplan_name)
         df = client.retrieve_testruns(project_key=project, testplan_key=testplan)
+        if df is None:
+            # skip
+            continue
         # remove project column and replace testplan with testplan_name
         df1 = df.drop(columns=[COL_PROJECT])
         df1[COL_TESTPLAN].replace({testplan: testplan_name}, inplace=True)

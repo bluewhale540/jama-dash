@@ -41,9 +41,14 @@ def update_data():
     if jama_url is None:
         jama_url = 'https://paperclip.idirect.net'
 
-    df = testrun_utils.retrieve_testruns(jama_url=jama_url,
-                                                   jama_username=jama_api_username,
-                                                   jama_password=jama_api_password)
+    try:
+        df = testrun_utils.retrieve_testruns(jama_url=jama_url,
+                                                       jama_username=jama_api_username,
+                                                       jama_password=jama_api_password)
+    except Exception as e:
+        logger.error(f'caught exception {e} trying to get test runs')
+        return
+
     if df is None:
         logger.error('cannot retrieve data from Jama/Contour server. Check config file!')
         return
@@ -52,15 +57,18 @@ def update_data():
     redis_df = redis_data.get_dataframe(redis_instance)
 
     df_json = testrun_utils.df_to_json(df)
-    redif_df_json = testrun_utils.df_to_json(redis_df)
+    redif_df_json = testrun_utils.df_to_json(redis_df) if redis_df is not None else None
 
     modified = True
-    if redif_df_json is not None and df_json == redif_df_json:
-        logger.warning('Data unchanged, will not update in Redis data store')
-    else:
-        logger.warning('Data changed. will update in Redis data store')
-        redis_data.set_dataframe(redis_instance, df)
-        redis_data.set_modified_datetime(redis_instance)
+    if redif_df_json is not None:
+        if df_json == redif_df_json:
+            logger.warning('Data unchanged, will not update in Redis data store')
+            redis_data.set_updated_datetime(redis_instance)
+            return
+
+    logger.warning('Data changed. will update in Redis data store')
+    redis_data.set_dataframe(redis_instance, df)
+    redis_data.set_modified_datetime(redis_instance)
 
     # set updated time
     redis_data.set_updated_datetime(redis_instance)

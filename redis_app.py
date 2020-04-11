@@ -97,7 +97,6 @@ def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, chart_type, colormap,
         df, testplan_ui, testcycle_ui, testgroup_ui, chart_type, colormap, start_date, test_deadline)
 
 def serve_layout():
-
     testplans = get_testplan_options()
     initial_testplan = init_value(testplans)
     testcycles = get_testcycle_options(initial_testplan)
