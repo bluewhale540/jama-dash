@@ -96,8 +96,60 @@ def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, chart_type, colormap,
     return charts.get_chart(
         df, testplan_ui, testcycle_ui, testgroup_ui, chart_type, colormap, start_date, test_deadline)
 
-def serve_layout():
+def get_selection_ui():
+    testplans = get_testplan_options()
+    initial_testplan = init_value(testplans)
+    group1 = dbc.FormGroup(
+        [
+            dbc.Label('select a test plan', html_for='id-test-plan'),
+            dcc.Dropdown(
+                id='id-test-plan',
+                options=testplans,
+                value=initial_testplan,
+                persistence=True,
+                persistence_type='local'
+            ),
+        ]
+    )
 
+    group2 = dbc.FormGroup(
+        [
+            dbc.Label('select a test cycle', html_for='id-test-cycle'),
+            dcc.Dropdown(
+                id='id-test-cycle',
+                persistence_type='local',
+            ),
+        ],
+    )
+
+    group3 = dbc.FormGroup(
+        [
+            dbc.Label('select a test group', html_for='id-test-group'),
+            dcc.Dropdown(
+                id='id-test-group',
+                persistence_type='local',
+            ),
+        ]
+    )
+
+    group4 = dbc.FormGroup(
+        [
+            dbc.Label('select chart', html_for='id-chart-type'),
+            dcc.Dropdown(
+                id='id-chart-type',
+                options=make_options(charts.get_chart_types()),
+                value=charts.FIG_TYPE_HISTORICAL_STATUS_LINE_CHART,
+                persistence=True,
+                persistence_type='local'
+            ),
+        ],
+    )
+
+    form = dbc.Form([group1, group2, group3, group4])
+    return form
+
+
+def serve_layout():
     testplans = get_testplan_options()
     initial_testplan = init_value(testplans)
     testcycles = get_testcycle_options(initial_testplan)
@@ -141,64 +193,7 @@ def serve_layout():
                 }
             ),
             html.Hr(),
-            dbc.Row(
-                [
-                    dbc.Col(
-                        [
-                            dbc.Label('Select a test plan'),
-                            dcc.Dropdown(
-                                id='id-test-plan',
-                                options=testplans,
-                                value=initial_testplan,
-                                persistence=True,
-                                persistence_type='local'
-                            ),
-                        ]
-                    ),
-                    dbc.Col(
-                        [
-                            dbc.Label('Select a test cycle'),
-                            dcc.Dropdown(
-                                id='id-test-cycle',
-                                options=testcycles,
-                                value=initial_testcycle,
-                                persistence_type='local',
-                                persistence=initial_testplan
-                            ),
-                        ],
-                        id='id-test-cycle-container',
-                    ),
-                ]
-            ),
-            dbc.Row(
-                [
-                    dbc.Col(
-                        [
-                            dbc.Label('Select a test group'),
-                            dcc.Dropdown(
-                                id='id-test-group',
-                                options=testgroups,
-                                value=initial_testgroup,
-                                persistence_type='local',
-                                persistence=initial_testcycle
-                            ),
-                        ],
-                        id='id-test-group-container',
-                    ),
-                    dbc.Col(
-                        [
-                            dbc.Label('Select the chart type'),
-                            dcc.Dropdown(
-                                id='id-chart-type',
-                                options=make_options(charts.get_chart_types()),
-                                value=charts.FIG_TYPE_HISTORICAL_STATUS_LINE_CHART,
-                                persistence=True,
-                                persistence_type='local'
-                            ),
-                        ]
-                    )
-                ]
-            ),
+            get_selection_ui(),
             dbc.Row(
                 [
                     html.Div(
