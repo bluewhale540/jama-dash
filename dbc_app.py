@@ -99,7 +99,7 @@ def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, chart_type, colormap,
 def get_selection_ui():
     testplans = get_testplan_options()
     initial_testplan = init_value(testplans)
-    group1 = dbc.FormGroup(
+    group1 = dbc.Col(
         [
             dbc.Label('select a test plan', html_for='id-test-plan'),
             dcc.Dropdown(
@@ -109,10 +109,11 @@ def get_selection_ui():
                 persistence=True,
                 persistence_type='local'
             ),
-        ]
+        ],
+        lg=3
     )
 
-    group2 = dbc.FormGroup(
+    group2 = dbc.Col(
         [
             dbc.Label('select a test cycle', html_for='id-test-cycle'),
             dcc.Dropdown(
@@ -120,33 +121,79 @@ def get_selection_ui():
                 persistence_type='local',
             ),
         ],
+        lg=4
     )
 
-    group3 = dbc.FormGroup(
+    group3 = dbc.Col(
         [
             dbc.Label('select a test group', html_for='id-test-group'),
             dcc.Dropdown(
                 id='id-test-group',
                 persistence_type='local',
             ),
+        ],
+        lg=5
+    )
+
+    form = dbc.Row([group1, group2, group3])
+    return form
+
+def get_historical_chart_ui():
+    controls = dbc.FormGroup(
+        [
+            dbc.Label('start date', html_for='id-start-date'),
+            dcc.DatePickerSingle(
+                id='id-start-date',
+                initial_visible_month=dt.today() - timedelta(days=90)
+            ),
+            dbc.Label('test deadline', html_for='id-test-deadline'),
+            dcc.DatePickerSingle(
+                id='id-test-deadline',
+                min_date_allowed=dt.today() + timedelta(days=1),
+                initial_visible_month=dt.today(),
+            ),
         ]
     )
 
-    group4 = dbc.FormGroup(
+    chart = dbc.Row(
         [
-            dbc.Label('select chart', html_for='id-chart-type'),
-            dcc.Dropdown(
-                id='id-chart-type',
-                options=make_options(charts.get_chart_types()),
-                value=charts.FIG_TYPE_HISTORICAL_STATUS_LINE_CHART,
-                persistence=True,
-                persistence_type='local'
+            dbc.Col(
+                dcc.Loading(
+                    id='id-loading-historical',
+                    children=[
+                        html.Div(id='id-chart-historical')
+                    ],
+                    type='graph'
+                ), width=6
             ),
-        ],
+            dbc.Col(
+                dcc.Loading(
+                    id='id-loading-current-status',
+                    children=[
+                        html.Div(id='id-chart-current-status')
+                    ],
+                    type='graph'
+                ), width=6
+            ),
+        ]
     )
 
-    form = dbc.Form([group1, group2, group3, group4])
-    return form
+    return dbc.Card(
+        [
+            dbc.CardHeader(
+                [
+                    html.H4('test progress', className='card-title'),
+                ]
+            ),
+            dbc.CardBody(
+                [
+                    controls,
+                    chart
+                ]
+            ),
+        ]
+    )
+
 
 
 def serve_layout():
@@ -160,11 +207,6 @@ def serve_layout():
 
     layout = dbc.Container(
         [
-            dcc.Interval(interval=1 * 60 * 1000, id='id-interval'),
-            # Hidden div inside the app that stores last updated date and time
-            html.Div(id='id-last-modified-hidden',
-                     children=modified_datetime,
-                     style={'display': 'none'}),
             html.A(
                 [
                     html.Img(
@@ -186,62 +228,28 @@ def serve_layout():
                 'Test Execution Reports',
                 style={
                     'color': 'blue',
-                    'font-style': 'italic',
                     'font-weight': 'bold',
                     'height': '50px',
                     'display': 'inline-block'
                 }
             ),
             html.Hr(),
-            get_selection_ui(),
-            dbc.Row(
+            dbc.CardHeader(get_selection_ui()),
+            get_historical_chart_ui(),
+            dbc.CardFooter(
                 [
-                    html.Div(
-                        id='id-controls-container-1',
-                        children=[
-                            html.Div('Start Date'),
-                            dcc.DatePickerSingle(
-                             id='id-start-date',
-                             initial_visible_month=dt.today() - timedelta(days=90),
-                            )
-                        ],
-                        style={'display': 'none'}
-                    ),
-                    html.Div(
-                        id='id-controls-container-2',
-                        children=[
-                                 html.Div('Test Deadline'),
-                                 dcc.DatePickerSingle(
-                                     id='id-test-deadline',
-                                     min_date_allowed=dt.today() + timedelta(days=1),
-                                     initial_visible_month=dt.today(),
-                                 )],
-                        style={'display': 'none'}
-                    ),
-                ]
-            ),
-            dbc.Row(
-                [
-                    dcc.Loading(
-                        id='id-loading',
-                        children=[
-                            html.Div(id='id-chart')
-                        ],
-                        type='graph'
-                    ),
-                ]
-            ),
-            dbc.Row(
-                [
-
                     html.Div(id='id-status',
                              children=f'Data was last updated at:{modified_datetime}')
                 ]
-            )
+            ),
+            dcc.Interval(interval=1 * 60 * 1000, id='id-interval'),
+            # Hidden div inside the app that stores last updated date and time
+            html.Div(id='id-last-modified-hidden',
+                     children=modified_datetime,
+                     style={'display': 'none'}),
+
         ]
     )
-
-
     return layout
 
 
@@ -337,17 +345,14 @@ def update_testgroup_options(testplan_ui, testcycle_ui, current_value):
     return [options, value, persistence]
 
 @app.callback(
-    [Output('id-chart', 'children'),
-     Output('id-controls-container-1', 'style'),
-     Output('id-controls-container-2', 'style')],
+    [Output('id-chart-historical', 'children')],
     [Input('id-test-plan', 'value'),
      Input('id-test-cycle', 'value'),
      Input('id-test-group', 'value'),
-     Input('id-chart-type', 'value'),
      Input('id-start-date', 'date'),
      Input('id-test-deadline', 'date')
      ])
-def update_graph(testplan_ui, testcycle_ui, testgroup_ui, chart_type, date1, date2):
+def update_graph(testplan_ui, testcycle_ui, testgroup_ui, date1, date2):
     start_date = parser.parse(date1) if date1 is not None else None
     test_deadline = parser.parse(date2) if date2 is not None else None
     df = json_to_df(get_data())
@@ -355,14 +360,11 @@ def update_graph(testplan_ui, testcycle_ui, testgroup_ui, chart_type, date1, dat
                       testplan_ui,
                       testcycle_ui,
                       testgroup_ui,
-                      chart_type=chart_type,
+                      chart_type=charts.FIG_TYPE_HISTORICAL_STATUS_LINE_CHART,
                       colormap=get_default_colormap(),
                       start_date=start_date ,
                       test_deadline=test_deadline)
-    style = {'display': 'none'}
-    if chart_type == charts.FIG_TYPE_HISTORICAL_STATUS_LINE_CHART:
-        style = {'display': 'inline-block'}
-    return chart, style, style
+    return chart
 
 
 if __name__ == '__main__':
