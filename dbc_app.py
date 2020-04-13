@@ -152,17 +152,8 @@ def get_selection_ui():
     return form
 
 
-def get_card_header(title, collapse_text='close', collapse_id=''):
-    return dbc.CardHeader([
-        dbc.Row([
-            dbc.Col([html.H6(title, className='card-title')], width=10),
-            dbc.Col([dbc.Button(collapse_text)], id=collapse_id, width=2)
-        ])
-    ])
 
-
-
-def get_test_progress_ui():
+def get_test_progress_controls():
     controls = dbc.Row([
         dbc.Col([dbc.Label('start date', html_for='id-start-date')], width=1),
         dbc.Col([dcc.DatePickerSingle(
@@ -179,27 +170,7 @@ def get_test_progress_ui():
             day_size=30
         )], width=2),
     ])
-    chart = dbc.Row([dbc.Col(dcc.Loading(dcc.Graph(id=ID_CHART_TEST_PROGRESS)))])
-    return dbc.Card([
-        get_card_header('test progress', collapse_id=ID_COLLAPSE_TEST_PROGRESS),
-        dbc.CardBody([
-            controls,
-            chart
-        ])
-    ])
-
-def get_current_status_overall_ui():
-    return dbc.Card([
-        get_card_header('current status', collapse_id=ID_COLLAPSE_CURRENT_STATUS_OVERALL),
-        dbc.CardBody(dcc.Loading(dcc.Graph(id=ID_CHART_CURRENT_STATUS_OVERALL))),
-    ])
-
-def get_current_status_by_group_ui():
-    return dbc.Card([
-        get_card_header('current status (by group)', collapse_id=ID_COLLAPSE_CURRENT_STATUS_BY_GROUP),
-        dbc.CardBody(dcc.Loading(dcc.Graph(id=ID_CHART_CURRENT_STATUS_BY_GROUP))),
-    ])
-
+    return controls
 
 supported_cards = {
     CARD_TEST_PROGRESS: dict(
@@ -207,23 +178,47 @@ supported_cards = {
         chart_id=ID_CHART_TEST_PROGRESS,
         collapse_id=ID_COLLAPSE_TEST_PROGRESS,
         chart_type=charts.FIG_TYPE_HISTORICAL_STATUS_LINE_CHART,
-        layout_func=get_test_progress_ui
+        controls_layout_func=get_test_progress_controls()
     ),
     CARD_CURRENT_STATUS_OVERALL: dict(
         title='current status (overall)',
         chart_id=ID_CHART_CURRENT_STATUS_OVERALL,
         collapse_id=ID_COLLAPSE_CURRENT_STATUS_OVERALL,
         chart_type=charts.FIG_TYPE_CURRENT_STATUS_PIE_CHART,
-        layout_func=get_current_status_overall_ui
     ),
     CARD_CURRENT_STATUS_BY_GROUP: dict(
         title='current status (by test group)',
         chart_id=ID_CHART_CURRENT_STATUS_BY_GROUP,
         collapse_id=ID_COLLAPSE_CURRENT_STATUS_BY_GROUP,
         chart_type=charts.FIG_TYPE_CURRENT_STATUS_BY_TESTGROUP_BAR_CHART,
-        layout_func=get_current_status_by_group_ui
     ),
 }
+
+def get_card_header(title, collapse_text='close', collapse_id=''):
+    return dbc.CardHeader([
+        dbc.Row([
+            dbc.Col([html.H6(title, className='card-title')], width=10),
+            dbc.Col([dbc.Button(collapse_text)], id=collapse_id, width=2)
+        ])
+    ])
+
+def get_card_layout(card):
+    if card not in supported_cards:
+        return None
+    x = supported_cards[card]
+    chart_id = x['chart_id']
+    collapse_id = x['collapse_id']
+    title = x['title']
+    card_body_children = []
+    controls_func = x.get('controls_layout_func')
+    if controls_func is not None:
+        card_body_children.append(controls_func)
+    chart = dbc.Row([dbc.Col(dcc.Loading(dcc.Graph(id=chart_id)))])
+    card_body_children.append(chart)
+    return dbc.Card([
+        get_card_header(title=title, collapse_id=collapse_id),
+        dbc.CardBody(card_body_children)
+    ])
 
 
 def serve_layout():
@@ -255,7 +250,7 @@ def serve_layout():
                 href='https://www.idirect.net'
             ),
             html.H2(
-                'Test Execution Reports',
+                'test execution reports',
                 style={
                     'color': 'blue',
                     'font-weight': 'normal',
@@ -265,15 +260,13 @@ def serve_layout():
             ),
             html.Hr(),
             dbc.CardHeader(get_selection_ui()),
+        ] +
+        [
             dbc.Row([
-                dbc.Col(get_test_progress_ui(), width=12, style=dict(height='100%')),
-            ]),
-            dbc.Row([
-                dbc.Col(get_current_status_overall_ui(), width=12, style=dict(height='100%'))
-            ]),
-            dbc.Row([
-                dbc.Col(get_current_status_by_group_ui(), width=12, style=dict(height='100%'))
-            ]),
+                dbc.Col(get_card_layout(x), width=12, style=dict(height='100%')),
+            ]) for x in supported_cards
+        ] +
+        [
             dbc.CardFooter([
                 html.Div(id='id-status', children=f'Data last updated: {modified_datetime}')
             ]),
