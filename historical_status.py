@@ -70,6 +70,6 @@ def get_historical_status_line_chart(
         treat_blocked_as_not_run,
         treat_inprogress_as_not_run)
 
-    fig = go.Figure(dict(data=traces)) # , layout=dict(title=title)
+    fig = dict(data=traces)
     return fig
 

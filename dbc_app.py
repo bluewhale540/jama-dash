@@ -19,20 +19,25 @@ import charts
 from charts import get_chart_types, get_default_colormap
 import redis_data
 
-
-CARD_TEST_PROGRESS='test_progress'
-CARD_CURRENT_STATUS_OVERALL= 'current_status_overall'
-CARD_CURRENT_STATUS_BY_GROUP='current_status_by_group'
+ID_CARD_TEST_PROGRESS='id-test-progress'
+ID_CARD_CURRENT_STATUS_OVERALL='id-current-status-overall'
+ID_CARD_CURRENT_STATUS_BY_GROUP='id-current-status-by-group'
+ID_CARD_WEEKLY_STATUS='id-weekly-status'
 
 ID_CHART_TEST_PROGRESS= 'id-chart-test-progress'
 ID_CHART_CURRENT_STATUS_OVERALL= 'id-chart-current-status-overall'
 ID_CHART_CURRENT_STATUS_BY_GROUP= 'id-chart-current-status-by-group'
+ID_CHART_WEEKLY_STATUS='id-chart-weekly-status'
 
 ID_COLLAPSE_TEST_PROGRESS= 'id-collapse-test-progress'
 ID_COLLAPSE_CURRENT_STATUS_OVERALL= 'id-collapse-current-status-overall'
 ID_COLLAPSE_CURRENT_STATUS_BY_GROUP= 'id-collapse-current-status-by-group'
+ID_COLLAPSE_WEEKLY_STATUS='id-collapse-weekly-status'
 
-
+ID_COLLAPSE_BUTTON_TEST_PROGRESS= 'id-collapse-button-test-progress'
+ID_COLLAPSE_BUTTON_CURRENT_STATUS_OVERALL= 'id-collapse-button-current-status-overall'
+ID_COLLAPSE_BUTTON_CURRENT_STATUS_BY_GROUP= 'id-collapse-button-current-status-by-group'
+ID_COLLAPSE_BUTTON_WEEKLY_STATUS='id-collapse-button-weekly-status'
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
@@ -172,62 +177,83 @@ def get_test_progress_controls():
     ])
     return controls
 
+CARD_KEY_TITLE='title'
+CARD_KEY_CHART_ID='chart_id'
+CARD_KEY_COLLAPSE_ID='collapse_id'
+CARD_KEY_COLLAPSE_BUTTON_ID='collapse_button_id'
+CARD_KEY_COLLAPSE_INITIAL_STATE='collapse_initial_state' # open=True, collapsed=False
+CARD_KEY_CHART_TYPE='chart_type'
+CARD_KEY_CONTROLS_LAYOUT_FUNC='controls_layout_func'
+
 supported_cards = {
-    CARD_TEST_PROGRESS: dict(
-        title='test progress',
-        chart_id=ID_CHART_TEST_PROGRESS,
-        collapse_id=ID_COLLAPSE_TEST_PROGRESS,
-        chart_type=charts.FIG_TYPE_HISTORICAL_STATUS_LINE_CHART,
-        controls_layout_func=get_test_progress_controls()
-    ),
-    CARD_CURRENT_STATUS_OVERALL: dict(
-        title='current status (overall)',
-        chart_id=ID_CHART_CURRENT_STATUS_OVERALL,
-        collapse_id=ID_COLLAPSE_CURRENT_STATUS_OVERALL,
-        chart_type=charts.FIG_TYPE_CURRENT_STATUS_PIE_CHART,
-    ),
-    CARD_CURRENT_STATUS_BY_GROUP: dict(
-        title='current status (by test group)',
-        chart_id=ID_CHART_CURRENT_STATUS_BY_GROUP,
-        collapse_id=ID_COLLAPSE_CURRENT_STATUS_BY_GROUP,
-        chart_type=charts.FIG_TYPE_CURRENT_STATUS_BY_TESTGROUP_BAR_CHART,
-    ),
+    ID_CARD_TEST_PROGRESS: {
+        CARD_KEY_TITLE: 'test progress',
+        CARD_KEY_CHART_ID: ID_CHART_TEST_PROGRESS,
+        CARD_KEY_COLLAPSE_ID: ID_COLLAPSE_TEST_PROGRESS,
+        CARD_KEY_COLLAPSE_BUTTON_ID: ID_COLLAPSE_BUTTON_TEST_PROGRESS,
+        CARD_KEY_COLLAPSE_INITIAL_STATE: True,
+        CARD_KEY_CHART_TYPE: charts.FIG_TYPE_HISTORICAL_STATUS_LINE_CHART,
+        CARD_KEY_CONTROLS_LAYOUT_FUNC: get_test_progress_controls()
+    },
+    ID_CARD_CURRENT_STATUS_OVERALL: {
+        CARD_KEY_TITLE: 'current status (overall)',
+        CARD_KEY_CHART_ID: ID_CHART_CURRENT_STATUS_OVERALL,
+        CARD_KEY_COLLAPSE_ID: ID_COLLAPSE_CURRENT_STATUS_OVERALL,
+        CARD_KEY_COLLAPSE_BUTTON_ID: ID_COLLAPSE_BUTTON_CURRENT_STATUS_OVERALL,
+        CARD_KEY_COLLAPSE_INITIAL_STATE: False,
+        CARD_KEY_CHART_TYPE: charts.FIG_TYPE_CURRENT_STATUS_PIE_CHART,
+    },
+    ID_CARD_CURRENT_STATUS_BY_GROUP: {
+        CARD_KEY_TITLE: 'current status (by test group)',
+        CARD_KEY_CHART_ID: ID_CHART_CURRENT_STATUS_BY_GROUP,
+        CARD_KEY_COLLAPSE_ID: ID_COLLAPSE_CURRENT_STATUS_BY_GROUP,
+        CARD_KEY_COLLAPSE_BUTTON_ID: ID_COLLAPSE_BUTTON_CURRENT_STATUS_BY_GROUP,
+        CARD_KEY_COLLAPSE_INITIAL_STATE: False,
+        CARD_KEY_CHART_TYPE: charts.FIG_TYPE_CURRENT_STATUS_BY_TESTGROUP_BAR_CHART,
+    },
+    ID_CARD_WEEKLY_STATUS: {
+        CARD_KEY_TITLE: 'weekly status ',
+        CARD_KEY_CHART_ID: ID_CHART_WEEKLY_STATUS,
+        CARD_KEY_COLLAPSE_ID: ID_COLLAPSE_WEEKLY_STATUS,
+        CARD_KEY_COLLAPSE_BUTTON_ID: ID_COLLAPSE_BUTTON_WEEKLY_STATUS,
+        CARD_KEY_COLLAPSE_INITIAL_STATE: False,
+        CARD_KEY_CHART_TYPE: charts.FIG_TYPE_WEEKLY_STATUS_BAR_CHART,
+    }
 }
 
-def get_card_header(title, collapse_text='close', collapse_id=''):
+def get_card_header(title, collapse_button_id, collapse_text):
     return dbc.CardHeader([
         dbc.Row([
             dbc.Col([html.H6(title, className='card-title')], width=10),
-            dbc.Col([dbc.Button(collapse_text)], id=collapse_id, width=2)
+            dbc.Col([dbc.Button(collapse_text, id=collapse_button_id)], width=2)
         ])
     ])
+
+def collapse_button_text(state):
+    return 'collapse' if state is True else 'expand'
 
 def get_card_layout(card):
     if card not in supported_cards:
         return None
     x = supported_cards[card]
-    chart_id = x['chart_id']
-    collapse_id = x['collapse_id']
-    title = x['title']
+    chart_id = x[CARD_KEY_CHART_ID]
+    collapse_id = x[CARD_KEY_COLLAPSE_ID]
+    collapse_button_id = x[CARD_KEY_COLLAPSE_BUTTON_ID]
+    collapse_initial_state = x[CARD_KEY_COLLAPSE_INITIAL_STATE]
+    title = x[CARD_KEY_TITLE]
     card_body_children = []
-    controls_func = x.get('controls_layout_func')
+    controls_func = x.get(CARD_KEY_CONTROLS_LAYOUT_FUNC)
     if controls_func is not None:
         card_body_children.append(controls_func)
-    chart = dbc.Row([dbc.Col(dcc.Loading(dcc.Graph(id=chart_id)))])
+    chart = dcc.Loading(dbc.Row([dbc.Col(dcc.Graph(id=chart_id))]))
     card_body_children.append(chart)
     return dbc.Card([
-        get_card_header(title=title, collapse_id=collapse_id),
-        dbc.CardBody(card_body_children)
+        get_card_header(title=title, collapse_button_id=collapse_button_id, collapse_text=collapse_button_text(True)),
+        dbc.Collapse(dbc.CardBody(card_body_children), id=collapse_id, is_open=True)
     ])
 
 
 def serve_layout():
-    testplans = get_testplan_options()
-    initial_testplan = init_value(testplans)
-    testcycles = get_testcycle_options(initial_testplan)
-    initial_testcycle = init_value(testcycles)
-    testgroups = get_testgroup_options(testplan=initial_testplan, testcycle=initial_testcycle)
-    initial_testgroup = init_value(testgroups)
     modified_datetime = redis_data.get_modified_datetime(redis_inst)
 
     layout = dbc.Container(
@@ -263,7 +289,7 @@ def serve_layout():
         ] +
         [
             dbc.Row([
-                dbc.Col(get_card_layout(x), width=12, style=dict(height='100%')),
+                dbc.Col(get_card_layout(x), width=12),
             ]) for x in supported_cards
         ] +
         [
@@ -393,6 +419,23 @@ def update_graph(testplan_ui, testcycle_ui, testgroup_ui, date1, date2):
                       test_deadline=test_deadline) for x in chart_types]
     return charts
 
+
+def toggle_collapse(n, is_open):
+    if n:
+        return [not is_open, collapse_button_text(not is_open)]
+    return [is_open, collapse_button_text(is_open)]
+
+def register_card_collapse_callback(card_id):
+    x = supported_cards[card_id]
+    collapse_id = x[CARD_KEY_COLLAPSE_ID]
+    collapse_button_id = x[CARD_KEY_COLLAPSE_BUTTON_ID]
+    outputs = [Output(collapse_id, 'is_open'), Output(collapse_button_id, 'children')]
+    inputs = [Input(collapse_button_id, 'n_clicks')]
+    states = [State(collapse_id, 'is_open')]
+    app.callback(outputs, inputs, states)(toggle_collapse)
+
+for card_id in supported_cards:
+    register_card_collapse_callback(card_id)
 
 if __name__ == '__main__':
     app.run_server(debug=True)

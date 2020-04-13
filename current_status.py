@@ -21,13 +21,15 @@ def get_current_status_pie_chart(df, testcycle, testgroup, title='Current Status
         for status in status_names:
             pie_colors.append(colormap[status])
 
-    data=[go.Pie(labels=status_names, values=values,
-                                 textinfo='label+percent',
-                                 insidetextorientation='radial',
-                                 marker_colors=pie_colors
-                                 )]
+    data = [
+        dict(type='pie',
+            labels=status_names,
+            values=values,
+            textinfo='label+percent',
+            insidetextorientation='radial',
+            marker_colors=pie_colors)]
 
-    fig = go.Figure(data=data)
+    fig = dict(data=data, layout=dict(height=600))
     return fig
 
 def get_testgroup_status_bar_chart(df, testcycle, testgroup, title, colormap, status_list):
@@ -74,22 +76,14 @@ def get_testgroup_status_bar_chart(df, testcycle, testgroup, title, colormap, st
                          text=y_axis,
                          textposition='auto',
                          marker=dict(color=colormap[status])))
-        figure = {
-            'data': data,
-            'layout': dict(
-                title=title,
-                height=600,
-                xaxis={
-                    'title': 'Test Groups',
-                    'automargin': True,
-                },
-                yaxis={
-                    'title': 'Number Of Test Runs',
-                },
-                barmode='stack'
-            )
-        }
-
+    figure = dict(
+        data=data,
+        layout=dict(
+            height=800,
+            textangle=-45,
+            yaxis=dict(title='Number Of Test Runs'),
+            barmode='stack',
+            autosize=True))
     return figure
 
 

@@ -23,22 +23,21 @@ def get_weekly_status_bar_chart(df, testcycle, testgroup, title, colormap):
                          text=y_axis,
                          textposition='inside',
                          marker=dict(color=colormap[status])))
-    return dcc.Graph(
-            id='weekly-status',
-            figure = {
-                'data': data,
-                'layout': dict(
-                    title=title,
-                    xaxis={
-                        'title': 'Planned Week',
-                    },
-                    yaxis={
-                        'title': 'Number Of Test Runs',
-                    },
-                    barmode='stack'
-                )
-            }
+
+    figure = {
+        'data': data,
+        'layout': dict(
+            xaxis={
+                'title': 'Planned Week',
+            },
+            yaxis={
+                'title': 'Number Of Test Runs',
+            },
+            barmode='stack'
         )
+    }
+
+    return figure
 
 
 def get_current_week_testruns_table(df, testcycle, testgroup, title, colormap):
