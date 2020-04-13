@@ -3,7 +3,7 @@ import dash_core_components as dcc
 import pandas as pd
 from testrun_utils import get_testrun_status_historical, get_status_names
 
-def get_historical_status_line_chart(
+def get_historical_status_line_traces(
         df, testcycle, testgroup,
         start_date, test_deadline, title, colormap,
         treat_blocked_as_not_run=False,
@@ -57,7 +57,19 @@ def get_historical_status_line_chart(
                          mode='lines',
                          name='required test run rate',
                          line=dict(dash='dash', color='black')))
-    fig = go.Figure(data=data, layout=dict(title=title))
-    return dcc.Graph(
-            id='historical-status',
-            figure=fig)
+    return data
+
+def get_historical_status_line_chart(
+        df, testcycle, testgroup,
+        start_date, test_deadline, title, colormap,
+        treat_blocked_as_not_run=False,
+        treat_inprogress_as_not_run=False):
+
+    traces = get_historical_status_line_traces(df, testcycle, testgroup,
+        start_date, test_deadline, title, colormap,
+        treat_blocked_as_not_run,
+        treat_inprogress_as_not_run)
+
+    fig = go.Figure(dict(data=traces)) # , layout=dict(title=title)
+    return fig
+

@@ -27,11 +27,8 @@ def get_current_status_pie_chart(df, testcycle, testgroup, title='Current Status
                                  marker_colors=pie_colors
                                  )]
 
-    fig = go.Figure(data=data, layout=dict(title=title))
-    return dcc.Graph(
-            id='current-status',
-            figure=fig)
-
+    fig = go.Figure(data=data)
+    return fig
 
 def get_testgroup_status_bar_chart(df, testcycle, testgroup, title, colormap, status_list):
     if len(status_list) == 0:
@@ -77,23 +74,23 @@ def get_testgroup_status_bar_chart(df, testcycle, testgroup, title, colormap, st
                          text=y_axis,
                          textposition='auto',
                          marker=dict(color=colormap[status])))
-    return dcc.Graph(
-            id='testgroup-failed-blocked',
-            figure = {
-                'data': data,
-                'layout': dict(
-                    title=title,
-                    height=600,
-                    xaxis={
-                        'title': 'Test Groups',
-                        'automargin': True,
-                    },
-                    yaxis={
-                        'title': 'Number Of Test Runs',
-                    },
-                    barmode='stack'
-                )
-            }
-        )
+        figure = {
+            'data': data,
+            'layout': dict(
+                title=title,
+                height=600,
+                xaxis={
+                    'title': 'Test Groups',
+                    'automargin': True,
+                },
+                yaxis={
+                    'title': 'Number Of Test Runs',
+                },
+                barmode='stack'
+            )
+        }
+
+        return figure
+
 
 

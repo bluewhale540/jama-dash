@@ -1,5 +1,4 @@
 import dash
-import redis
 from dash.dependencies import Input, Output, State
 import dash_core_components as dcc
 import dash_html_components as html
@@ -19,6 +18,20 @@ from testrun_utils import get_testplan_labels, \
 import charts
 from charts import get_chart_types, get_default_colormap
 import redis_data
+
+
+CARD_TEST_PROGRESS='test_progress'
+CARD_CURRENT_STATUS_OVERALL= 'current_status_overall'
+CARD_CURRENT_STATUS_BY_GROUP='current_status_by_group'
+
+ID_CHART_TEST_PROGRESS= 'id-chart-test-progress'
+ID_CHART_CURRENT_STATUS_OVERALL= 'id-chart-current-status-overall'
+ID_CHART_CURRENT_STATUS_BY_GROUP= 'id-chart-current-status-by-group'
+
+ID_COLLAPSE_TEST_PROGRESS= 'id-collapse-test-progress'
+ID_COLLAPSE_CURRENT_STATUS_OVERALL= 'id-collapse-current-status-overall'
+ID_COLLAPSE_CURRENT_STATUS_BY_GROUP= 'id-collapse-current-status-by-group'
+
 
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
@@ -138,62 +151,79 @@ def get_selection_ui():
     form = dbc.Row([group1, group2, group3])
     return form
 
-def get_historical_chart_ui():
-    controls = dbc.FormGroup(
-        [
-            dbc.Label('start date', html_for='id-start-date'),
-            dcc.DatePickerSingle(
-                id='id-start-date',
-                initial_visible_month=dt.today() - timedelta(days=90)
-            ),
-            dbc.Label('test deadline', html_for='id-test-deadline'),
-            dcc.DatePickerSingle(
-                id='id-test-deadline',
-                min_date_allowed=dt.today() + timedelta(days=1),
-                initial_visible_month=dt.today(),
-            ),
-        ]
-    )
 
-    chart = dbc.Row(
-        [
-            dbc.Col(
-                dcc.Loading(
-                    id='id-loading-historical',
-                    children=[
-                        html.Div(id='id-chart-historical')
-                    ],
-                    type='graph'
-                ), width=6
-            ),
-            dbc.Col(
-                dcc.Loading(
-                    id='id-loading-current-status',
-                    children=[
-                        html.Div(id='id-chart-current-status')
-                    ],
-                    type='graph'
-                ), width=6
-            ),
-        ]
-    )
+def get_card_header(title, collapse_text='close', collapse_id=''):
+    return dbc.CardHeader([
+        dbc.Row([
+            dbc.Col([html.H6(title, className='card-title')], width=10),
+            dbc.Col([dbc.Button(collapse_text)], id=collapse_id, width=2)
+        ])
+    ])
 
-    return dbc.Card(
-        [
-            dbc.CardHeader(
-                [
-                    html.H4('test progress', className='card-title'),
-                ]
-            ),
-            dbc.CardBody(
-                [
-                    controls,
-                    chart
-                ]
-            ),
-        ]
-    )
 
+
+def get_test_progress_ui():
+    controls = dbc.Row([
+        dbc.Col([dbc.Label('start date', html_for='id-start-date')], width=1),
+        dbc.Col([dcc.DatePickerSingle(
+            id='id-start-date',
+            initial_visible_month=dt.today() - timedelta(days=90),
+            persistence=True,
+        )], width=2),
+        dbc.Col([dbc.Label('test deadline', html_for='id-test-deadline')], width=1),
+        dbc.Col([dcc.DatePickerSingle(
+            id='id-test-deadline',
+            min_date_allowed=dt.today() + timedelta(days=1),
+            initial_visible_month=dt.today(),
+            persistence=True,
+            day_size=30
+        )], width=2),
+    ])
+    chart = dbc.Row([dbc.Col(dcc.Loading(dcc.Graph(id=ID_CHART_TEST_PROGRESS)))])
+    return dbc.Card([
+        get_card_header('test progress', collapse_id=ID_COLLAPSE_TEST_PROGRESS),
+        dbc.CardBody([
+            controls,
+            chart
+        ])
+    ])
+
+def get_current_status_overall_ui():
+    return dbc.Card([
+        get_card_header('current status', collapse_id=ID_COLLAPSE_CURRENT_STATUS_OVERALL),
+        dbc.CardBody(dcc.Loading(dcc.Graph(id=ID_CHART_CURRENT_STATUS_OVERALL))),
+    ])
+
+def get_current_status_by_group_ui():
+    return dbc.Card([
+        get_card_header('current status (by group)', collapse_id=ID_COLLAPSE_CURRENT_STATUS_BY_GROUP),
+        dbc.CardBody(dcc.Loading(dcc.Graph(id=ID_CHART_CURRENT_STATUS_BY_GROUP))),
+    ])
+
+
+supported_cards = {
+    CARD_TEST_PROGRESS: dict(
+        title='test progress',
+        chart_id=ID_CHART_TEST_PROGRESS,
+        collapse_id=ID_COLLAPSE_TEST_PROGRESS,
+        chart_type=charts.FIG_TYPE_HISTORICAL_STATUS_LINE_CHART,
+        layout_func=get_test_progress_ui
+    ),
+    CARD_CURRENT_STATUS_OVERALL: dict(
+        title='current status (overall)',
+        chart_id=ID_CHART_CURRENT_STATUS_OVERALL,
+        collapse_id=ID_COLLAPSE_CURRENT_STATUS_OVERALL,
+        chart_type=charts.FIG_TYPE_CURRENT_STATUS_PIE_CHART,
+        layout_func=get_current_status_overall_ui
+    ),
+    CARD_CURRENT_STATUS_BY_GROUP: dict(
+        title='current status (by test group)',
+        chart_id=ID_CHART_CURRENT_STATUS_BY_GROUP,
+        collapse_id=ID_COLLAPSE_CURRENT_STATUS_BY_GROUP,
+        chart_type=charts.FIG_TYPE_CURRENT_STATUS_BY_TESTGROUP_BAR_CHART,
+        layout_func=get_current_status_by_group_ui
+    ),
+}
 
 
 def serve_layout():
@@ -224,29 +254,32 @@ def serve_layout():
                 ],
                 href='https://www.idirect.net'
             ),
-            html.H4(
+            html.H2(
                 'Test Execution Reports',
                 style={
                     'color': 'blue',
-                    'font-weight': 'bold',
+                    'font-weight': 'normal',
                     'height': '50px',
                     'display': 'inline-block'
                 }
             ),
             html.Hr(),
             dbc.CardHeader(get_selection_ui()),
-            get_historical_chart_ui(),
-            dbc.CardFooter(
-                [
-                    html.Div(id='id-status',
-                             children=f'Data was last updated at:{modified_datetime}')
-                ]
-            ),
+            dbc.Row([
+                dbc.Col(get_test_progress_ui(), width=12, style=dict(height='100%')),
+            ]),
+            dbc.Row([
+                dbc.Col(get_current_status_overall_ui(), width=12, style=dict(height='100%'))
+            ]),
+            dbc.Row([
+                dbc.Col(get_current_status_by_group_ui(), width=12, style=dict(height='100%'))
+            ]),
+            dbc.CardFooter([
+                html.Div(id='id-status', children=f'Data last updated: {modified_datetime}')
+            ]),
             dcc.Interval(interval=1 * 60 * 1000, id='id-interval'),
             # Hidden div inside the app that stores last updated date and time
-            html.Div(id='id-last-modified-hidden',
-                     children=modified_datetime,
-                     style={'display': 'none'}),
+            html.Div(id='id-last-modified-hidden', children=modified_datetime, style={'display': 'none'}),
 
         ]
     )
@@ -345,7 +378,9 @@ def update_testgroup_options(testplan_ui, testcycle_ui, current_value):
     return [options, value, persistence]
 
 @app.callback(
-    [Output('id-chart-historical', 'children')],
+    [Output(ID_CHART_TEST_PROGRESS, 'figure'),
+     Output(ID_CHART_CURRENT_STATUS_OVERALL, 'figure'),
+     Output(ID_CHART_CURRENT_STATUS_BY_GROUP, 'figure')],
     [Input('id-test-plan', 'value'),
      Input('id-test-cycle', 'value'),
      Input('id-test-group', 'value'),
@@ -356,7 +391,7 @@ def update_graph(testplan_ui, testcycle_ui, testgroup_ui, date1, date2):
     start_date = parser.parse(date1) if date1 is not None else None
     test_deadline = parser.parse(date2) if date2 is not None else None
     df = json_to_df(get_data())
-    chart = get_chart(df,
+    chart1 = get_chart(df,
                       testplan_ui,
                       testcycle_ui,
                       testgroup_ui,
@@ -364,7 +399,23 @@ def update_graph(testplan_ui, testcycle_ui, testgroup_ui, date1, date2):
                       colormap=get_default_colormap(),
                       start_date=start_date ,
                       test_deadline=test_deadline)
-    return chart
+    chart2 = get_chart(df,
+                      testplan_ui,
+                      testcycle_ui,
+                      testgroup_ui,
+                      chart_type=charts.FIG_TYPE_CURRENT_STATUS_PIE_CHART,
+                      colormap=get_default_colormap(),
+                      start_date=start_date ,
+                      test_deadline=test_deadline)
+    chart3 = get_chart(df,
+                      testplan_ui,
+                      testcycle_ui,
+                      testgroup_ui,
+                      chart_type=charts.FIG_TYPE_BLOCKED_FAILED_TESTGROUP_BAR_CHART,
+                      colormap=get_default_colormap(),
+                      start_date=start_date ,
+                      test_deadline=test_deadline)
+    return [chart1, chart2, chart3]
 
 
 if __name__ == '__main__':
