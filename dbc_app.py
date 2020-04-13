@@ -378,9 +378,7 @@ def update_testgroup_options(testplan_ui, testcycle_ui, current_value):
     return [options, value, persistence]
 
 @app.callback(
-    [Output(ID_CHART_TEST_PROGRESS, 'figure'),
-     Output(ID_CHART_CURRENT_STATUS_OVERALL, 'figure'),
-     Output(ID_CHART_CURRENT_STATUS_BY_GROUP, 'figure')],
+    [Output(supported_cards[x]['chart_id'], 'figure') for x in supported_cards],
     [Input('id-test-plan', 'value'),
      Input('id-test-cycle', 'value'),
      Input('id-test-group', 'value'),
@@ -391,31 +389,16 @@ def update_graph(testplan_ui, testcycle_ui, testgroup_ui, date1, date2):
     start_date = parser.parse(date1) if date1 is not None else None
     test_deadline = parser.parse(date2) if date2 is not None else None
     df = json_to_df(get_data())
-    chart1 = get_chart(df,
+    chart_types = [supported_cards[x]['chart_type'] for x in supported_cards]
+    charts = [get_chart(df,
                       testplan_ui,
                       testcycle_ui,
                       testgroup_ui,
-                      chart_type=charts.FIG_TYPE_HISTORICAL_STATUS_LINE_CHART,
+                      chart_type=x,
                       colormap=get_default_colormap(),
-                      start_date=start_date ,
-                      test_deadline=test_deadline)
-    chart2 = get_chart(df,
-                      testplan_ui,
-                      testcycle_ui,
-                      testgroup_ui,
-                      chart_type=charts.FIG_TYPE_CURRENT_STATUS_PIE_CHART,
-                      colormap=get_default_colormap(),
-                      start_date=start_date ,
-                      test_deadline=test_deadline)
-    chart3 = get_chart(df,
-                      testplan_ui,
-                      testcycle_ui,
-                      testgroup_ui,
-                      chart_type=charts.FIG_TYPE_BLOCKED_FAILED_TESTGROUP_BAR_CHART,
-                      colormap=get_default_colormap(),
-                      start_date=start_date ,
-                      test_deadline=test_deadline)
-    return [chart1, chart2, chart3]
+                      start_date=start_date,
+                      test_deadline=test_deadline) for x in chart_types]
+    return charts
 
 
 if __name__ == '__main__':

@@ -90,7 +90,7 @@ def get_testgroup_status_bar_chart(df, testcycle, testgroup, title, colormap, st
             )
         }
 
-        return figure
+    return figure
 
 
 
