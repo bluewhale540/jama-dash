@@ -19,6 +19,12 @@ import charts
 from charts import get_chart_types, get_default_colormap
 import redis_data
 
+ID_DROPDOWN_TEST_PLAN='id-dropdown-test-plan'
+ID_DROPDOWN_TEST_CYCLE='id-dropdown-test-cycle'
+ID_DROPDOWN_TEST_GROUP='id-dropdown-test-group'
+ID_DATE_PICKER_START_DATE='id-start-date'
+ID_DATE_PICKER_DEADLINE='id-'
+
 ID_CARD_TEST_PROGRESS='id-test-progress'
 ID_CARD_CURRENT_STATUS_OVERALL='id-current-status-overall'
 ID_CARD_CURRENT_STATUS_BY_GROUP='id-current-status-by-group'
@@ -119,9 +125,9 @@ def get_selection_ui():
     initial_testplan = init_value(testplans)
     group1 = dbc.Col(
         [
-            dbc.Label('select a test plan', html_for='id-test-plan'),
+            dbc.Label('select a test plan', html_for=ID_DROPDOWN_TEST_PLAN),
             dcc.Dropdown(
-                id='id-test-plan',
+                id=ID_DROPDOWN_TEST_PLAN,
                 options=testplans,
                 value=initial_testplan,
                 persistence=True,
@@ -133,9 +139,9 @@ def get_selection_ui():
 
     group2 = dbc.Col(
         [
-            dbc.Label('select a test cycle', html_for='id-test-cycle'),
+            dbc.Label('select a test cycle', html_for=ID_DROPDOWN_TEST_CYCLE),
             dcc.Dropdown(
-                id='id-test-cycle',
+                id=ID_DROPDOWN_TEST_CYCLE,
                 persistence_type='local',
             ),
         ],
@@ -144,9 +150,9 @@ def get_selection_ui():
 
     group3 = dbc.Col(
         [
-            dbc.Label('select a test group', html_for='id-test-group'),
+            dbc.Label('select a test group', html_for=ID_DROPDOWN_TEST_GROUP),
             dcc.Dropdown(
-                id='id-test-group',
+                id=ID_DROPDOWN_TEST_GROUP,
                 persistence_type='local',
             ),
         ],
@@ -160,20 +166,21 @@ def get_selection_ui():
 
 def get_test_progress_controls():
     controls = dbc.Row([
-        dbc.Col([dbc.Label('start date', html_for='id-start-date')], width=1),
+        dbc.Col([dbc.Label('start date', html_for=ID_DATE_PICKER_START_DATE)], width=1.5),
         dbc.Col([dcc.DatePickerSingle(
-            id='id-start-date',
+            id=ID_DATE_PICKER_START_DATE,
             initial_visible_month=dt.today() - timedelta(days=90),
             persistence=True,
-        )], width=2),
-        dbc.Col([dbc.Label('test deadline', html_for='id-test-deadline')], width=1),
+        )]),
+        dbc.Col(width=0.5),
+        dbc.Col([dbc.Label('test deadline', html_for=ID_DATE_PICKER_DEADLINE)], width=1.5),
         dbc.Col([dcc.DatePickerSingle(
-            id='id-test-deadline',
+            id=ID_DATE_PICKER_DEADLINE,
             min_date_allowed=dt.today() + timedelta(days=1),
             initial_visible_month=dt.today(),
             persistence=True,
             day_size=30
-        )], width=2),
+        )]),
     ])
     return controls
 
@@ -220,6 +227,12 @@ supported_cards = {
         CARD_KEY_CHART_TYPE: charts.FIG_TYPE_WEEKLY_STATUS_BAR_CHART,
     }
 }
+
+# set up reverse lookup
+collapse_id_to_chart_type = {}
+for x in supported_cards:
+    collapse_id_to_chart_type[supported_cards[x][CARD_KEY_COLLAPSE_ID]] = supported_cards[x][CARD_KEY_CHART_TYPE]
+
 
 def get_card_header(title, collapse_button_id, collapse_text):
     return dbc.CardHeader([
@@ -350,10 +363,10 @@ def update_last_modified(n, prev_last_modified):
 
 @app.callback(
     [Output('id-status', 'children'),
-    Output('id-test-plan', 'options'),
-    Output('id-test-plan', 'value')],
+    Output(ID_DROPDOWN_TEST_PLAN, 'options'),
+    Output(ID_DROPDOWN_TEST_PLAN, 'value')],
     [Input('id-last-modified-hidden', 'children')],
-    [State('id-test-plan', 'value')]
+    [State(ID_DROPDOWN_TEST_PLAN, 'value')]
 )
 def update_graph(modified_datetime, current_testplan):
     if modified_datetime is None:
@@ -371,11 +384,11 @@ def update_graph(modified_datetime, current_testplan):
 
 
 @app.callback(
-    [Output('id-test-cycle', 'options'),
-     Output('id-test-cycle', 'value'),
-     Output('id-test-cycle', 'persistence')],
-    [Input('id-test-plan', 'value')],
-    [State('id-test-cycle', 'value')]
+    [Output(ID_DROPDOWN_TEST_CYCLE, 'options'),
+     Output(ID_DROPDOWN_TEST_CYCLE, 'value'),
+     Output(ID_DROPDOWN_TEST_CYCLE, 'persistence')],
+    [Input(ID_DROPDOWN_TEST_PLAN, 'value')],
+    [State(ID_DROPDOWN_TEST_CYCLE, 'value')]
 )
 def update_testcycle_options(testplan_ui, current_value):
     options = get_testcycle_options(testplan=testplan_ui)
@@ -383,12 +396,12 @@ def update_testcycle_options(testplan_ui, current_value):
     return [options, value, testplan_ui]
 
 @app.callback(
-    [Output('id-test-group', 'options'),
-     Output('id-test-group', 'value'),
-     Output('id-test-group', 'persistence')],
-    [Input('id-test-plan', 'value'),
-     Input('id-test-cycle', 'value')],
-    [State('id-test-group', 'value')]
+    [Output(ID_DROPDOWN_TEST_GROUP, 'options'),
+     Output(ID_DROPDOWN_TEST_GROUP, 'value'),
+     Output(ID_DROPDOWN_TEST_GROUP, 'persistence')],
+    [Input(ID_DROPDOWN_TEST_PLAN, 'value'),
+     Input(ID_DROPDOWN_TEST_CYCLE, 'value')],
+    [State(ID_DROPDOWN_TEST_GROUP, 'value')]
 )
 def update_testgroup_options(testplan_ui, testcycle_ui, current_value):
     options = get_testgroup_options(testplan=testplan_ui, testcycle=testcycle_ui)
@@ -396,28 +409,37 @@ def update_testgroup_options(testplan_ui, testcycle_ui, current_value):
     persistence = testcycle_ui
     return [options, value, persistence]
 
-@app.callback(
-    [Output(supported_cards[x]['chart_id'], 'figure') for x in supported_cards],
-    [Input('id-test-plan', 'value'),
-     Input('id-test-cycle', 'value'),
-     Input('id-test-group', 'value'),
-     Input('id-start-date', 'date'),
-     Input('id-test-deadline', 'date')
-     ])
-def update_graph(testplan_ui, testcycle_ui, testgroup_ui, date1, date2):
+def update_figure(is_open, testplan, testcycle, testgroup, date1, date2):
+    if not is_open:
+        return dict(data=[], layout=dict())
+    ctx = dash.callback_context
+    collapse_id = list(ctx.inputs.keys())[0].split('.')[0]
+    chart_type = collapse_id_to_chart_type[collapse_id]
     start_date = parser.parse(date1) if date1 is not None else None
     test_deadline = parser.parse(date2) if date2 is not None else None
     df = json_to_df(get_data())
-    chart_types = [supported_cards[x]['chart_type'] for x in supported_cards]
-    charts = [get_chart(df,
-                      testplan_ui,
-                      testcycle_ui,
-                      testgroup_ui,
-                      chart_type=x,
+    chart = get_chart(df, testplan, testcycle, testgroup,
+                      chart_type=chart_type,
                       colormap=get_default_colormap(),
                       start_date=start_date,
-                      test_deadline=test_deadline) for x in chart_types]
-    return charts
+                      test_deadline=test_deadline)
+    return chart
+
+
+def register_chart_update_callback(card_id):
+    collapse_id = supported_cards[card_id][CARD_KEY_COLLAPSE_ID]
+    chart_id = supported_cards[card_id][CARD_KEY_CHART_ID]
+    output = Output(chart_id, 'figure')
+    inputs = [
+        Input(collapse_id, 'is_open'),
+        Input(ID_DROPDOWN_TEST_PLAN, 'value'),
+        Input(ID_DROPDOWN_TEST_CYCLE, 'value'),
+        Input(ID_DROPDOWN_TEST_GROUP, 'value'),
+        Input(ID_DATE_PICKER_START_DATE, 'date'),
+        Input(ID_DATE_PICKER_DEADLINE, 'date')
+    ]
+    app.callback(output, inputs)(update_figure)
+
 
 
 def toggle_collapse(n, is_open):
@@ -436,6 +458,7 @@ def register_card_collapse_callback(card_id):
 
 for card_id in supported_cards:
     register_card_collapse_callback(card_id)
+    register_chart_update_callback(card_id)
 
 if __name__ == '__main__':
     app.run_server(debug=True)

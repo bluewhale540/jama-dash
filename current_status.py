@@ -33,12 +33,6 @@ def get_current_status_pie_chart(df, testcycle, testgroup, title='Current Status
     return fig
 
 def get_testgroup_status_bar_chart(df, testcycle, testgroup, title, colormap, status_list):
-    if len(status_list) == 0:
-        return html.P('Status List is empty')
-
-    if testgroup is not None:
-        return html.H6('Please select All Test Groups')
-
     df1 = filter_df(df, testcycle_key=testcycle)
 
     testgroups = [x for x  in iter(df1.testgroup.unique())]

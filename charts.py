@@ -83,12 +83,12 @@ def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, chart_type, colormap,
 
     if chart_type == FIG_TYPE_CURRENT_RUNS_TABLE:
         chart = \
-            [get_current_week_testruns_table(
+            get_current_week_testruns_table(
                 df=df,
                 testcycle=testcycle,
                 testgroup=testgroup,
                 title=title,
-                colormap=colormap)]
+                colormap=colormap)
 
     if chart_type == FIG_TYPE_CURRENT_STATUS_BY_TESTGROUP_BAR_CHART:
         chart = get_testgroup_status_bar_chart(df=df, testcycle=testcycle, testgroup=testgroup, title=title,
