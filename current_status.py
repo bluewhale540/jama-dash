@@ -105,6 +105,35 @@ def get_testruns_table(df, testcycle, testgroup, colormap, **kwargs):
     if df1 is None:
         return html.P('No test runs found!')
 
+    style_cell_conditional = [
+                                 {
+                                     'if': {'column_id': c},
+                                     'textAlign': 'left'
+                                 } for c in df1.columns
+
+                             ]
+    '''
+    style_cell_conditional += [
+        {
+            'if': {'column_id': 'testcycle'},
+            'maxWidth': '30px'
+        },
+        {
+            'if': {'column_id': 'status'},
+            'maxWidth': '24px'
+        },
+        {
+            'if': {'column_id': 'execution_date'},
+            'maxWidth': '26px'
+        },
+        {
+            'if': {'column_id': 'assigned_to'},
+            'maxWidth': '24px'
+        },
+
+    ]
+    '''
+
     table = dash_table.DataTable(
         id='datatable-testruns',
         columns=[
@@ -124,31 +153,7 @@ def get_testruns_table(df, testcycle, testgroup, colormap, **kwargs):
             'fontWeight': 'bold',
             'textAlign': 'left'
         },
-        style_cell_conditional=[
-            {
-                'if': {'column_id': c},
-                'textAlign': 'left'
-            } for c in df1.columns
-        ] +
-        [
-            {
-                'if': {'column_id': 'testcycle'},
-                'maxWidth': '30px'
-            },
-            {
-                'if': {'column_id': 'status'},
-                'maxWidth': '24px'
-            },
-            {
-                'if': {'column_id': 'execution_date'},
-                'maxWidth': '26px'
-            },
-            {
-                'if': {'column_id': 'assigned_to'},
-                'maxWidth': '24px'
-            },
-
-        ],
+        style_cell_conditional=style_cell_conditional,
         style_data_conditional=[
             {
                 'if': {
