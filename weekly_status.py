@@ -38,17 +38,17 @@ def get_weekly_status_bar_chart(df, testcycle, testgroup, colormap):
 
 
 def get_current_week_testruns_table(df, testcycle, testgroup, title, colormap):
-    df = get_testruns_for_current_week(df=df, testcycle_key=testcycle, testgroup_key=testgroup)
-    if df is None:
+    df1 = get_testruns_for_current_week(df=df, testcycle_key=testcycle, testgroup_key=testgroup)
+    if df1 is None:
         return html.P('No test runs found!')
 
     table = dash_table.DataTable(
         id='datatable-testruns',
         columns=[
             {'name': i, 'id': i, 'deletable': False, 'selectable': False}
-                for i in df.columns
+                for i in df1.columns
         ],
-        data=df.to_dict('records'),
+        data=df1.to_dict('records'),
         editable=False,
         filter_action='native',
         sort_action='native',
@@ -62,7 +62,7 @@ def get_current_week_testruns_table(df, testcycle, testgroup, title, colormap):
             {
                 'if': {'column_id': c},
                 'textAlign': 'left'
-            } for c in df.columns
+            } for c in df1.columns
         ] +
         [
             {

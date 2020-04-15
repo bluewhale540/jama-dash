@@ -61,21 +61,25 @@ current_status_by_group_options = [
 ID_CARD_TEST_PROGRESS='id-card-test-progress'
 ID_CARD_CURRENT_STATUS_OVERALL='id-card-current-status-overall'
 ID_CARD_CURRENT_STATUS_BY_GROUP='id-card-current-status-by-group'
+ID_CARD_TEST_RUNS_TABLE='id-card-test-runs-table'
 ID_CARD_WEEKLY_STATUS='id-card-weekly-status'
 
 ID_CHART_TEST_PROGRESS= 'id-chart-test-progress'
 ID_CHART_CURRENT_STATUS_OVERALL= 'id-chart-current-status-overall'
 ID_CHART_CURRENT_STATUS_BY_GROUP= 'id-chart-current-status-by-group'
+ID_CHART_TEST_RUNS_TABLE='id-chart-test-runs-table'
 ID_CHART_WEEKLY_STATUS='id-chart-weekly-status'
 
 ID_COLLAPSE_TEST_PROGRESS= 'id-collapse-test-progress'
 ID_COLLAPSE_CURRENT_STATUS_OVERALL= 'id-collapse-current-status-overall'
 ID_COLLAPSE_CURRENT_STATUS_BY_GROUP= 'id-collapse-current-status-by-group'
+ID_COLLAPSE_TEST_RUNS_TABLE='id-collapse-test-runs-table'
 ID_COLLAPSE_WEEKLY_STATUS='id-collapse-weekly-status'
 
 ID_COLLAPSE_BUTTON_TEST_PROGRESS= 'id-collapse-button-test-progress'
 ID_COLLAPSE_BUTTON_CURRENT_STATUS_OVERALL= 'id-collapse-button-current-status-overall'
 ID_COLLAPSE_BUTTON_CURRENT_STATUS_BY_GROUP= 'id-collapse-button-current-status-by-group'
+ID_COLLAPSE_BUTTON_TEST_RUNS_TABLE='id-collapse-button-test-runs-table'
 ID_COLLAPSE_BUTTON_WEEKLY_STATUS='id-collapse-button-weekly-status'
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
@@ -256,6 +260,7 @@ def get_current_status_by_group_controls():
 
 
 CARD_KEY_TITLE='title'
+CARD_KEY_OBJ_TYPE='type' # graph or table
 CARD_KEY_CHART_ID='chart_id'
 CARD_KEY_COLLAPSE_ID='collapse_id'
 CARD_KEY_COLLAPSE_BUTTON_ID='collapse_button_id'
@@ -267,6 +272,9 @@ CARD_KEY_CONTROLS_LIST= 'controls_list'
 CTRL_DATE_PICKER_SINGLE=1
 CTRL_CHECKLIST=2
 
+CARD_OBJ_TYPE_GRAPH=1
+CARD_OBJ_TYPE_TABLE=2
+
 control_to_value_map = {
     CTRL_DATE_PICKER_SINGLE: 'date',
     CTRL_CHECKLIST: 'value'
@@ -276,10 +284,11 @@ control_to_value_map = {
 supported_cards = {
     ID_CARD_TEST_PROGRESS: {
         CARD_KEY_TITLE: 'test progress',
+        CARD_KEY_OBJ_TYPE: CARD_OBJ_TYPE_GRAPH,
         CARD_KEY_CHART_ID: ID_CHART_TEST_PROGRESS,
         CARD_KEY_COLLAPSE_ID: ID_COLLAPSE_TEST_PROGRESS,
         CARD_KEY_COLLAPSE_BUTTON_ID: ID_COLLAPSE_BUTTON_TEST_PROGRESS,
-        CARD_KEY_COLLAPSE_INITIAL_STATE: True,
+        CARD_KEY_COLLAPSE_INITIAL_STATE: False,
         CARD_KEY_CHART_TYPE: charts.FIG_TYPE_HISTORICAL_STATUS_LINE_CHART,
         CARD_KEY_CONTROLS_LAYOUT_FUNC: get_test_progress_controls(),
         CARD_KEY_CONTROLS_LIST: [
@@ -291,6 +300,7 @@ supported_cards = {
     },
     ID_CARD_CURRENT_STATUS_OVERALL: {
         CARD_KEY_TITLE: 'current status (overall)',
+        CARD_KEY_OBJ_TYPE: CARD_OBJ_TYPE_GRAPH,
         CARD_KEY_CHART_ID: ID_CHART_CURRENT_STATUS_OVERALL,
         CARD_KEY_COLLAPSE_ID: ID_COLLAPSE_CURRENT_STATUS_OVERALL,
         CARD_KEY_COLLAPSE_BUTTON_ID: ID_COLLAPSE_BUTTON_CURRENT_STATUS_OVERALL,
@@ -299,6 +309,7 @@ supported_cards = {
     },
     ID_CARD_CURRENT_STATUS_BY_GROUP: {
         CARD_KEY_TITLE: 'current status (by test group)',
+        CARD_KEY_OBJ_TYPE: CARD_OBJ_TYPE_GRAPH,
         CARD_KEY_CHART_ID: ID_CHART_CURRENT_STATUS_BY_GROUP,
         CARD_KEY_COLLAPSE_ID: ID_COLLAPSE_CURRENT_STATUS_BY_GROUP,
         CARD_KEY_COLLAPSE_BUTTON_ID: ID_COLLAPSE_BUTTON_CURRENT_STATUS_BY_GROUP,
@@ -310,8 +321,23 @@ supported_cards = {
                  kwarg_key={'show_not_run', 'show_blocked', 'show_inprogress', 'show_failed', 'show_passed'})
         ]
     },
+    ID_CARD_TEST_RUNS_TABLE: {
+        CARD_KEY_TITLE: 'test runs',
+        CARD_KEY_OBJ_TYPE: CARD_OBJ_TYPE_TABLE,
+        CARD_KEY_CHART_ID: ID_CHART_TEST_RUNS_TABLE,
+        CARD_KEY_COLLAPSE_ID: ID_COLLAPSE_TEST_RUNS_TABLE,
+        CARD_KEY_COLLAPSE_BUTTON_ID: ID_COLLAPSE_BUTTON_TEST_RUNS_TABLE,
+        CARD_KEY_COLLAPSE_INITIAL_STATE: True,
+        CARD_KEY_CHART_TYPE: charts.FIG_TYPE_CURRENT_RUNS_TABLE,
+        #CARD_KEY_CONTROLS_LAYOUT_FUNC: get_current_status_by_group_controls(),
+        #CARD_KEY_CONTROLS_LIST: [
+        #    dict(id=ID_CHECKLIST_CURRENT_STATUS_BY_GROUP_OPTIONS, type=CTRL_CHECKLIST,
+        #         kwarg_key={'current_week'})
+        #]
+    },
     ID_CARD_WEEKLY_STATUS: {
         CARD_KEY_TITLE: 'weekly status ',
+        CARD_KEY_OBJ_TYPE: CARD_OBJ_TYPE_GRAPH,
         CARD_KEY_CHART_ID: ID_CHART_WEEKLY_STATUS,
         CARD_KEY_COLLAPSE_ID: ID_COLLAPSE_WEEKLY_STATUS,
         CARD_KEY_COLLAPSE_BUTTON_ID: ID_COLLAPSE_BUTTON_WEEKLY_STATUS,
@@ -355,7 +381,8 @@ def get_card_layout(card):
     controls_func = x.get(CARD_KEY_CONTROLS_LAYOUT_FUNC)
     if controls_func is not None:
         card_body_children.append(controls_func)
-    chart = dcc.Loading(dbc.Row([dbc.Col(dcc.Graph(id=chart_id))]))
+    chart_obj = dcc.Graph(id=chart_id) if x.get(CARD_KEY_OBJ_TYPE) == CARD_OBJ_TYPE_GRAPH else html.Div(id=chart_id)
+    chart = dcc.Loading(dbc.Row([dbc.Col(chart_obj)]))
     card_body_children.append(chart)
     return dbc.Card([
         get_card_header(title=title, collapse_button_id=collapse_button_id, collapse_text=collapse_button_text(True)),
@@ -410,7 +437,7 @@ def serve_layout():
             # Hidden div inside the app that stores last updated date and time
             html.Div(id='id-last-modified-hidden', children=modified_datetime, style={'display': 'none'}),
 
-        ]
+        ], fluid=True
     )
     return layout
 
@@ -508,7 +535,7 @@ def update_testgroup_options(testplan_ui, testcycle_ui, current_value):
 
 def update_figure(is_open, testplan, testcycle, testgroup, *args):
     if not is_open:
-        return dict(data=[], layout=dict())
+        raise PreventUpdate
     ctx = dash.callback_context
     collapse_id = list(ctx.inputs.keys())[0].split('.')[0]
     chart_type = collapse_id_to_chart_type[collapse_id]
@@ -540,7 +567,8 @@ def register_chart_update_callback(card_id):
     card_info = supported_cards[card_id]
     collapse_id = card_info[CARD_KEY_COLLAPSE_ID]
     chart_id = card_info[CARD_KEY_CHART_ID]
-    output = Output(chart_id, 'figure')
+    chart_obj_type = card_info[CARD_KEY_OBJ_TYPE]
+    output = Output(chart_id, 'figure') if chart_obj_type == CARD_OBJ_TYPE_GRAPH else Output(chart_id, 'children')
     inputs = [
         Input(collapse_id, 'is_open'),
         Input(ID_DROPDOWN_TEST_PLAN, 'value'),
