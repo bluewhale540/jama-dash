@@ -87,8 +87,13 @@ def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, chart_type, colormap,
                 colormap=colormap)
 
     if chart_type == FIG_TYPE_CURRENT_STATUS_BY_TESTGROUP_BAR_CHART:
-        chart = get_testgroup_status_bar_chart(df=df, testcycle=testcycle, testgroup=testgroup,
-                                           colormap=colormap, status_list=get_status_names())
+        chart = get_testgroup_status_bar_chart(
+            df=df,
+            testcycle=testcycle,
+            testgroup=testgroup,
+            colormap=colormap,
+            status_list=get_status_names(),
+            **kwargs)
 
     if chart_type == FIG_TYPE_BLOCKED_FAILED_TESTGROUP_BAR_CHART:
         chart = get_testgroup_status_bar_chart(df=df, testcycle=testcycle, testgroup=testgroup,

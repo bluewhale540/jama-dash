@@ -25,15 +25,37 @@ ID_DROPDOWN_TEST_GROUP='id-dropdown-test-group'
 ID_DATE_PICKER_START_DATE='id-date-test-progress-start-date'
 ID_DATE_PICKER_DEADLINE='id-date-test-progress-deadline'
 ID_CHECKLIST_TEST_PROGRESS_OPTIONS='id-checklist-test-progress-options'
+ID_CHECKLIST_CURRENT_STATUS_BY_GROUP_OPTIONS='id-checklist-current-by-group-options'
 
+# checklist options for the test progress card
 CHECKLIST_LABEL_BLOCKED_NOT_RUN='blocked as not run'
-CHECKLIST_VALUE_BLOCKED_NOT_RUN='treat_blocked_as_not_run'
 CHECKLIST_LABEL_INPROGRESS_NOT_RUN='in progress as not run'
+CHECKLIST_VALUE_BLOCKED_NOT_RUN='treat_blocked_as_not_run'
 CHECKLIST_VALUE_INPROGRESS_NOT_RUN='treat_inprogress_as_not_run'
 
 test_progress_options = [
     dict(label=CHECKLIST_LABEL_BLOCKED_NOT_RUN, value=CHECKLIST_VALUE_BLOCKED_NOT_RUN),
     dict(label=CHECKLIST_LABEL_INPROGRESS_NOT_RUN, value=CHECKLIST_VALUE_INPROGRESS_NOT_RUN),
+]
+
+# checklist options for the test progress card
+CHECKLIST_LABEL_SHOW_NOT_RUN='not run'
+CHECKLIST_LABEL_SHOW_IN_PROGRESS='in progress'
+CHECKLIST_LABEL_SHOW_BLOCKED='blocked'
+CHECKLIST_LABEL_SHOW_PASSED='passed'
+CHECKLIST_LABEL_SHOW_FAILED='failed'
+CHECKLIST_VALUE_SHOW_NOT_RUN='show_not_run'
+CHECKLIST_VALUE_SHOW_IN_PROGRESS='show_in_progress'
+CHECKLIST_VALUE_SHOW_BLOCKED='show_blocked'
+CHECKLIST_VALUE_SHOW_PASSED='show_passed'
+CHECKLIST_VALUE_SHOW_FAILED='show_failed'
+
+current_status_by_group_options = [
+    dict(label=CHECKLIST_LABEL_SHOW_NOT_RUN, value=CHECKLIST_VALUE_SHOW_NOT_RUN),
+    dict(label=CHECKLIST_LABEL_SHOW_IN_PROGRESS, value=CHECKLIST_VALUE_SHOW_IN_PROGRESS),
+    dict(label=CHECKLIST_LABEL_SHOW_BLOCKED, value=CHECKLIST_VALUE_SHOW_BLOCKED),
+    dict(label=CHECKLIST_LABEL_SHOW_PASSED, value=CHECKLIST_VALUE_SHOW_PASSED),
+    dict(label=CHECKLIST_LABEL_SHOW_FAILED, value=CHECKLIST_VALUE_SHOW_FAILED),
 ]
 
 ID_CARD_TEST_PROGRESS='id-card-test-progress'
@@ -205,12 +227,33 @@ def get_test_progress_controls():
                 dcc.Checklist(
                     id=ID_CHECKLIST_TEST_PROGRESS_OPTIONS,
                     options=test_progress_options,
-                    value=[CHECKLIST_VALUE_BLOCKED_NOT_RUN, CHECKLIST_VALUE_INPROGRESS_NOT_RUN]
+                    value=[CHECKLIST_VALUE_BLOCKED_NOT_RUN, CHECKLIST_VALUE_INPROGRESS_NOT_RUN],
+                    labelStyle={'display': 'block'},
+                    inputStyle={'margin-right': '5px'}
                 )
-            ]), width=2
+            ]),
         ),
     ])
     return controls
+
+
+def get_current_status_by_group_controls():
+    controls = dbc.Row([
+        dbc.Col(
+            dbc.FormGroup([
+                dbc.Label('select traces to show', html_for=ID_CHECKLIST_CURRENT_STATUS_BY_GROUP_OPTIONS),
+                dcc.Checklist(
+                    id=ID_CHECKLIST_CURRENT_STATUS_BY_GROUP_OPTIONS,
+                    options=current_status_by_group_options,
+                    value=[CHECKLIST_VALUE_SHOW_BLOCKED, CHECKLIST_VALUE_SHOW_FAILED],
+                    labelStyle={'display': 'block'},
+                    inputStyle={'margin-right': '5px'},
+                )
+            ])
+        ),
+    ])
+    return controls
+
 
 CARD_KEY_TITLE='title'
 CARD_KEY_CHART_ID='chart_id'
@@ -261,6 +304,11 @@ supported_cards = {
         CARD_KEY_COLLAPSE_BUTTON_ID: ID_COLLAPSE_BUTTON_CURRENT_STATUS_BY_GROUP,
         CARD_KEY_COLLAPSE_INITIAL_STATE: False,
         CARD_KEY_CHART_TYPE: charts.FIG_TYPE_CURRENT_STATUS_BY_TESTGROUP_BAR_CHART,
+        CARD_KEY_CONTROLS_LAYOUT_FUNC: get_current_status_by_group_controls(),
+        CARD_KEY_CONTROLS_LIST: [
+            dict(id=ID_CHECKLIST_CURRENT_STATUS_BY_GROUP_OPTIONS, type=CTRL_CHECKLIST,
+                 kwarg_key={'show_not_run', 'show_blocked', 'show_inprogress', 'show_failed', 'show_passed'})
+        ]
     },
     ID_CARD_WEEKLY_STATUS: {
         CARD_KEY_TITLE: 'weekly status ',

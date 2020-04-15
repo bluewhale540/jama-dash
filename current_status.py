@@ -1,5 +1,5 @@
 import dash_html_components as html
-from testrun_utils import filter_df, get_status_names
+from testrun_utils import filter_df, STATUS_NOT_RUN, STATUS_BLOCKED, STATUS_FAILED, STATUS_PASSED, STATUS_INPROGRESS
 import pandas as pd
 
 
@@ -30,7 +30,20 @@ def get_current_status_pie_chart(df, testcycle, testgroup, colormap=None):
     fig = dict(data=data, layout=dict(height=600))
     return fig
 
-def get_testgroup_status_bar_chart(df, testcycle, testgroup, colormap, status_list):
+def get_testgroup_status_bar_chart(df, testcycle, testgroup, colormap, **kwargs):
+
+    status_list = []
+    if kwargs.get('show_not_run') is not None and kwargs['show_not_run'] is True:
+        status_list.append(STATUS_NOT_RUN)
+    if kwargs.get('show_inprogress') is not None and kwargs['show_inprogress'] is True:
+        status_list.append(STATUS_INPROGRESS)
+    if kwargs.get('show_blocked') is not None and kwargs['show_blocked'] is True:
+        status_list.append(STATUS_BLOCKED)
+    if kwargs.get('show_passed') is not None and kwargs['show_passed'] is True:
+        status_list.append(STATUS_PASSED)
+    if kwargs.get('show_failed') is not None and kwargs['show_failed'] is True:
+        status_list.append(STATUS_FAILED)
+
     df1 = filter_df(df, testcycle_key=testcycle)
 
     testgroups = [x for x  in iter(df1.testgroup.unique())]
