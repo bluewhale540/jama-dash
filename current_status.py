@@ -1,11 +1,9 @@
-import plotly.graph_objects as go
-import dash_core_components as dcc
 import dash_html_components as html
 from testrun_utils import filter_df, get_status_names
 import pandas as pd
 
 
-def get_current_status_pie_chart(df, testcycle, testgroup, title='Current Status', colormap=None):
+def get_current_status_pie_chart(df, testcycle, testgroup, colormap=None):
     df1 = filter_df(df, testcycle_key=testcycle, testgroup_key=testgroup)
     counts = df1['status'].value_counts()
 
@@ -32,7 +30,7 @@ def get_current_status_pie_chart(df, testcycle, testgroup, title='Current Status
     fig = dict(data=data, layout=dict(height=600))
     return fig
 
-def get_testgroup_status_bar_chart(df, testcycle, testgroup, title, colormap, status_list):
+def get_testgroup_status_bar_chart(df, testcycle, testgroup, colormap, status_list):
     df1 = filter_df(df, testcycle_key=testcycle)
 
     testgroups = [x for x  in iter(df1.testgroup.unique())]

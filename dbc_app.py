@@ -27,7 +27,7 @@ ID_DATE_PICKER_DEADLINE='id-date-test-progress-deadline'
 ID_CHECKLIST_TEST_PROGRESS_OPTIONS='id-checklist-test-progress-options'
 
 CHECKLIST_LABEL_BLOCKED_NOT_RUN='blocked as not run'
-CHECKLIST_VALUE_BLOCKED_NOT_RUN='treat_blocked_As_not_run'
+CHECKLIST_VALUE_BLOCKED_NOT_RUN='treat_blocked_as_not_run'
 CHECKLIST_LABEL_INPROGRESS_NOT_RUN='in progress as not run'
 CHECKLIST_VALUE_INPROGRESS_NOT_RUN='treat_inprogress_as_not_run'
 
@@ -127,9 +127,9 @@ def get_testgroup_options(testplan, testcycle):
     return testgroups
 
 @cache.memoize()
-def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, chart_type, colormap, start_date, test_deadline):
+def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, chart_type, colormap, **kwargs):
     return charts.get_chart(
-        df, testplan_ui, testcycle_ui, testgroup_ui, chart_type, colormap, start_date, test_deadline)
+        df, testplan_ui, testcycle_ui, testgroup_ui, chart_type, colormap, **kwargs)
 
 def get_selection_ui():
     testplans = get_testplan_options()
@@ -201,7 +201,7 @@ def get_test_progress_controls():
         ),
         dbc.Col(
             dbc.FormGroup([
-                dbc.Label('Options', html_for=ID_CHECKLIST_TEST_PROGRESS_OPTIONS),
+                dbc.Label('options', html_for=ID_CHECKLIST_TEST_PROGRESS_OPTIONS),
                 dcc.Checklist(
                     id=ID_CHECKLIST_TEST_PROGRESS_OPTIONS,
                     options=test_progress_options,
@@ -240,9 +240,10 @@ supported_cards = {
         CARD_KEY_CHART_TYPE: charts.FIG_TYPE_HISTORICAL_STATUS_LINE_CHART,
         CARD_KEY_CONTROLS_LAYOUT_FUNC: get_test_progress_controls(),
         CARD_KEY_CONTROLS_LIST: [
-            dict(id=ID_DATE_PICKER_START_DATE, type=CTRL_DATE_PICKER_SINGLE, args='start_date'),
-            dict(id=ID_DATE_PICKER_DEADLINE, type=CTRL_DATE_PICKER_SINGLE, args='test_deadline'),
-            dict(id=ID_CHECKLIST_TEST_PROGRESS_OPTIONS, type=CTRL_CHECKLIST, args=['treat_blocked_as_not_run', 'treat_inprogress_as_not_run'])
+            dict(id=ID_DATE_PICKER_START_DATE, type=CTRL_DATE_PICKER_SINGLE, kwarg_key='start_date'),
+            dict(id=ID_DATE_PICKER_DEADLINE, type=CTRL_DATE_PICKER_SINGLE, kwarg_key='test_deadline'),
+            dict(id=ID_CHECKLIST_TEST_PROGRESS_OPTIONS, type=CTRL_CHECKLIST,
+                 kwarg_key={'treat_blocked_as_not_run', 'treat_inprogress_as_not_run'})
         ]
     },
     ID_CARD_CURRENT_STATUS_OVERALL: {
@@ -275,6 +276,11 @@ supported_cards = {
 collapse_id_to_chart_type = {}
 for x in supported_cards:
     collapse_id_to_chart_type[supported_cards[x][CARD_KEY_COLLAPSE_ID]] = supported_cards[x][CARD_KEY_CHART_TYPE]
+
+
+collapse_id_to_card_id= {}
+for x in supported_cards:
+    collapse_id_to_card_id[supported_cards[x][CARD_KEY_COLLAPSE_ID]] = x
 
 
 def get_card_header(title, collapse_button_id, collapse_text):
@@ -452,27 +458,40 @@ def update_testgroup_options(testplan_ui, testcycle_ui, current_value):
     persistence = testcycle_ui
     return [options, value, persistence]
 
-def update_figure(is_open, testplan, testcycle, testgroup, date1, date2):
+def update_figure(is_open, testplan, testcycle, testgroup, *args):
     if not is_open:
         return dict(data=[], layout=dict())
     ctx = dash.callback_context
     collapse_id = list(ctx.inputs.keys())[0].split('.')[0]
     chart_type = collapse_id_to_chart_type[collapse_id]
-    start_date = parser.parse(date1) if date1 is not None else None
-    test_deadline = parser.parse(date2) if date2 is not None else None
+    card_id = collapse_id_to_card_id[collapse_id]
+    card_info = supported_cards[card_id]
+    kwargs_to_pass = {}
+    ctrl_list = card_info.get(CARD_KEY_CONTROLS_LIST)
+    if ctrl_list is not None:
+        for arg, item in zip(args, ctrl_list):
+            kwarg_key = item['kwarg_key']
+            if isinstance(kwarg_key, list):
+                for arg1, kwarg_key1 in zip(arg, kwarg_key):
+                    kwargs_to_pass[kwarg_key1] = arg1
+            elif isinstance(kwarg_key, set): # this is the case for a checklist
+                for arg1 in arg:
+                    kwargs_to_pass[arg1] = True if arg1 in kwarg_key else False
+            else:
+                kwargs_to_pass[kwarg_key] = arg
+
     df = json_to_df(get_data())
     chart = get_chart(df, testplan, testcycle, testgroup,
                       chart_type=chart_type,
                       colormap=get_default_colormap(),
-                      start_date=start_date,
-                      test_deadline=test_deadline)
+                      **kwargs_to_pass)
     return chart
 
 
 def register_chart_update_callback(card_id):
-    x = supported_cards[card_id]
-    collapse_id = x[CARD_KEY_COLLAPSE_ID]
-    chart_id = x[CARD_KEY_CHART_ID]
+    card_info = supported_cards[card_id]
+    collapse_id = card_info[CARD_KEY_COLLAPSE_ID]
+    chart_id = card_info[CARD_KEY_CHART_ID]
     output = Output(chart_id, 'figure')
     inputs = [
         Input(collapse_id, 'is_open'),
@@ -481,8 +500,8 @@ def register_chart_update_callback(card_id):
         Input(ID_DROPDOWN_TEST_GROUP, 'value'),
     ]
 
-    if x.get(CARD_KEY_CONTROLS_LIST) is not None:
-        for ctrl in x[CARD_KEY_CONTROLS_LIST]:
+    if card_info.get(CARD_KEY_CONTROLS_LIST) is not None:
+        for ctrl in card_info[CARD_KEY_CONTROLS_LIST]:
             inputs.append(Input(ctrl['id'], control_to_value_map[ctrl['type']]))
 
     app.callback(output, inputs)(update_figure)

@@ -1,15 +1,12 @@
 import dash_html_components as html
 import dash_table
-
-from jama_client import jama_client
 import testrun_utils
-import dash_core_components as dcc
 from datetime import timedelta
 
 from testrun_utils import get_testruns_for_current_week, get_status_names
 
 
-def get_weekly_status_bar_chart(df, testcycle, testgroup, title, colormap):
+def get_weekly_status_bar_chart(df, testcycle, testgroup, colormap):
     df1 = testrun_utils.get_testrun_status_by_planned_weeks(df, testcycle_key=testcycle, testgroup_key=testgroup)
     # sort in ascending order with NaN value first
     df1.sort_values('planned_week', axis=0, ascending=True, inplace=True, na_position='first')

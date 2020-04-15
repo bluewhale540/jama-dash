@@ -38,7 +38,7 @@ def get_chart_types():
     return chart_types
 
 
-def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, chart_type, colormap, start_date, test_deadline):
+def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, chart_type, colormap, **kwargs):
     testcycle = get_testcycle_from_label(label=testcycle_ui)
     testgroup = get_testgroup_from_label(label=testgroup_ui)
     if df is None:
@@ -58,7 +58,6 @@ def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, chart_type, colormap,
                 df=df,
                 testcycle=testcycle,
                 testgroup=testgroup,
-                title=title,
                 colormap=colormap)
 
     if chart_type == FIG_TYPE_HISTORICAL_STATUS_LINE_CHART:
@@ -69,17 +68,13 @@ def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, chart_type, colormap,
                 testgroup=testgroup,
                 title=title,
                 colormap=colormap,
-                start_date=start_date,
-                test_deadline=test_deadline,
-                treat_blocked_as_not_run=True,
-                treat_inprogress_as_not_run=True)
+                **kwargs)
 
     if chart_type == FIG_TYPE_CURRENT_STATUS_PIE_CHART:
         chart = get_current_status_pie_chart(
                 df=df,
                 testcycle=testcycle,
                 testgroup=testgroup,
-                title=title,
                 colormap=colormap)
 
     if chart_type == FIG_TYPE_CURRENT_RUNS_TABLE:
@@ -92,15 +87,15 @@ def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, chart_type, colormap,
                 colormap=colormap)
 
     if chart_type == FIG_TYPE_CURRENT_STATUS_BY_TESTGROUP_BAR_CHART:
-        chart = get_testgroup_status_bar_chart(df=df, testcycle=testcycle, testgroup=testgroup, title=title,
+        chart = get_testgroup_status_bar_chart(df=df, testcycle=testcycle, testgroup=testgroup,
                                            colormap=colormap, status_list=get_status_names())
 
     if chart_type == FIG_TYPE_BLOCKED_FAILED_TESTGROUP_BAR_CHART:
-        chart = get_testgroup_status_bar_chart(df=df, testcycle=testcycle, testgroup=testgroup, title=title,
+        chart = get_testgroup_status_bar_chart(df=df, testcycle=testcycle, testgroup=testgroup,
                                            colormap=colormap, status_list=[STATUS_BLOCKED, STATUS_FAILED])
 
     if chart_type == FIG_TYPE_NOTRUN_INPROGRESS_TESTGROUP_BAR_CHART:
-        chart = get_testgroup_status_bar_chart(df=df, testcycle=testcycle, testgroup=testgroup, title=title,
+        chart = get_testgroup_status_bar_chart(df=df, testcycle=testcycle, testgroup=testgroup,
                                            colormap=colormap, status_list=[STATUS_NOT_RUN, STATUS_INPROGRESS])
     return chart
 
