@@ -25,7 +25,8 @@ def get_current_status_pie_chart(df, testcycle, testgroup, colormap=None):
         dict(type='pie',
             labels=status_names,
             values=values,
-            textinfo='label+percent',
+            texttemplate='%{label}<br>%{value:,s} test runs<br>(%{percent})',
+            textinfo='text',
             insidetextorientation='radial',
             marker_colors=pie_colors)]
 
