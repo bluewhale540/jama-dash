@@ -67,12 +67,13 @@ def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, chart_type, colormap,
                 df=df,
                 testcycle=testcycle,
                 testgroup=testgroup,
-                start_date=start_date,
-                test_deadline=test_deadline,
                 title=title,
                 colormap=colormap,
+                start_date=start_date,
+                test_deadline=test_deadline,
                 treat_blocked_as_not_run=True,
                 treat_inprogress_as_not_run=True)
+
     if chart_type == FIG_TYPE_CURRENT_STATUS_PIE_CHART:
         chart = get_current_status_pie_chart(
                 df=df,

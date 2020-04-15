@@ -22,13 +22,24 @@ import redis_data
 ID_DROPDOWN_TEST_PLAN='id-dropdown-test-plan'
 ID_DROPDOWN_TEST_CYCLE='id-dropdown-test-cycle'
 ID_DROPDOWN_TEST_GROUP='id-dropdown-test-group'
-ID_DATE_PICKER_START_DATE='id-start-date'
-ID_DATE_PICKER_DEADLINE='id-'
+ID_DATE_PICKER_START_DATE='id-date-test-progress-start-date'
+ID_DATE_PICKER_DEADLINE='id-date-test-progress-deadline'
+ID_CHECKLIST_TEST_PROGRESS_OPTIONS='id-checklist-test-progress-options'
 
-ID_CARD_TEST_PROGRESS='id-test-progress'
-ID_CARD_CURRENT_STATUS_OVERALL='id-current-status-overall'
-ID_CARD_CURRENT_STATUS_BY_GROUP='id-current-status-by-group'
-ID_CARD_WEEKLY_STATUS='id-weekly-status'
+CHECKLIST_LABEL_BLOCKED_NOT_RUN='blocked as not run'
+CHECKLIST_VALUE_BLOCKED_NOT_RUN='treat_blocked_As_not_run'
+CHECKLIST_LABEL_INPROGRESS_NOT_RUN='in progress as not run'
+CHECKLIST_VALUE_INPROGRESS_NOT_RUN='treat_inprogress_as_not_run'
+
+test_progress_options = [
+    dict(label=CHECKLIST_LABEL_BLOCKED_NOT_RUN, value=CHECKLIST_VALUE_BLOCKED_NOT_RUN),
+    dict(label=CHECKLIST_LABEL_INPROGRESS_NOT_RUN, value=CHECKLIST_VALUE_INPROGRESS_NOT_RUN),
+]
+
+ID_CARD_TEST_PROGRESS='id-card-test-progress'
+ID_CARD_CURRENT_STATUS_OVERALL='id-card-current-status-overall'
+ID_CARD_CURRENT_STATUS_BY_GROUP='id-card-current-status-by-group'
+ID_CARD_WEEKLY_STATUS='id-card-weekly-status'
 
 ID_CHART_TEST_PROGRESS= 'id-chart-test-progress'
 ID_CHART_CURRENT_STATUS_OVERALL= 'id-chart-current-status-overall'
@@ -166,21 +177,38 @@ def get_selection_ui():
 
 def get_test_progress_controls():
     controls = dbc.Row([
-        dbc.Col([dbc.Label('start date', html_for=ID_DATE_PICKER_START_DATE)], width=1.5),
-        dbc.Col([dcc.DatePickerSingle(
-            id=ID_DATE_PICKER_START_DATE,
-            initial_visible_month=dt.today() - timedelta(days=90),
-            persistence=True,
-        )]),
-        dbc.Col(width=0.5),
-        dbc.Col([dbc.Label('test deadline', html_for=ID_DATE_PICKER_DEADLINE)], width=1.5),
-        dbc.Col([dcc.DatePickerSingle(
-            id=ID_DATE_PICKER_DEADLINE,
-            min_date_allowed=dt.today() + timedelta(days=1),
-            initial_visible_month=dt.today(),
-            persistence=True,
-            day_size=30
-        )]),
+        dbc.Col(
+            dbc.FormGroup([
+                dbc.Label('start date', html_for=ID_DATE_PICKER_START_DATE),
+                dcc.DatePickerSingle(
+                    id=ID_DATE_PICKER_START_DATE,
+                    initial_visible_month=dt.today() - timedelta(days=90),
+                    persistence=True,
+                )
+            ]), width=2
+        ),
+        dbc.Col(
+            dbc.FormGroup([
+                dbc.Label('test deadline', html_for=ID_DATE_PICKER_DEADLINE),
+                dcc.DatePickerSingle(
+                    id=ID_DATE_PICKER_DEADLINE,
+                    min_date_allowed=dt.today() + timedelta(days=1),
+                    initial_visible_month=dt.today(),
+                    persistence=True,
+                    day_size=30
+                )
+            ]), width=2
+        ),
+        dbc.Col(
+            dbc.FormGroup([
+                dbc.Label('Options', html_for=ID_CHECKLIST_TEST_PROGRESS_OPTIONS),
+                dcc.Checklist(
+                    id=ID_CHECKLIST_TEST_PROGRESS_OPTIONS,
+                    options=test_progress_options,
+                    value=[CHECKLIST_VALUE_BLOCKED_NOT_RUN, CHECKLIST_VALUE_INPROGRESS_NOT_RUN]
+                )
+            ]), width=2
+        ),
     ])
     return controls
 
@@ -191,6 +219,16 @@ CARD_KEY_COLLAPSE_BUTTON_ID='collapse_button_id'
 CARD_KEY_COLLAPSE_INITIAL_STATE='collapse_initial_state' # open=True, collapsed=False
 CARD_KEY_CHART_TYPE='chart_type'
 CARD_KEY_CONTROLS_LAYOUT_FUNC='controls_layout_func'
+CARD_KEY_CONTROLS_LIST= 'controls_list'
+
+CTRL_DATE_PICKER_SINGLE=1
+CTRL_CHECKLIST=2
+
+control_to_value_map = {
+    CTRL_DATE_PICKER_SINGLE: 'date',
+    CTRL_CHECKLIST: 'value'
+}
+
 
 supported_cards = {
     ID_CARD_TEST_PROGRESS: {
@@ -200,7 +238,12 @@ supported_cards = {
         CARD_KEY_COLLAPSE_BUTTON_ID: ID_COLLAPSE_BUTTON_TEST_PROGRESS,
         CARD_KEY_COLLAPSE_INITIAL_STATE: True,
         CARD_KEY_CHART_TYPE: charts.FIG_TYPE_HISTORICAL_STATUS_LINE_CHART,
-        CARD_KEY_CONTROLS_LAYOUT_FUNC: get_test_progress_controls()
+        CARD_KEY_CONTROLS_LAYOUT_FUNC: get_test_progress_controls(),
+        CARD_KEY_CONTROLS_LIST: [
+            dict(id=ID_DATE_PICKER_START_DATE, type=CTRL_DATE_PICKER_SINGLE, args='start_date'),
+            dict(id=ID_DATE_PICKER_DEADLINE, type=CTRL_DATE_PICKER_SINGLE, args='test_deadline'),
+            dict(id=ID_CHECKLIST_TEST_PROGRESS_OPTIONS, type=CTRL_CHECKLIST, args=['treat_blocked_as_not_run', 'treat_inprogress_as_not_run'])
+        ]
     },
     ID_CARD_CURRENT_STATUS_OVERALL: {
         CARD_KEY_TITLE: 'current status (overall)',
@@ -262,7 +305,7 @@ def get_card_layout(card):
     card_body_children.append(chart)
     return dbc.Card([
         get_card_header(title=title, collapse_button_id=collapse_button_id, collapse_text=collapse_button_text(True)),
-        dbc.Collapse(dbc.CardBody(card_body_children), id=collapse_id, is_open=True)
+        dbc.Collapse(dbc.CardBody(card_body_children), id=collapse_id, is_open=collapse_initial_state)
     ])
 
 
@@ -427,17 +470,21 @@ def update_figure(is_open, testplan, testcycle, testgroup, date1, date2):
 
 
 def register_chart_update_callback(card_id):
-    collapse_id = supported_cards[card_id][CARD_KEY_COLLAPSE_ID]
-    chart_id = supported_cards[card_id][CARD_KEY_CHART_ID]
+    x = supported_cards[card_id]
+    collapse_id = x[CARD_KEY_COLLAPSE_ID]
+    chart_id = x[CARD_KEY_CHART_ID]
     output = Output(chart_id, 'figure')
     inputs = [
         Input(collapse_id, 'is_open'),
         Input(ID_DROPDOWN_TEST_PLAN, 'value'),
         Input(ID_DROPDOWN_TEST_CYCLE, 'value'),
         Input(ID_DROPDOWN_TEST_GROUP, 'value'),
-        Input(ID_DATE_PICKER_START_DATE, 'date'),
-        Input(ID_DATE_PICKER_DEADLINE, 'date')
     ]
+
+    if x.get(CARD_KEY_CONTROLS_LIST) is not None:
+        for ctrl in x[CARD_KEY_CONTROLS_LIST]:
+            inputs.append(Input(ctrl['id'], control_to_value_map[ctrl['type']]))
+
     app.callback(output, inputs)(update_figure)
 
 
