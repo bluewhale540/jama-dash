@@ -7,9 +7,9 @@ from testrun_utils import get_testcycle_from_label, \
     STATUS_INPROGRESS, \
     STATUS_BLOCKED, \
     STATUS_PASSED
-from weekly_status import get_weekly_status_bar_chart, get_current_week_testruns_table
+from weekly_status import get_weekly_status_bar_chart
 from historical_status import get_historical_status_line_chart
-from current_status import get_current_status_pie_chart, get_testgroup_status_bar_chart
+from current_status import get_current_status_pie_chart, get_testgroup_status_bar_chart, get_testruns_table
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
 
@@ -79,12 +79,13 @@ def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, chart_type, colormap,
 
     if chart_type == FIG_TYPE_CURRENT_RUNS_TABLE:
         chart = \
-            get_current_week_testruns_table(
+            get_testruns_table(
                 df=df,
                 testcycle=testcycle,
                 testgroup=testgroup,
-                title=title,
-                colormap=colormap)
+                colormap=colormap,
+                **kwargs
+            )
 
     if chart_type == FIG_TYPE_CURRENT_STATUS_BY_TESTGROUP_BAR_CHART:
         chart = get_testgroup_status_bar_chart(

@@ -26,6 +26,7 @@ ID_DATE_PICKER_START_DATE='id-date-test-progress-start-date'
 ID_DATE_PICKER_DEADLINE='id-date-test-progress-deadline'
 ID_CHECKLIST_TEST_PROGRESS_OPTIONS='id-checklist-test-progress-options'
 ID_CHECKLIST_CURRENT_STATUS_BY_GROUP_OPTIONS='id-checklist-current-by-group-options'
+ID_CHECKLIST_TEST_RUNS_OPTIONS='id-checklist-test-runs-options'
 
 # checklist options for the test progress card
 CHECKLIST_LABEL_BLOCKED_NOT_RUN='blocked as not run'
@@ -57,6 +58,15 @@ current_status_by_group_options = [
     dict(label=CHECKLIST_LABEL_SHOW_PASSED, value=CHECKLIST_VALUE_SHOW_PASSED),
     dict(label=CHECKLIST_LABEL_SHOW_FAILED, value=CHECKLIST_VALUE_SHOW_FAILED),
 ]
+
+# checklist options for the test runs table card
+CHECKLIST_LABEL_SHOW_CURRENT_WEEK='show test runs scheduled for current week'
+CHECKLIST_VALUE_SHOW_CURRENT_WEEK='current_week'
+
+test_runs_table_options = [
+    dict(label=CHECKLIST_LABEL_SHOW_CURRENT_WEEK, value=CHECKLIST_VALUE_SHOW_CURRENT_WEEK)
+]
+
 
 ID_CARD_TEST_PROGRESS='id-card-test-progress'
 ID_CARD_CURRENT_STATUS_OVERALL='id-card-current-status-overall'
@@ -258,6 +268,22 @@ def get_current_status_by_group_controls():
     ])
     return controls
 
+def get_test_runs_controls():
+    controls = dbc.Row([
+        dbc.Col(
+            dbc.FormGroup([
+                dcc.Checklist(
+                    id=ID_CHECKLIST_TEST_RUNS_OPTIONS,
+                    options=test_runs_table_options,
+                    value=[],
+                    labelStyle={'display': 'block'},
+                    inputStyle={'margin-right': '5px'},
+                )
+            ])
+        ),
+    ])
+    return controls
+
 
 CARD_KEY_TITLE='title'
 CARD_KEY_OBJ_TYPE='type' # graph or table
@@ -329,11 +355,11 @@ supported_cards = {
         CARD_KEY_COLLAPSE_BUTTON_ID: ID_COLLAPSE_BUTTON_TEST_RUNS_TABLE,
         CARD_KEY_COLLAPSE_INITIAL_STATE: True,
         CARD_KEY_CHART_TYPE: charts.FIG_TYPE_CURRENT_RUNS_TABLE,
-        #CARD_KEY_CONTROLS_LAYOUT_FUNC: get_current_status_by_group_controls(),
-        #CARD_KEY_CONTROLS_LIST: [
-        #    dict(id=ID_CHECKLIST_CURRENT_STATUS_BY_GROUP_OPTIONS, type=CTRL_CHECKLIST,
-        #         kwarg_key={'current_week'})
-        #]
+        CARD_KEY_CONTROLS_LAYOUT_FUNC: get_test_runs_controls(),
+        CARD_KEY_CONTROLS_LIST: [
+            dict(id=ID_CHECKLIST_TEST_RUNS_OPTIONS, type=CTRL_CHECKLIST,
+                 kwarg_key={'current_week'})
+        ]
     },
     ID_CARD_WEEKLY_STATUS: {
         CARD_KEY_TITLE: 'weekly status ',

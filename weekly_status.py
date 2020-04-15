@@ -1,9 +1,5 @@
-import dash_html_components as html
-import dash_table
 import testrun_utils
 from datetime import timedelta
-
-from testrun_utils import get_testruns_for_current_week, get_status_names
 
 
 def get_weekly_status_bar_chart(df, testcycle, testgroup, colormap):
@@ -37,66 +33,3 @@ def get_weekly_status_bar_chart(df, testcycle, testgroup, colormap):
     return figure
 
 
-def get_current_week_testruns_table(df, testcycle, testgroup, title, colormap):
-    df1 = get_testruns_for_current_week(df=df, testcycle_key=testcycle, testgroup_key=testgroup)
-    if df1 is None:
-        return html.P('No test runs found!')
-
-    table = dash_table.DataTable(
-        id='datatable-testruns',
-        columns=[
-            {'name': i, 'id': i, 'deletable': False, 'selectable': False}
-                for i in df1.columns
-        ],
-        data=df1.to_dict('records'),
-        editable=False,
-        filter_action='native',
-        sort_action='native',
-        page_size=50,
-        style_header={
-            'backgroundColor': 'rgb(230, 230, 230)',
-            'fontWeight': 'bold',
-            'textAlign': 'left'
-        },
-        style_cell_conditional=[
-            {
-                'if': {'column_id': c},
-                'textAlign': 'left'
-            } for c in df1.columns
-        ] +
-        [
-            {
-                'if': {'column_id': 'testcycle'},
-                'maxWidth': '30px'
-            },
-            {
-                'if': {'column_id': 'status'},
-                'maxWidth': '30px'
-            },
-            {
-                'if': {'column_id': 'execution_date'},
-                'maxWidth': '24px'
-            },
-            {
-                'if': {'column_id': 'assigned_to'},
-                'maxWidth': '24px'
-            },
-
-        ],
-        style_data_conditional=[
-            {
-                'if': {
-                    'filter_query': '{status} eq "' + s + '"',
-                },
-                'backgroundColor': colormap[s],
-                'color': 'white'
-            } for s in get_status_names()
-        ],
-        style_cell={
-            'minWidth': '0px', 'maxWidth': '60px',
-            'whiteSpace': 'normal',
-            'overflow': 'hidden',
-            'textOverflow': 'ellipsis',
-        }
-    )
-    return table

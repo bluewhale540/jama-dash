@@ -1,6 +1,8 @@
 import dash_html_components as html
-from testrun_utils import filter_df, STATUS_NOT_RUN, STATUS_BLOCKED, STATUS_FAILED, STATUS_PASSED, STATUS_INPROGRESS
+from testrun_utils import STATUS_NOT_RUN, STATUS_BLOCKED, STATUS_FAILED, STATUS_PASSED, STATUS_INPROGRESS
+from testrun_utils import filter_df, get_testruns_for_current_week, get_status_names
 import pandas as pd
+import dash_table
 
 
 def get_current_status_pie_chart(df, testcycle, testgroup, colormap=None):
@@ -29,6 +31,7 @@ def get_current_status_pie_chart(df, testcycle, testgroup, colormap=None):
 
     fig = dict(data=data, layout=dict(height=600))
     return fig
+
 
 def get_testgroup_status_bar_chart(df, testcycle, testgroup, colormap, **kwargs):
 
@@ -93,3 +96,73 @@ def get_testgroup_status_bar_chart(df, testcycle, testgroup, colormap, **kwargs)
 
 
 
+def get_testruns_table(df, testcycle, testgroup, colormap, **kwargs):
+    if kwargs.get('current_week') is not None and kwargs['current_week'] is True:
+        df1 = get_testruns_for_current_week(df=df, testcycle_key=testcycle, testgroup_key=testgroup)
+    else:
+        df1 = df
+
+    if df1 is None:
+        return html.P('No test runs found!')
+
+    table = dash_table.DataTable(
+        id='datatable-testruns',
+        columns=[
+            dict(name=i, id=i, deletable=False, selectable=False, hideable='last') for i in df1.columns
+        ],
+        data=df1.to_dict('records'),
+        editable=False,
+        filter_action='native',
+        sort_action='native',
+        page_size=10,
+        persistence=True,
+        export_columns='all',
+        export_format='csv',
+        export_headers='names',
+        style_header={
+            'backgroundColor': 'rgb(230, 230, 230)',
+            'fontWeight': 'bold',
+            'textAlign': 'left'
+        },
+        style_cell_conditional=[
+            {
+                'if': {'column_id': c},
+                'textAlign': 'left'
+            } for c in df1.columns
+        ] +
+        [
+            {
+                'if': {'column_id': 'testcycle'},
+                'maxWidth': '30px'
+            },
+            {
+                'if': {'column_id': 'status'},
+                'maxWidth': '24px'
+            },
+            {
+                'if': {'column_id': 'execution_date'},
+                'maxWidth': '26px'
+            },
+            {
+                'if': {'column_id': 'assigned_to'},
+                'maxWidth': '24px'
+            },
+
+        ],
+        style_data_conditional=[
+            {
+                'if': {
+                    'filter_query': '{status} eq "' + s + '"',
+                },
+                'backgroundColor': colormap[s],
+                'color': 'white'
+            } for s in get_status_names()
+        ],
+        style_cell={
+            'minWidth': '0px', 'maxWidth': '60px',
+            'whiteSpace': 'normal',
+            'overflow': 'hidden',
+            'textOverflow': 'ellipsis',
+        }
+    )
+    return table
