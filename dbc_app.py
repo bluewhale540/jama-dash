@@ -468,8 +468,7 @@ def serve_layout():
     return layout
 
 
-app.layout = serve_layout()
-
+app.layout = serve_layout
 
 @app.callback(
     Output('id-last-modified-hidden', 'children'),
@@ -529,7 +528,7 @@ def update_graph(modified_datetime, current_testplan):
     cache.delete_memoized(get_chart)
     options = get_testplan_options()
     value = get_value_from_options(options, current_testplan)
-    status = f'Data was last updated at:{modified_datetime}'
+    status = f'Data last updated: {modified_datetime}'
     return status, options, value
 
 
