@@ -21,7 +21,7 @@ def get_weekly_status_bar_chart(df, testcycle, testgroup, colormap):
         'data': data,
         'layout': dict(
             xaxis={
-                'title': 'Planned Week',
+                'title': 'Execution Date',
             },
             yaxis={
                 'title': 'Number Of Test Runs',
