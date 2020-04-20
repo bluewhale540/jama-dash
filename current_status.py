@@ -89,8 +89,9 @@ def get_testgroup_status_bar_chart(df, testcycle, testgroup, colormap, **kwargs)
         data=data,
         layout=dict(
             height=800,
-            textangle=-45,
+            xaxis = dict(tickangle = 30),
             yaxis=dict(title='Number Of Test Runs'),
+            margin=dict(b=200, r=100),
             barmode='stack',
             autosize=True))
     return figure

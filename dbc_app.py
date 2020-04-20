@@ -243,7 +243,8 @@ def get_test_progress_controls():
                     options=test_progress_options,
                     value=[CHECKLIST_VALUE_BLOCKED_NOT_RUN, CHECKLIST_VALUE_INPROGRESS_NOT_RUN],
                     labelStyle={'display': 'block'},
-                    inputStyle={'margin-right': '5px'}
+                    inputStyle={'margin-right': '5px'},
+                    persistence=True
                 )
             ]),
         ),
@@ -262,6 +263,7 @@ def get_current_status_by_group_controls():
                     value=[CHECKLIST_VALUE_SHOW_BLOCKED, CHECKLIST_VALUE_SHOW_FAILED],
                     labelStyle={'display': 'block'},
                     inputStyle={'margin-right': '5px'},
+                    persistence=True
                 )
             ])
         ),
@@ -278,6 +280,7 @@ def get_test_runs_controls():
                     value=[],
                     labelStyle={'display': 'block'},
                     inputStyle={'margin-right': '5px'},
+                    persistence=True
                 )
             ])
         ),
