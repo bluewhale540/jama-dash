@@ -26,13 +26,6 @@ def main():
     testruns_dict = testrun_utils.retrieve_testruns(jama_url=jama_url,
                                                     jama_username=jama_api_username,
                                                     jama_password=jama_api_password)
-    testruns_json = json.dumps(
-        testruns_dict,
-        # This JSON Encoder will handle things like numpy arrays
-        # and datetimes
-        cls=plotly.utils.PlotlyJSONEncoder,
-    )
-
     pass
 
 if __name__ == '__main__':

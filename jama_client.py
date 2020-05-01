@@ -14,6 +14,8 @@ class jama_client:
     planned_weeks = [] # sorted list of start dates of planned weeks
     project_id_lookup = {} # dict of project keys to id
     user_id_lookup = {} # dict of user ids to names
+    network_type_id_lookup = {} # dict of network ids to names
+    priority_id_lookup = {} # dict of priority ids to names
 
     def __repr__(self):
         return f'{self.__class__.__name__})'
@@ -62,7 +64,15 @@ class jama_client:
         user = self.user_id_lookup.get(user_id)
         if user is None:
             user = self.__get_user_info_from_jama(user_id)
+            self.user_id_lookup[user_id] = user
         return user
+
+    def __get_priority_from_id(self, id):
+        return self.priority_id_lookup.get(id) if id is not None else ''
+
+    def __get_network_type_from_id(self, id):
+        return self.network_type_id_lookup.get(id) if id is not None else ''
+
 
     # download the list of project ids given a list of project keys (names)
     def __get_projects_info(self, projkey_list):
@@ -146,15 +156,26 @@ class jama_client:
             self.testrun_obj = next(x for x in self.item_types if x['typeKey'] == 'TSTRN')
             # find the name for the 'Bug ID' field in a test run
             self.bug_id_field_name = None
+            self.priority_field_name = None
+            self.network_type_field_name = None
+            self.planned_week_field_name = None
 
             # find the name for the 'Planned week' field in a test run
             pick_lists = self.client.get_pick_lists()
             planned_week_id = next(x for x in pick_lists if x['name'] == 'Planned week')['id']
-            self.planned_week_field_name = None
+            priority_id = next(x for x in pick_lists if x['name'] == 'Priority')['id']
+            network_type_id = next(x for x in pick_lists if x['name'] == 'Network')['id']
             for x in self.testrun_obj['fields']:
-                if 'label' in x and x['label'] == 'Bug ID':
-                    self.bug_id_field_name = x['name']
-                    continue
+                if 'label' in x:
+                    if x['label'] == 'Bug ID':
+                        self.bug_id_field_name = x['name']
+                        continue
+                    if x['label'] == 'Priority':
+                        self.priority_field_name = x['name']
+                        continue
+                    if x['label'] == 'Network Type':
+                        self.network_type_field_name = x['name']
+                        continue
                 if 'pickList' in x and x['pickList'] == planned_week_id:
                     self.planned_week_field_name = x['name']
                     continue
@@ -170,6 +191,13 @@ class jama_client:
             self.planned_weeks = sorted(self.planned_weeks)
             # Add None to the list for tests with aunassigned weeks
             self.planned_weeks = [None] + self.planned_weeks
+
+            priorities = self.client.get_pick_list_options(priority_id)
+            for x in priorities:
+                self.priority_id_lookup[x['id']] = x['name']
+            network_types = self.client.get_pick_list_options(network_type_id)
+            for x in network_types:
+                self.network_type_id_lookup[x['id']] = x['name']
 
         except Exception as err:
             print('Jama server connection ERROR! -', err)
@@ -271,26 +299,31 @@ class jama_client:
                     continue
 
                 user = self.__get_user_from_id(fields.get('assignedTo'))
+                network_type = self.__get_network_type_from_id(fields.get(self.network_type_field_name))
+                priority_id = fields.get(self.priority_field_name)
+                priority = self.__get_priority_from_id(priority_id)
                 row = [project_key,
                        testplan_key,
                        testcycle_name,
                        fields.get('testRunSetName'),
                        fields.get('name'),
+                       priority,
                        y.get('createdDate'),
                        y.get('modifiedDate'),
                        fields.get('testRunStatus'),
                        fields.get('executionDate'),
                        planned_week,
                        user,
-                       bug_id]
+                       bug_id,
+                       network_type]
                 testruns_to_add.append(row)
 
         print('found {} test runs!'.format(len(testruns_to_add)))
 
         # append the retrieved test runs to the existing data frame
-        new_df = pd.DataFrame(testruns_to_add, columns=['project', 'testplan', 'testcycle', 'testgroup', 'testrun',
+        new_df = pd.DataFrame(testruns_to_add, columns=['project', 'testplan', 'testcycle', 'testgroup', 'testrun', 'priority',
                                                         'created_date', 'modified_date', 'status', 'execution_date',
-                                                        'planned_week', 'assigned_to', 'bug_id'])
+                                                        'planned_week', 'assigned_to', 'bug_id', 'network_type'])
         new_df['created_date'] = pd.to_datetime(new_df['created_date'], format="%Y-%m-%d").dt.date
         new_df['modified_date'] = pd.to_datetime(new_df['modified_date'], format="%Y-%m-%d").dt.date
         new_df['execution_date'] = pd.to_datetime(new_df['execution_date'], format="%Y-%m-%d").dt.date
