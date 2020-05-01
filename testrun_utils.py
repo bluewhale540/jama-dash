@@ -12,6 +12,7 @@ from jama_client import COL_STATUS, COL_PRIORITY, COL_NETWORK_TYPE
 
 ALL_TEST_CYCLES = 'All Test Cycles'
 ALL_TEST_GROUPS = 'All Test Groups'
+ALL_PRIORITIES = 'All'
 
 class JamaReportsConfig:
     config = None
@@ -273,6 +274,10 @@ def retrieve_testruns(jama_url: str, jama_username: str, jama_password: str):
     df = pd.concat(frames)
     return df
 
+# get list of priorities in DF
+def get_priority_labels(df):
+    return df.priority.unique() if COL_PRIORITY in df.columns else []
+
 # get list of testplans in DF
 def get_testplan_labels(df):
     return df.testplan.unique() if COL_TESTPLAN in df.columns else []
@@ -296,6 +301,9 @@ def get_testcycle_from_label(label):
 
 def get_testgroup_from_label(label):
     return None if label == ALL_TEST_GROUPS else label
+
+def get_priority_from_label(label):
+    return None if label == ALL_PRIORITIES else label
 
 def df_to_json(df: pd.DataFrame):
     return df.to_json(date_format='iso', orient='split') \

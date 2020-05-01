@@ -13,6 +13,8 @@ from testrun_utils import get_testplan_labels, \
     get_testcycle_labels, \
     get_testgroup_labels,\
     get_testcycle_from_label, \
+    get_priority_labels, \
+    get_priority_from_label, \
     json_to_df
 
 import charts
@@ -22,6 +24,7 @@ import redis_data
 ID_DROPDOWN_TEST_PLAN='id-dropdown-test-plan'
 ID_DROPDOWN_TEST_CYCLE='id-dropdown-test-cycle'
 ID_DROPDOWN_TEST_GROUP='id-dropdown-test-group'
+ID_DROPDOWN_PRIORITY='id-dropdown-priority'
 ID_DATE_PICKER_START_DATE='id-date-test-progress-start-date'
 ID_DATE_PICKER_DEADLINE='id-date-test-progress-deadline'
 ID_CHECKLIST_TEST_PROGRESS_OPTIONS='id-checklist-test-progress-options'
@@ -137,6 +140,13 @@ def get_value_from_options(options, current_value=None):
             return current_value
     return init_value(options)
 
+@cache.memoize()
+def get_priority_options():
+    df = json_to_df(get_data())
+    priorities =  [{'label': i, 'value': i} for i in get_priority_labels(df)]
+    return priorities
+
+
 # get testplans and first value
 @cache.memoize()
 def get_testplan_options():
@@ -203,10 +213,21 @@ def get_selection_ui():
                 persistence_type='local',
             ),
         ],
-        lg=5
+        lg=3
     )
 
-    form = dbc.Row([group1, group2, group3])
+    group4 = dbc.Col(
+        [
+            dbc.Label('select a priority', html_for=ID_DROPDOWN_PRIORITY),
+            dcc.Dropdown(
+                id=ID_DROPDOWN_PRIORITY,
+                persistence_type='local',
+            ),
+        ],
+        lg=2
+    )
+
+    form = dbc.Row([group1, group2, group3, group4])
     return form
 
 
@@ -516,23 +537,29 @@ def update_last_modified(n, prev_last_modified):
 @app.callback(
     [Output('id-status', 'children'),
     Output(ID_DROPDOWN_TEST_PLAN, 'options'),
-    Output(ID_DROPDOWN_TEST_PLAN, 'value')],
+    Output(ID_DROPDOWN_TEST_PLAN, 'value'),
+    Output(ID_DROPDOWN_PRIORITY, 'options'),
+    Output(ID_DROPDOWN_PRIORITY, 'value')],
     [Input('id-last-modified-hidden', 'children')],
-    [State(ID_DROPDOWN_TEST_PLAN, 'value')]
+    [State(ID_DROPDOWN_TEST_PLAN, 'value'),
+     State(ID_DROPDOWN_PRIORITY, 'value')]
 )
-def update_graph(modified_datetime, current_testplan):
+def update_graph(modified_datetime, current_testplan, current_priority):
     if modified_datetime is None:
         raise PreventUpdate
     # invalidate caches
     cache.delete_memoized(get_data)
+    cache.delete_memoized(get_priority_options)
     cache.delete_memoized(get_testplan_options)
     cache.delete_memoized(get_testcycle_options)
     cache.delete_memoized(get_testgroup_options)
     cache.delete_memoized(get_chart)
-    options = get_testplan_options()
-    value = get_value_from_options(options, current_testplan)
+    testplan_options = get_testplan_options()
+    testplan_value = get_value_from_options(testplan_options, current_testplan)
+    priority_options = get_priority_options()
+    priority_value = get_value_from_options(priority_options, current_priority)
     status = f'Data last updated: {modified_datetime}'
-    return status, options, value
+    return status, testplan_options, testplan_value, priority_options, priority_value
 
 
 @app.callback(
