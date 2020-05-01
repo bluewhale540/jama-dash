@@ -5,6 +5,24 @@ import requests
 import re
 from requests.exceptions import HTTPError
 
+
+# Dataframe columns
+COL_PROJECT = 'project'
+COL_TESTPLAN = 'testplan'
+COL_TESTCYCLE = 'testcycle'
+COL_TESTGROUP = 'testgroup'
+COL_TESTRUN = 'testrun'
+COL_CREATED_DATE = 'created_date'
+COL_MODIFIED_DATE = 'modified_date'
+COL_EXECUTION_DATE = 'execution_date'
+COL_PLANNED_WEEK = 'planned_week'
+COL_STATUS = 'status'
+COL_PRIORITY = 'priority'
+COL_NETWORK_TYPE = 'network_type'
+COL_ASSIGNED_TO = 'assigned_to'
+COL_BUG_ID = 'bug_id'
+
+
 class jama_client:
     url = None
     username = None
@@ -68,10 +86,10 @@ class jama_client:
         return user
 
     def __get_priority_from_id(self, id):
-        return self.priority_id_lookup.get(id) if id is not None else ''
+        return self.priority_id_lookup.get(id) if id is not None else 'Unassigned'
 
     def __get_network_type_from_id(self, id):
-        return self.network_type_id_lookup.get(id) if id is not None else ''
+        return self.network_type_id_lookup.get(id) if id is not None else 'Unassigned'
 
 
     # download the list of project ids given a list of project keys (names)
@@ -321,9 +339,14 @@ class jama_client:
         print('found {} test runs!'.format(len(testruns_to_add)))
 
         # append the retrieved test runs to the existing data frame
-        new_df = pd.DataFrame(testruns_to_add, columns=['project', 'testplan', 'testcycle', 'testgroup', 'testrun', 'priority',
-                                                        'created_date', 'modified_date', 'status', 'execution_date',
-                                                        'planned_week', 'assigned_to', 'bug_id', 'network_type'])
+        new_df = pd.DataFrame(
+            testruns_to_add,
+            columns=[
+                COL_PROJECT, COL_TESTPLAN, COL_TESTCYCLE, COL_TESTGROUP, COL_TESTRUN, COL_PRIORITY,
+                COL_CREATED_DATE, COL_MODIFIED_DATE, COL_STATUS, COL_EXECUTION_DATE,
+                COL_PLANNED_WEEK, COL_ASSIGNED_TO, COL_BUG_ID, COL_NETWORK_TYPE
+            ]
+        )
         new_df['created_date'] = pd.to_datetime(new_df['created_date'], format="%Y-%m-%d").dt.date
         new_df['modified_date'] = pd.to_datetime(new_df['modified_date'], format="%Y-%m-%d").dt.date
         new_df['execution_date'] = pd.to_datetime(new_df['execution_date'], format="%Y-%m-%d").dt.date

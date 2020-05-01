@@ -6,20 +6,12 @@ import plotly
 from tzlocal import get_localzone
 from os.path import expanduser, isfile
 from jama_client import jama_client
+from jama_client import COL_PROJECT, COL_TESTPLAN, COL_TESTCYCLE, COL_TESTGROUP, COL_TESTRUN
+from jama_client import COL_CREATED_DATE, COL_MODIFIED_DATE, COL_EXECUTION_DATE, COL_PLANNED_WEEK
+from jama_client import COL_STATUS, COL_PRIORITY, COL_NETWORK_TYPE
 
 ALL_TEST_CYCLES = 'All Test Cycles'
 ALL_TEST_GROUPS = 'All Test Groups'
-
-# Dataframe columns
-COL_PROJECT = 'project'
-COL_TESTPLAN = 'testplan'
-COL_TESTCYCLE = 'testcycle'
-COL_TESTGROUP = 'testgroup'
-COL_CREATED_DATE = 'created_date'
-COL_MODIFIED_DATE = 'modified_date'
-COL_EXECUTION_DATE = 'execution_date'
-COL_PLANNED_WEEK = 'planned_week'
-COL_STATUS = 'status'
 
 class JamaReportsConfig:
     config = None
