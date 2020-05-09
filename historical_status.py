@@ -4,12 +4,15 @@ from dateutil import parser
 from testrun_utils import get_testrun_status_historical, get_status_names
 
 def get_historical_status_line_traces(
-        df, testcycle, testgroup,
+        df, testcycle, testgroup, priority,
         start_date, test_deadline, colormap,
         treat_blocked_as_not_run=False,
         treat_inprogress_as_not_run=False):
-    df1 = get_testrun_status_historical(df, testcycle_key=testcycle, testgroup_key=testgroup,
+    df1 = get_testrun_status_historical(df, testcycle_key=testcycle, testgroup_key=testgroup, priority_key=priority,
                                               start_date=start_date)
+    if df1 is None:
+        return []
+
     if treat_blocked_as_not_run:
         df1['NOT_RUN'] = df1['NOT_RUN'] + df1['BLOCKED']
         df1.drop(columns=['BLOCKED'])
@@ -59,7 +62,7 @@ def get_historical_status_line_traces(
                          line=dict(dash='dash', color='black')))
     return data
 
-def get_historical_status_line_chart(df, testcycle, testgroup, title, colormap, **kwargs):
+def get_historical_status_line_chart(df, testcycle, testgroup, priority, title, colormap, **kwargs):
 
     start_date = None
     val = kwargs.get('start_date')
@@ -81,7 +84,7 @@ def get_historical_status_line_chart(df, testcycle, testgroup, title, colormap, 
     if val is not None:
         treat_inprogress_as_not_run = True
 
-    traces = get_historical_status_line_traces(df, testcycle, testgroup,
+    traces = get_historical_status_line_traces(df, testcycle, testgroup, priority,
         start_date, test_deadline, colormap,
         treat_blocked_as_not_run,
         treat_inprogress_as_not_run)

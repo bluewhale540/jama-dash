@@ -5,8 +5,8 @@ import pandas as pd
 import dash_table
 
 
-def get_current_status_pie_chart(df, testcycle, testgroup, colormap=None):
-    df1 = filter_df(df, testcycle_key=testcycle, testgroup_key=testgroup)
+def get_current_status_pie_chart(df, testcycle, testgroup, priority=None, colormap=None):
+    df1 = filter_df(df, testcycle_key=testcycle, testgroup_key=testgroup, priority_key=priority)
     counts = df1['status'].value_counts()
 
     status_names = []
@@ -34,7 +34,7 @@ def get_current_status_pie_chart(df, testcycle, testgroup, colormap=None):
     return fig
 
 
-def get_testgroup_status_bar_chart(df, testcycle, testgroup, colormap, **kwargs):
+def get_testgroup_status_bar_chart(df, testcycle, testgroup, priority, colormap, **kwargs):
 
     status_list = []
     if kwargs.get('show_not_run') is not None and kwargs['show_not_run'] is True:
@@ -48,7 +48,7 @@ def get_testgroup_status_bar_chart(df, testcycle, testgroup, colormap, **kwargs)
     if kwargs.get('show_failed') is not None and kwargs['show_failed'] is True:
         status_list.append(STATUS_FAILED)
 
-    df1 = filter_df(df, testcycle_key=testcycle)
+    df1 = filter_df(df, testcycle_key=testcycle, priority_key=priority)
 
     testgroups = [x for x  in iter(df1.testgroup.unique())]
 
@@ -98,9 +98,9 @@ def get_testgroup_status_bar_chart(df, testcycle, testgroup, colormap, **kwargs)
 
 
 
-def get_testruns_table(df, testcycle, testgroup, colormap, **kwargs):
+def get_testruns_table(df, testcycle, testgroup, priority, colormap, **kwargs):
     if kwargs.get('current_week') is not None and kwargs['current_week'] is True:
-        df1 = get_testruns_for_current_week(df=df, testcycle_key=testcycle, testgroup_key=testgroup)
+        df1 = get_testruns_for_current_week(df=df, testcycle_key=testcycle, testgroup_key=testgroup, priority_key=priority)
     else:
         df1 = df
 

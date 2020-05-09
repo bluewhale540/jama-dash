@@ -1,6 +1,7 @@
 import logging
 from testrun_utils import get_testcycle_from_label, \
     get_testgroup_from_label, \
+    get_priority_from_label, \
     get_status_names, \
     STATUS_NOT_RUN, \
     STATUS_FAILED, \
@@ -38,9 +39,10 @@ def get_chart_types():
     return chart_types
 
 
-def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, chart_type, colormap, **kwargs):
+def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, priority_ui, chart_type, colormap, **kwargs):
     testcycle = get_testcycle_from_label(label=testcycle_ui)
     testgroup = get_testgroup_from_label(label=testgroup_ui)
+    priority = get_priority_from_label(label=priority_ui)
     if df is None:
         return  None
     # filter df by testplan
@@ -50,6 +52,8 @@ def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, chart_type, colormap,
         title += f':{testcycle_ui}'
     if testgroup is not None:
         title += f':{testgroup_ui}'
+    if priority is not None:
+        title += f':{priority_ui}'
 
     logging.info(f'Creating chart for {title}...')
     chart = None
@@ -58,6 +62,7 @@ def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, chart_type, colormap,
                 df=df,
                 testcycle=testcycle,
                 testgroup=testgroup,
+                priority=priority,
                 colormap=colormap)
 
     if chart_type == FIG_TYPE_HISTORICAL_STATUS_LINE_CHART:
@@ -66,6 +71,7 @@ def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, chart_type, colormap,
                 df=df,
                 testcycle=testcycle,
                 testgroup=testgroup,
+                priority=priority,
                 title=title,
                 colormap=colormap,
                 **kwargs)
@@ -75,6 +81,7 @@ def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, chart_type, colormap,
                 df=df,
                 testcycle=testcycle,
                 testgroup=testgroup,
+                priority=priority,
                 colormap=colormap)
 
     if chart_type == FIG_TYPE_CURRENT_RUNS_TABLE:
@@ -83,6 +90,7 @@ def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, chart_type, colormap,
                 df=df,
                 testcycle=testcycle,
                 testgroup=testgroup,
+                priority=priority,
                 colormap=colormap,
                 **kwargs
             )
@@ -93,15 +101,16 @@ def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, chart_type, colormap,
             testcycle=testcycle,
             testgroup=testgroup,
             colormap=colormap,
+            priority=priority,
             status_list=get_status_names(),
             **kwargs)
 
     if chart_type == FIG_TYPE_BLOCKED_FAILED_TESTGROUP_BAR_CHART:
-        chart = get_testgroup_status_bar_chart(df=df, testcycle=testcycle, testgroup=testgroup,
+        chart = get_testgroup_status_bar_chart(df=df, testcycle=testcycle, testgroup=testgroup, priority=priority,
                                            colormap=colormap, status_list=[STATUS_BLOCKED, STATUS_FAILED])
 
     if chart_type == FIG_TYPE_NOTRUN_INPROGRESS_TESTGROUP_BAR_CHART:
-        chart = get_testgroup_status_bar_chart(df=df, testcycle=testcycle, testgroup=testgroup,
+        chart = get_testgroup_status_bar_chart(df=df, testcycle=testcycle, testgroup=testgroup, priority=priority,
                                            colormap=colormap, status_list=[STATUS_NOT_RUN, STATUS_INPROGRESS])
     return chart
 

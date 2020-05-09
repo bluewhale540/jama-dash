@@ -2,8 +2,8 @@ import testrun_utils
 from datetime import timedelta
 
 
-def get_weekly_status_bar_chart(df, testcycle, testgroup, colormap):
-    df1 = testrun_utils.get_testrun_status_by_planned_weeks(df, testcycle_key=testcycle, testgroup_key=testgroup)
+def get_weekly_status_bar_chart(df, testcycle, testgroup, priority, colormap):
+    df1 = testrun_utils.get_testrun_status_by_planned_weeks(df, testcycle_key=testcycle, testgroup_key=testgroup, priority_key=priority)
     # sort in ascending order with NaN value first
     df1.sort_values('planned_week', axis=0, ascending=True, inplace=True, na_position='first')
     fmt_date = lambda x: x.strftime('%b %d') + ' - ' + (x + timedelta(days=4)).strftime('%b %d') \
@@ -20,6 +20,8 @@ def get_weekly_status_bar_chart(df, testcycle, testgroup, colormap):
     figure = {
         'data': data,
         'layout': dict(
+            height=600,
+            width=0.8,
             xaxis={
                 'title': 'Execution Date',
             },

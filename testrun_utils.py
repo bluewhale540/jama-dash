@@ -108,7 +108,7 @@ STATUS_BLOCKED = 'BLOCKED'
 def get_status_names():
     return [STATUS_NOT_RUN, STATUS_PASSED, STATUS_FAILED, STATUS_INPROGRESS, STATUS_BLOCKED]
 
-def filter_df(df, testplan_key=None, testcycle_key=None, testgroup_key=None):
+def filter_df(df, testplan_key=None, testcycle_key=None, testgroup_key=None, priority_key=None):
     df1 = df
     if testplan_key is not None:
         df1 = df1[df1.testplan.eq(testplan_key)]
@@ -116,6 +116,8 @@ def filter_df(df, testplan_key=None, testcycle_key=None, testgroup_key=None):
         df1 = df1[df1.testcycle.eq(testcycle_key)]
     if testgroup_key is not None:
         df1 = df1[df1.testgroup.eq(testgroup_key)]
+    if priority_key is not None:
+        df1 = df1[df1.priority.eq(priority_key)]
     return df1
 
 
@@ -177,8 +179,8 @@ def __get_current_planned_week(planned_weeks):
     return None
 
 
-def get_testrun_status_by_planned_weeks(df, testcycle_key=None, testgroup_key=None):
-    df1 = filter_df(df, testcycle_key=testcycle_key, testgroup_key=testgroup_key)
+def get_testrun_status_by_planned_weeks(df, testcycle_key=None, testgroup_key=None, priority_key=None):
+    df1 = filter_df(df, testcycle_key=testcycle_key, testgroup_key=testgroup_key, priority_key=priority_key)
     t = []
     status_list=[]
     planned_weeks = df1.planned_week.unique()
@@ -201,8 +203,8 @@ def get_testrun_status_by_planned_weeks(df, testcycle_key=None, testgroup_key=No
     df = pd.DataFrame(t, columns=[COL_PLANNED_WEEK] + status_list)
     return df
 
-def get_testruns_for_current_week(df, testcycle_key=None, testgroup_key=None):
-    df1 = filter_df(df, testcycle_key=testcycle_key, testgroup_key=testgroup_key)
+def get_testruns_for_current_week(df, testcycle_key=None, testgroup_key=None, priority_key=None):
+    df1 = filter_df(df, testcycle_key=testcycle_key, testgroup_key=testgroup_key, priority_key=priority_key)
     planned_weeks = df1.planned_week.unique()
     start_date = __get_current_planned_week(planned_weeks)
     if start_date is None:
@@ -214,8 +216,10 @@ def get_testruns_for_current_week(df, testcycle_key=None, testgroup_key=None):
     return df1
 
 
-def get_testrun_status_historical(df, testcycle_key=None, testgroup_key=None, start_date=None):
-    df1 = filter_df(df, testcycle_key=testcycle_key, testgroup_key=testgroup_key)
+def get_testrun_status_historical(df, testcycle_key=None, testgroup_key=None, priority_key=None, start_date=None):
+    df1 = filter_df(df, testcycle_key=testcycle_key, testgroup_key=testgroup_key, priority_key=priority_key)
+    if df1.empty:
+        return None
     # set lowest modified date - 1 as start date
     if start_date is None:
         start_date = df1[COL_MODIFIED_DATE].values.min()
@@ -275,8 +279,12 @@ def retrieve_testruns(jama_url: str, jama_username: str, jama_password: str):
     return df
 
 # get list of priorities in DF
-def get_priority_labels(df):
-    return df.priority.unique() if COL_PRIORITY in df.columns else []
+def get_priority_labels(df, testplan_key, testcycle_key, testgroup_key):
+    labels = [ALL_PRIORITIES, ]
+    df1 = filter_df(df=df, testplan_key=testplan_key, testcycle_key=testcycle_key, testgroup_key=testgroup_key)
+    unique_labels = df[COL_PRIORITY]
+    labels += [x for x in df1.priority.unique()] if COL_PRIORITY in df.columns else []
+    return labels
 
 # get list of testplans in DF
 def get_testplan_labels(df):

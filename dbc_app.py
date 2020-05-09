@@ -13,6 +13,7 @@ from testrun_utils import get_testplan_labels, \
     get_testcycle_labels, \
     get_testgroup_labels,\
     get_testcycle_from_label, \
+    get_testgroup_from_label, \
     get_priority_labels, \
     get_priority_from_label, \
     json_to_df
@@ -141,9 +142,13 @@ def get_value_from_options(options, current_value=None):
     return init_value(options)
 
 @cache.memoize()
-def get_priority_options():
+def get_priority_options(testplan, testcycle, testgroup):
     df = json_to_df(get_data())
-    priorities =  [{'label': i, 'value': i} for i in get_priority_labels(df)]
+    priorities =  \
+        [{'label': i, 'value': i} for i in get_priority_labels(
+            df, testplan_key=testplan,
+            testcycle_key=get_testcycle_from_label(testcycle),
+            testgroup_key=get_testgroup_from_label(testgroup))]
     return priorities
 
 
@@ -171,15 +176,22 @@ def get_testgroup_options(testplan, testcycle):
                                                  testplan_key=testplan,
                                                  testcycle_key=get_testcycle_from_label(testcycle))]
     return testgroups
-
+get_testcycle_options
 @cache.memoize()
-def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, chart_type, colormap, **kwargs):
+def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, priority_ui, chart_type, colormap, **kwargs):
     return charts.get_chart(
-        df, testplan_ui, testcycle_ui, testgroup_ui, chart_type, colormap, **kwargs)
+        df, testplan_ui, testcycle_ui, testgroup_ui, priority_ui, chart_type, colormap, **kwargs)
 
 def get_selection_ui():
     testplans = get_testplan_options()
     initial_testplan = init_value(testplans)
+    testcycles = get_testcycle_options(testplan=initial_testplan)
+    initial_testcycle = init_value(testcycles)
+    testgroups = get_testgroup_options(testplan=initial_testplan, testcycle=initial_testcycle)
+    initial_testgroup = init_value(testgroups)
+    priorities = get_priority_options(testplan=initial_testplan, testcycle=initial_testcycle,
+                                      testgroup=initial_testgroup)
+    initial_priority = init_value(priorities)
     group1 = dbc.Col(
         [
             dbc.Label('select a test plan', html_for=ID_DROPDOWN_TEST_PLAN),
@@ -199,6 +211,8 @@ def get_selection_ui():
             dbc.Label('select a test cycle', html_for=ID_DROPDOWN_TEST_CYCLE),
             dcc.Dropdown(
                 id=ID_DROPDOWN_TEST_CYCLE,
+                #options=testcycles,
+                #value=initial_testcycle,
                 persistence_type='local',
             ),
         ],
@@ -210,6 +224,8 @@ def get_selection_ui():
             dbc.Label('select a test group', html_for=ID_DROPDOWN_TEST_GROUP),
             dcc.Dropdown(
                 id=ID_DROPDOWN_TEST_GROUP,
+                #options=testgroups,
+                #value=initial_testgroup,
                 persistence_type='local',
             ),
         ],
@@ -221,6 +237,8 @@ def get_selection_ui():
             dbc.Label('select a priority', html_for=ID_DROPDOWN_PRIORITY),
             dcc.Dropdown(
                 id=ID_DROPDOWN_PRIORITY,
+                #options=priorities,
+                #value=initial_priority,
                 persistence_type='local',
             ),
         ],
@@ -537,14 +555,11 @@ def update_last_modified(n, prev_last_modified):
 @app.callback(
     [Output('id-status', 'children'),
     Output(ID_DROPDOWN_TEST_PLAN, 'options'),
-    Output(ID_DROPDOWN_TEST_PLAN, 'value'),
-    Output(ID_DROPDOWN_PRIORITY, 'options'),
-    Output(ID_DROPDOWN_PRIORITY, 'value')],
+    Output(ID_DROPDOWN_TEST_PLAN, 'value')],
     [Input('id-last-modified-hidden', 'children')],
-    [State(ID_DROPDOWN_TEST_PLAN, 'value'),
-     State(ID_DROPDOWN_PRIORITY, 'value')]
+    [State(ID_DROPDOWN_TEST_PLAN, 'value')]
 )
-def update_graph(modified_datetime, current_testplan, current_priority):
+def update_graph(modified_datetime, current_testplan):
     if modified_datetime is None:
         raise PreventUpdate
     # invalidate caches
@@ -556,10 +571,8 @@ def update_graph(modified_datetime, current_testplan, current_priority):
     cache.delete_memoized(get_chart)
     testplan_options = get_testplan_options()
     testplan_value = get_value_from_options(testplan_options, current_testplan)
-    priority_options = get_priority_options()
-    priority_value = get_value_from_options(priority_options, current_priority)
     status = f'Data last updated: {modified_datetime}'
-    return status, testplan_options, testplan_value, priority_options, priority_value
+    return status, testplan_options, testplan_value
 
 
 @app.callback(
@@ -585,10 +598,26 @@ def update_testcycle_options(testplan_ui, current_value):
 def update_testgroup_options(testplan_ui, testcycle_ui, current_value):
     options = get_testgroup_options(testplan=testplan_ui, testcycle=testcycle_ui)
     value = get_value_from_options(options, current_value)
-    persistence = testcycle_ui
+    persistence = testplan_ui + ':' + testcycle_ui
     return [options, value, persistence]
 
-def update_figure(is_open, testplan, testcycle, testgroup, *args):
+@app.callback(
+    [Output(ID_DROPDOWN_PRIORITY, 'options'),
+     Output(ID_DROPDOWN_PRIORITY, 'value'),
+     Output(ID_DROPDOWN_PRIORITY, 'persistence')],
+    [Input(ID_DROPDOWN_TEST_PLAN, 'value'),
+     Input(ID_DROPDOWN_TEST_CYCLE, 'value'),
+     Input(ID_DROPDOWN_TEST_GROUP, 'value')],
+    [State(ID_DROPDOWN_PRIORITY, 'value')]
+)
+def update_priority_options(testplan_ui, testcycle_ui, testgroup_ui, current_value):
+    options = get_priority_options(testplan=testplan_ui, testcycle=testcycle_ui, testgroup=testgroup_ui)
+    value = get_value_from_options(options, current_value)
+    persistence = testplan_ui + ':' + testcycle_ui + ':' + testgroup_ui
+    return [options, value, persistence]
+
+
+def update_figure(is_open, testplan, testcycle, testgroup, priority, *args):
     if not is_open:
         raise PreventUpdate
     ctx = dash.callback_context
@@ -611,7 +640,7 @@ def update_figure(is_open, testplan, testcycle, testgroup, *args):
                 kwargs_to_pass[kwarg_key] = arg
 
     df = json_to_df(get_data())
-    chart = get_chart(df, testplan, testcycle, testgroup,
+    chart = get_chart(df, testplan, testcycle, testgroup, priority,
                       chart_type=chart_type,
                       colormap=get_default_colormap(),
                       **kwargs_to_pass)
@@ -629,6 +658,7 @@ def register_chart_update_callback(card_id):
         Input(ID_DROPDOWN_TEST_PLAN, 'value'),
         Input(ID_DROPDOWN_TEST_CYCLE, 'value'),
         Input(ID_DROPDOWN_TEST_GROUP, 'value'),
+        Input(ID_DROPDOWN_PRIORITY, 'value')
     ]
 
     if card_info.get(CARD_KEY_CONTROLS_LIST) is not None:
