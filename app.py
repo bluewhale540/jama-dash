@@ -7,7 +7,7 @@ import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
-from weekly_status import get_weekly_status_bar_chart, get_current_week_testruns_table
+from weekly_status import get_weekly_status_bar_chart
 from historical_status import get_historical_status_line_chart
 from current_status import get_current_status_pie_chart, get_testgroup_status_bar_chart
 from testrun_utils import get_status_names, JamaReportsConfig

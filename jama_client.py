@@ -217,7 +217,7 @@ class jama_client:
             for x in network_types:
                 self.network_type_id_lookup[x['id']] = x['name']
 
-        except Exception as err:
+        except requests.exceptions.ConnectionError as err:
             print('Jama server connection ERROR! -', err)
             return False
         self.username = username

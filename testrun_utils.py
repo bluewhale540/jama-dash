@@ -14,6 +14,7 @@ ALL_TEST_CYCLES = 'All Test Cycles'
 ALL_TEST_GROUPS = 'All Test Groups'
 ALL_PRIORITIES = 'All'
 
+
 class JamaReportsConfig:
     config = None
     colormap = None
