@@ -51,8 +51,9 @@ def get_chart_types():
         FIG_TYPE_NOTRUN_INPROGRESS_TESTGROUP_BAR_CHART,
         FIG_TYPE_CURRENT_RUNS_TABLE]
     return chart_types
-
+'''
 @cache.memoize()
+'''
 def connect(config):
     jama_url = os.environ.get('JAMA_API_URL')
     jama_api_username = os.environ.get('JAMA_API_USERNAME')
@@ -82,15 +83,21 @@ def connect(config):
 def read_config(config):
     return config.read_config_file()
 
+'''
 @cache.memoize()
+'''
 def get_testplans_ui(config):
     return config.get_testplan_names()
 
+'''
 @cache.memoize()
+'''
 def get_project_and_testplan(config, testplan_ui_key):
     return config.get_project_and_testplan(testplan_ui_key)
 
+'''
 @cache.memoize()
+'''
 def get_testcycles(client, config, testplan_ui_key):
     project, testplan = get_project_and_testplan(config=config, testplan_ui_key=testplan_ui_key)
     if project is None or testplan is None:
@@ -99,12 +106,15 @@ def get_testcycles(client, config, testplan_ui_key):
     if not len(testcycles) == 0:
         return [ALL_TEST_CYCLES, ] + testcycles
 
+'''
 @cache.memoize()
+'''
 def get_testcycle(testcycle_ui_key):
     return None if testcycle_ui_key == ALL_TEST_CYCLES else testcycle_ui_key
 
-
+'''
 @cache.memoize()
+'''
 def get_testruns(client, config, testplan_ui_key, testcycle_ui_key=None):
     project, testplan = config.get_project_and_testplan(testplan_ui_key=testplan_ui_key)
     if project is None or testplan is None:
@@ -116,25 +126,35 @@ def get_testruns(client, config, testplan_ui_key, testcycle_ui_key=None):
         return df1
     return df
 
+'''
 @cache.memoize()
+'''
 def get_testgroups(client, config, testplan_ui_key, testcycle_ui_key=None):
     df = get_testruns(client=client, config=config, testplan_ui_key=testplan_ui_key, testcycle_ui_key=testcycle_ui_key)
     testgroups = [ALL_TEST_GROUPS, ] + [c for c in iter(df.testgroup.unique())]
     return testgroups
 
+'''
 @cache.memoize()
+'''
 def get_testgroup(testgroup_ui_key):
     return None if testgroup_ui_key == ALL_TEST_GROUPS else testgroup_ui_key
 
+'''
 @cache.memoize()
+'''
 def get_colormap(config):
     return config.get_colormap()
 
+'''
 @cache.memoize()
+'''
 def get_start_date(config):
     return config.get_start_date()
 
+'''
 @cache.memoize()
+'''
 def get_test_deadline(config):
     return config.get_test_deadline()
 
@@ -146,7 +166,7 @@ client = connect(config=config)
 if client is None:
     exit(1)
 
-testplans_ui_global= get_testplans_ui(config=config)
+testplans_ui_global = get_testplans_ui(config=config)
 # get all test runs the first time so we can cache the results
 for t in testplans_ui_global:
     for c in get_testcycles(client=client, config=config, testplan_ui_key=t):
@@ -223,22 +243,22 @@ app.layout = get_app_layout
                State('id-test-cycle', 'value'),
                State('id-test-group', 'value')])
 def update_chart_data(n, testplan, testcycle, tesgroup):
-    '''
-    if n== 0:
+
+    if n == 0:
         return [html.Span('Initial Data')]
     for t in testplans_ui_global:
         project, testplan = config.get_project_and_testplan(testplan_ui_key=t)
         if project is None or testplan is None:
             return 'Project or Testplan missing in config'
         client.retrieve_testruns(project_key=project, testplan_key=testplan, update=True)
-    cache.delete_memoized(get_testruns)
-    cache.delete_memoized(get_chart)
-    '''
+    #cache.delete_memoized(get_testruns)
+    #cache.delete_memoized(get_chart)
     update_text = 'Last Updated: {} - Refresh to see updates'.format(datetime.now().strftime('%m-%d-%Y %H:%M:%S'))
     return [html.Span(update_text)]
 
-
+'''
 @cache.memoize()
+'''
 def get_chart(testplan_ui, testcycle_ui, testgroup_ui, chart_type):
     print('In Get chart: {}'.format(str(datetime.now().strftime('%M %d-%Y %H:%M:%S'))))
     testcycle = get_testcycle(testcycle_ui_key=testcycle_ui)
@@ -272,6 +292,7 @@ def get_chart(testplan_ui, testcycle_ui, testgroup_ui, chart_type):
                 df=df,
                 testcycle=testcycle,
                 testgroup=testgroup,
+                priority=None,
                 start_date=start_date,
                 test_deadline=test_deadline,
                 title=title,

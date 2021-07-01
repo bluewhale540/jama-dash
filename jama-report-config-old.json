@@ -1,0 +1,58 @@
+{
+  "product": "iDirect Jama Reports",
+  "version": 0.1,
+  "releaseDate": "2020-02-27T00:00:00.000Z",
+  "testplans": [
+    {
+      "project": "VRel",
+      "name": "2.7.1/3.1 Release Validation Test Plan - Ends By June 26, 2020",
+      "displayName": "SIT Release Validation Testing"
+    },
+    {
+      "project": "IQ800",
+      "name": "Modem DVT",
+      "displayName": "iQ800 Modem DVT"
+    },
+    {
+      "project": "PIT",
+      "name": "GX5_Phase1_Stage1_FAT2",
+      "displayName": "PIT FAT2 Execution"
+    },
+    {
+      "project": "PIT",
+      "name": "GX5_Phase1_Stage1_OSAT",
+      "displayName": "PIT OSAT Execution"
+    },
+    {
+      "project": "VRel",
+      "name": "2.7.1-3.1 FAT2 Testing (Priority2)",
+      "displayName": "SIT FAT2 P2 Regression"
+    },
+    {
+      "project": "VRel",
+      "name": "3.2.0.0-Regression",
+      "displayName": "3.2 Regression"
+    },
+    {
+      "project": "PIT",
+      "name": "GX5_Terminal_3.2.0.0_FAT_Dry_Run",
+      "displayName": "3.2 FAT/OSAT Dry Run"
+    },
+    {
+      "project": "PIT",
+      "name": "GX5_Terminal_3.2.0.0_FAT",
+      "displayName": "3.2 FAT Execution"
+    }
+  ],
+  "chartSettings": {
+	"testStart": "Feb 2 2020",
+	"testDeadline": "Mar 13 2020",
+    "colormap": {
+      "NOT_RUN": "darkslategray",
+      "PASSED": "green",
+      "FAILED": "firebrick",
+      "BLOCKED": "royalblue",
+      "INPROGRESS": "darkorange"
+    }
+  }
+}
