@@ -1,3 +1,5 @@
+import os
+import logger
 import dash
 from dash.dependencies import Input, Output, State
 import dash_core_components as dcc
@@ -16,11 +18,13 @@ from testrun_utils import get_testplan_labels, \
     get_testgroup_from_label, \
     get_priority_labels, \
     get_priority_from_label, \
-    json_to_df
+    json_to_df, \
+    retrieve_testruns
 
 import charts
 from charts import get_chart_types, get_default_colormap
 import redis_data
+import testrun_utils
 
 ID_DROPDOWN_TEST_PLAN='id-dropdown-test-plan'
 ID_DROPDOWN_TEST_CYCLE='id-dropdown-test-cycle'
@@ -118,14 +122,41 @@ server = app.server
 #tasks.update_data()
 
 redis_inst = redis_data.get_redis_inst()
+jama_url = os.environ.get('JAMA_API_URL')
+jama_api_username = os.environ.get('JAMA_API_USERNAME')
+jama_api_password = os.environ.get('JAMA_API_PASSWORD')
+
+if jama_url is None:
+    jama_url = 'https://paperclip.idirect.net'
+
 
 @cache.memoize()
 def get_data():
-    '''
-    Retrieve the dataframe from Redis
-    This dataframe is periodically updated through the redis task
-    '''
-    return redis_data.get_dataframe_json(redis_inst)
+    """
+    If Redis is available, retrieve the dataframe from Redis. This dataframe is periodically updated through the redis
+    task.
+
+    If Redis is not available, directly get the data from Contour
+    """
+    if redis_inst is not None:
+        return redis_data.get_dataframe_json(redis_inst)
+
+    # Attempt to get data directly from Contour
+    try:
+        df = retrieve_testruns(jama_url=jama_url,
+                               jama_username=jama_api_username,
+                               jama_password=jama_api_password)
+    except Exception as e:
+        logger.error(f'caught exception {e} trying to get test runs')
+        return None
+
+    if df is None:
+        logger.error('cannot retrieve data from Jama/Contour server. Check config file!')
+        return None
+
+    jsonified_df = testrun_utils.df_to_json(df)
+    return jsonified_df
+
 
 
 init_value = lambda a: a[0]['value'] if len(a) > 0 and 'value' in a[0] else None
@@ -176,7 +207,7 @@ def get_testgroup_options(testplan, testcycle):
                                                  testplan_key=testplan,
                                                  testcycle_key=get_testcycle_from_label(testcycle))]
     return testgroups
-get_testcycle_options
+
 @cache.memoize()
 def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, priority_ui, chart_type, colormap, **kwargs):
     return charts.get_chart(
@@ -459,7 +490,8 @@ def get_card_layout(card):
 
 
 def serve_layout():
-    modified_datetime = redis_data.get_modified_datetime(redis_inst)
+    modified_datetime = "Now"
+    #redis_data.get_modified_datetime(redis_inst)
 
     layout = dbc.Container(
         [
@@ -512,6 +544,7 @@ def serve_layout():
 
 app.layout = serve_layout
 
+'''
 @app.callback(
     Output('id-last-modified-hidden', 'children'),
     [Input('id-interval', 'n_intervals')],
@@ -549,7 +582,7 @@ def update_last_modified(n, prev_last_modified):
         return last_modified
     else:
         raise PreventUpdate
-
+'''
 
 
 @app.callback(

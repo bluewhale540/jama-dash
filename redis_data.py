@@ -7,7 +7,10 @@ import testrun_utils
 
 
 def get_redis_inst():
-    redis_inst = redis.StrictRedis.from_url(os.environ['REDIS_URL'])
+    redis_url = os.getenv('REDIS_URL')
+    if redis_url is None:
+        return None
+    redis_inst = redis.StrictRedis.from_url(redis_url)
     return redis_inst
 
 
