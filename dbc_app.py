@@ -35,6 +35,7 @@ ID_DATE_PICKER_DEADLINE='id-date-test-progress-deadline'
 ID_CHECKLIST_TEST_PROGRESS_OPTIONS='id-checklist-test-progress-options'
 ID_CHECKLIST_CURRENT_STATUS_BY_GROUP_OPTIONS='id-checklist-current-by-group-options'
 ID_CHECKLIST_TEST_RUNS_OPTIONS='id-checklist-test-runs-options'
+ID_CHECKLIST_WEEKLY_STATUS_OPTIONS='id-checklist-weekly-status-options'
 
 # checklist options for the test progress card
 CHECKLIST_LABEL_BLOCKED_NOT_RUN='blocked as not run'
@@ -154,6 +155,8 @@ def get_data():
         logger.error('cannot retrieve data from Jama/Contour server. Check config file!')
         return None
 
+    print(df)
+    df.to_csv('contour_data.csv', index=False)
     jsonified_df = testrun_utils.df_to_json(df)
     return jsonified_df
 
@@ -321,14 +324,21 @@ def get_test_progress_controls():
     ])
     return controls
 
+"""Generates the checklist controls for some charts
 
-def get_current_status_by_group_controls():
+Parameters:
+    id(constant): The id of the checklist
+
+Returns:
+    controls: The checklist controls for the app
+"""
+def get_current_status_by_group_controls(id):
     controls = dbc.Row([
         dbc.Col(
             dbc.FormGroup([
-                dbc.Label('select traces to show', html_for=ID_CHECKLIST_CURRENT_STATUS_BY_GROUP_OPTIONS),
+                dbc.Label('select traces to show', html_for=id),
                 dcc.Checklist(
-                    id=ID_CHECKLIST_CURRENT_STATUS_BY_GROUP_OPTIONS,
+                    id=id,
                     options=current_status_by_group_options,
                     value=[CHECKLIST_VALUE_SHOW_BLOCKED, CHECKLIST_VALUE_SHOW_FAILED],
                     labelStyle={'display': 'block'},
@@ -414,7 +424,7 @@ supported_cards = {
         CARD_KEY_COLLAPSE_BUTTON_ID: ID_COLLAPSE_BUTTON_CURRENT_STATUS_BY_GROUP,
         CARD_KEY_COLLAPSE_INITIAL_STATE: False,
         CARD_KEY_CHART_TYPE: charts.FIG_TYPE_CURRENT_STATUS_BY_TESTGROUP_BAR_CHART,
-        CARD_KEY_CONTROLS_LAYOUT_FUNC: get_current_status_by_group_controls(),
+        CARD_KEY_CONTROLS_LAYOUT_FUNC: get_current_status_by_group_controls(ID_CHECKLIST_CURRENT_STATUS_BY_GROUP_OPTIONS),
         CARD_KEY_CONTROLS_LIST: [
             dict(id=ID_CHECKLIST_CURRENT_STATUS_BY_GROUP_OPTIONS, type=CTRL_CHECKLIST,
                  kwarg_key={'show_not_run', 'show_blocked', 'show_inprogress', 'show_failed', 'show_passed'})
@@ -442,6 +452,11 @@ supported_cards = {
         CARD_KEY_COLLAPSE_BUTTON_ID: ID_COLLAPSE_BUTTON_WEEKLY_STATUS,
         CARD_KEY_COLLAPSE_INITIAL_STATE: False,
         CARD_KEY_CHART_TYPE: charts.FIG_TYPE_WEEKLY_STATUS_BAR_CHART,
+        CARD_KEY_CONTROLS_LAYOUT_FUNC: get_current_status_by_group_controls(ID_CHECKLIST_WEEKLY_STATUS_OPTIONS),
+        CARD_KEY_CONTROLS_LIST: [
+            dict(id=ID_CHECKLIST_WEEKLY_STATUS_OPTIONS, type=CTRL_CHECKLIST,
+                 kwarg_key={'show_not_run', 'show_blocked', 'show_inprogress', 'show_failed', 'show_passed'})
+        ]
     }
 }
 

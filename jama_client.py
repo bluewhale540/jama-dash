@@ -120,7 +120,9 @@ class jama_client:
     # invalid
     def __get_start_and_end_date(self, week_str):
         # strip 'Sprint\d_' prefix if it exists
-        result = re.findall('^Sprint\d+_', week_str)
+        print(week_str)
+        result = re.findall('^Sprint', week_str)
+        print(result)
         if len(result) == 0:
             return None, None
         dates = week_str[len(result[0]):]
@@ -181,6 +183,10 @@ class jama_client:
             # find the name for the 'Planned week' field in a test run
             pick_lists = self.client.get_pick_lists()
             planned_week_id = next(x for x in pick_lists if x['name'] == 'Planned week')['id']
+
+            print('LOG - the planned week ids:')
+            print(planned_week_id)
+            
             priority_id = next(x for x in pick_lists if x['name'] == 'Priority')['id']
             network_type_id = next(x for x in pick_lists if x['name'] == 'Network')['id']
             for x in self.testrun_obj['fields']:
@@ -199,16 +205,19 @@ class jama_client:
                     continue
 
             weeks = self.client.get_pick_list_options(planned_week_id)
+            print('LOG - the weeks:')
+            print(weeks)
+
             for x in weeks:
-                start_date, end_date = self.__get_start_and_end_date(x['name'])
-                if start_date is None:
-                    # will we ever get here?
-                    continue
-                self.planned_weeks_lookup[x['id']] = start_date
-                self.planned_weeks.append(start_date)
+                week = x['name']
+                self.planned_weeks_lookup[x['id']] = week
+                self.planned_weeks.append(week)
             self.planned_weeks = sorted(self.planned_weeks)
-            # Add None to the list for tests with aunassigned weeks
+            # Add None to the list for tests with unassigned weeks
             self.planned_weeks = [None] + self.planned_weeks
+
+            print('LOG - the planned weeks:')
+            print (self.planned_weeks)
 
             priorities = self.client.get_pick_list_options(priority_id)
             for x in priorities:

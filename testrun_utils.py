@@ -13,6 +13,7 @@ from jama_client import COL_STATUS, COL_PRIORITY, COL_NETWORK_TYPE
 ALL_TEST_CYCLES = 'All Test Cycles'
 ALL_TEST_GROUPS = 'All Test Groups'
 ALL_PRIORITIES = 'All'
+ALL_WEEKS = 'All Weeks'
 
 
 class JamaReportsConfig:
@@ -109,7 +110,7 @@ STATUS_BLOCKED = 'BLOCKED'
 def get_status_names():
     return [STATUS_NOT_RUN, STATUS_PASSED, STATUS_FAILED, STATUS_INPROGRESS, STATUS_BLOCKED]
 
-def filter_df(df, testplan_key=None, testcycle_key=None, testgroup_key=None, priority_key=None):
+def filter_df(df, testplan_key=None, testcycle_key=None, testgroup_key=None, priority_key=None, week_key=None):
     df1 = df
     if testplan_key is not None:
         df1 = df1[df1.testplan.eq(testplan_key)]
@@ -119,6 +120,8 @@ def filter_df(df, testplan_key=None, testcycle_key=None, testgroup_key=None, pri
         df1 = df1[df1.testgroup.eq(testgroup_key)]
     if priority_key is not None:
         df1 = df1[df1.priority.eq(priority_key)]
+    if week_key is not None:
+        df1 = df1[df1.planned_week.eq(week_key)]
     return df1
 
 
@@ -305,6 +308,12 @@ def get_testgroup_labels(df, testplan_key, testcycle_key):
     labels += [x for x in df1.testgroup.unique()] if COL_TESTGROUP in df.columns else []
     return labels
 
+def get_planned_week_labels(df, testplan_key, testcycle_key):
+    labels = [ALL_WEEKS, ]
+    df1 = filter_df(df=df, testplan_key=testplan_key, testcycle_key=testcycle_key)
+    labels += [x for x in df1.planned_week.unique()] if COL_PLANNED_WEEK in df.columns else []
+    return labels
+
 def get_testcycle_from_label(label):
     return None if label == ALL_TEST_CYCLES else label
 
@@ -313,6 +322,9 @@ def get_testgroup_from_label(label):
 
 def get_priority_from_label(label):
     return None if label == ALL_PRIORITIES else label
+
+def get_planned_week_from_label(label):
+    return None if label == ALL_WEEKS else label
 
 def df_to_json(df: pd.DataFrame):
     return df.to_json(date_format='iso', orient='split') \
@@ -325,5 +337,5 @@ def json_to_df(json_str):
     df[COL_CREATED_DATE] = convert_date_column(df, COL_CREATED_DATE, date_format)
     df[COL_MODIFIED_DATE] = convert_date_column(df, COL_MODIFIED_DATE, date_format)
     df[COL_EXECUTION_DATE] = convert_date_column(df, COL_EXECUTION_DATE, date_format)
-    df[COL_PLANNED_WEEK] = convert_date_column(df, COL_PLANNED_WEEK, date_format)
+    #df[COL_PLANNED_WEEK] = convert_date_column(df, COL_PLANNED_WEEK, date_format)
     return df

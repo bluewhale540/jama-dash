@@ -45,6 +45,11 @@ def update_data():
         df = testrun_utils.retrieve_testruns(jama_url=jama_url,
                                                        jama_username=jama_api_username,
                                                        jama_password=jama_api_password)
+
+        df.fillna("",inplace=True)
+        print(df['planned_week'])
+        df.to_csv('contour_data.csv', index=False)
+
     except Exception as e:
         logger.error(f'caught exception {e} trying to get test runs')
         return
@@ -72,3 +77,6 @@ def update_data():
 
     # set updated time
     redis_data.set_updated_datetime(redis_instance)
+
+# update the data - modifed by mathew
+update_data()
