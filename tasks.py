@@ -42,10 +42,7 @@ def update_data():
         jama_url = 'https://paperclip.idirect.net'
 
     try:
-        df = testrun_utils.retrieve_testruns(jama_url=jama_url,
-                                                       jama_username=jama_api_username,
-                                                       jama_password=jama_api_password)
-
+        df = testrun_utils.retrieve_testruns(jama_username=jama_api_username, jama_password=jama_api_password)
         df.fillna("",inplace=True)
         print(df['planned_week'])
         df.to_csv('contour_data.csv', index=False)

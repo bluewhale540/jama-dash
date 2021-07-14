@@ -162,6 +162,14 @@ class jama_client:
         end_date = date(year=end_year, month=end_month, day=end_day)
         return start_date, end_date
 
+    '''Initializes the JamaClient class
+
+    Parameters:
+        url(string): The base URL of the Jama instance
+        username(string): The username for the Jama login
+        password(string): The password for the Jama login
+        projkey_list:
+    '''
     def connect(self, url, username, password, projkey_list):
         # Create the Jama client
         try:
@@ -184,8 +192,8 @@ class jama_client:
             pick_lists = self.client.get_pick_lists()
             planned_week_id = next(x for x in pick_lists if x['name'] == 'Planned week')['id']
 
-            print('LOG - the planned week ids:')
-            print(planned_week_id)
+            #print('LOG - the planned week ids:')
+            #print(planned_week_id)
             
             priority_id = next(x for x in pick_lists if x['name'] == 'Priority')['id']
             network_type_id = next(x for x in pick_lists if x['name'] == 'Network')['id']
@@ -205,8 +213,8 @@ class jama_client:
                     continue
 
             weeks = self.client.get_pick_list_options(planned_week_id)
-            print('LOG - the weeks:')
-            print(weeks)
+            #print('LOG - the weeks:')
+            #print(weeks)
 
             for x in weeks:
                 week = x['name']
@@ -216,8 +224,8 @@ class jama_client:
             # Add None to the list for tests with unassigned weeks
             self.planned_weeks = [None] + self.planned_weeks
 
-            print('LOG - the planned weeks:')
-            print (self.planned_weeks)
+            #print('LOG - the planned weeks:')
+            #print (self.planned_weeks)
 
             priorities = self.client.get_pick_list_options(priority_id)
             for x in priorities:
@@ -234,14 +242,21 @@ class jama_client:
         self.url = url
         return True
 
+    '''Gets a list of testcycles in a given project and testplan
+
+    Parameters:
+        project_id(int): The ID of the project
+        testplan_key(string): The name of the testplan
+    
+    Returns:
+        testcycles(list): A list of testcycles in the testplan
+    '''
     def retrieve_testcycles(self, project_key, testplan_key, update=False):
         testcycles = self.testcycle_db.get((project_key, testplan_key))
         if not update and self.testcycle_db is not None and testcycles is not None:
             return testcycles
 
-        project_id = self.project_id_lookup[project_key]
-        if project_id is None:
-            print(f'Invalid project {project_key}')
+        project_id = project_key
         #print(f'querying for test plan {testplan_key}...')
         # get all test plans in project
         try:
@@ -279,6 +294,16 @@ class jama_client:
         self.testcycle_db[(project_key, testplan_key)] = testcycles
         return testcycles
 
+    '''Gets a list of testruns in a given project, testplan, and testcycle
+
+    Parameters:
+        project_id(int): The ID of the project
+        testplan_key(string): The name of the testplan
+        testcycle_key(string): The name of the testcycle
+    
+    Returns:
+        new_df(JSON): A JSON containing all the testruns
+    '''
     def retrieve_testruns(self, project_key, testplan_key, testcycle_key=None, update=False):
         # check for cached test run data
         if not self.df.empty:

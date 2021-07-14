@@ -9,6 +9,7 @@ from jama_client import jama_client
 from jama_client import COL_PROJECT, COL_TESTPLAN, COL_TESTCYCLE, COL_TESTGROUP, COL_TESTRUN
 from jama_client import COL_CREATED_DATE, COL_MODIFIED_DATE, COL_EXECUTION_DATE, COL_PLANNED_WEEK
 from jama_client import COL_STATUS, COL_PRIORITY, COL_NETWORK_TYPE
+import rest_client
 
 ALL_TEST_CYCLES = 'All Test Cycles'
 ALL_TEST_GROUPS = 'All Test Groups'
@@ -24,6 +25,7 @@ class JamaReportsConfig:
     testplan_lookup = {}
     config_file_path = '<Invalid>'
     config_file_name = 'jama-report-config.json'
+    url = None
 
     def __init__(self):
         pass
@@ -55,21 +57,18 @@ class JamaReportsConfig:
             print(f'{e}')
             return False
 
-        testplans = self.config.get('testplans')
-        if testplans is None:
-            print('Invalid config. No testplans found!')
+        self.url = self.config.get('url')
+        projects = self.config.get('projects')
+        if projects is None:
+            print('Invalid config. No projects found!')
             return False
-        for t in testplans:
-            title = t.get('displayName')
-            project = t.get(COL_PROJECT)
-            testplan = t.get('name')
-            if project is None or testplan is None:
-                print('missing project or testplan in config. Skipping...')
-                continue
-            if title is None:
-                title = project + ':' + testplan
-            # add to lookup
-            self.testplan_lookup[title] = (project, testplan)
+
+        for project in projects:
+            active_plans = rest_client.get_active_testplans(self.url, project)
+            for plan in active_plans:
+                title = '{}: {}'.format(project, plan)
+                # add plan to lookup
+                self.testplan_lookup[title] = (project, plan)
 
         chart_settings = self.config.get('chartSettings')
         if chart_settings is not None:
@@ -79,6 +78,9 @@ class JamaReportsConfig:
         dt = chart_settings.get('testDeadline')
         self.test_deadline = parser.parse(dt) if dt is not None else None
         return True
+
+    def get_url(self):
+        return self.url
 
     def get_projects(self):
         if self.testplan_lookup is None:
@@ -110,19 +112,32 @@ STATUS_BLOCKED = 'BLOCKED'
 def get_status_names():
     return [STATUS_NOT_RUN, STATUS_PASSED, STATUS_FAILED, STATUS_INPROGRESS, STATUS_BLOCKED]
 
+'''Filters the testrun dataframe by matching the specified keys
+
+Parameters:
+    df(dataframe): The dataframe
+    testplan_key(string): The name of the testplan
+    testcycle_key(string): The name of the testcycle
+    testgroup_key(string): The name of the testgroup
+    priority_key(string): The priority of the testruns
+    week_key(string): The planned week of the testruns
+    
+Returns:
+    filtered(dataframe): The filtered dataframe
+'''
 def filter_df(df, testplan_key=None, testcycle_key=None, testgroup_key=None, priority_key=None, week_key=None):
-    df1 = df
+    filtered = df
     if testplan_key is not None:
-        df1 = df1[df1.testplan.eq(testplan_key)]
+        filtered = filtered[filtered.testplan.eq(testplan_key)]
     if testcycle_key is not None:
-        df1 = df1[df1.testcycle.eq(testcycle_key)]
+        filtered = filtered[filtered.testcycle.eq(testcycle_key)]
     if testgroup_key is not None:
-        df1 = df1[df1.testgroup.eq(testgroup_key)]
+        filtered = filtered[filtered.testgroup.eq(testgroup_key)]
     if priority_key is not None:
-        df1 = df1[df1.priority.eq(priority_key)]
+        filtered = filtered[filtered.priority.eq(priority_key)]
     if week_key is not None:
-        df1 = df1[df1.planned_week.eq(week_key)]
-    return df1
+        filtered = filtered[filtered.planned_week.eq(week_key)]
+    return filtered
 
 
 # retuns an array of counts of the values in the status field in the df
@@ -252,13 +267,22 @@ def get_testrun_status_historical(df, testcycle_key=None, testgroup_key=None, pr
     df3['date'] = pd.to_datetime(df3['date'])
     return df3
 
-# connect to JAMA server, download testruns for all testplans in config and return testruns as a JSON
-def retrieve_testruns(jama_url: str, jama_username: str, jama_password: str):
+'''connect to JAMA server, download testruns for all testplans and return testruns as a JSON
+
+Parameters:
+    jama_username(string): The username for the Jama login
+    jama_password(string): The password for the Jama login
+
+Returns:
+    df(JSON): All of the testruns as a JSON
+'''
+def retrieve_testruns(jama_username: str, jama_password: str):
     config = JamaReportsConfig()
     if not config.read_config_file():
         print('Error reading config file!')
         return None
     client = jama_client(blocking_as_not_run=False, inprogress_as_not_run=False)
+    jama_url = config.get_url()
     projects = config.get_projects()
     if len(projects) == 0:
         print('No projects found in config file')
@@ -266,8 +290,8 @@ def retrieve_testruns(jama_url: str, jama_username: str, jama_password: str):
     if not client.connect(url=jama_url, username=jama_username, password=jama_password, projkey_list=config.get_projects()):
         print('Error getting data from Jama/Contour')
         return None
-    # download test runs
 
+    # download test runs
     frames = []
     for testplan_name in config.get_testplan_names():
         project, testplan = config.get_project_and_testplan(testplan_ui_key=testplan_name)
