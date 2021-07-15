@@ -11,6 +11,7 @@ from jama_client import COL_CREATED_DATE, COL_MODIFIED_DATE, COL_EXECUTION_DATE,
 from jama_client import COL_STATUS, COL_PRIORITY, COL_NETWORK_TYPE
 import rest_client
 
+
 ALL_TEST_CYCLES = 'All Test Cycles'
 ALL_TEST_GROUPS = 'All Test Groups'
 ALL_PRIORITIES = 'All'
@@ -103,14 +104,17 @@ class JamaReportsConfig:
     def get_test_deadline(self):
         return self.test_deadline
 
+
 STATUS_NOT_RUN = 'NOT_RUN'
 STATUS_PASSED = 'PASSED'
 STATUS_FAILED = 'FAILED'
 STATUS_INPROGRESS = 'INPROGRESS'
 STATUS_BLOCKED = 'BLOCKED'
 
+
 def get_status_names():
     return [STATUS_NOT_RUN, STATUS_PASSED, STATUS_FAILED, STATUS_INPROGRESS, STATUS_BLOCKED]
+
 
 '''Filters the testrun dataframe by matching the specified keys
 
@@ -125,7 +129,7 @@ Parameters:
 Returns:
     filtered(dataframe): The filtered dataframe
 '''
-def filter_df(df, testplan_key=None, testcycle_key=None, testgroup_key=None, priority_key=None, week_key=None):
+def filter_df(df, testplan_key=None, testcycle_key=None, testgroup_key=None, priority_key=None, person_key=None, week_key=None):
     filtered = df
     if testplan_key is not None:
         filtered = filtered[filtered.testplan.eq(testplan_key)]
@@ -135,6 +139,8 @@ def filter_df(df, testplan_key=None, testcycle_key=None, testgroup_key=None, pri
         filtered = filtered[filtered.testgroup.eq(testgroup_key)]
     if priority_key is not None:
         filtered = filtered[filtered.priority.eq(priority_key)]
+    if person_key is not None:
+        filtered = filtered[filtered.assigned_to.eq(person_key)]
     if week_key is not None:
         filtered = filtered[filtered.planned_week.eq(week_key)]
     return filtered
@@ -222,6 +228,7 @@ def get_testrun_status_by_planned_weeks(df, testcycle_key=None, testgroup_key=No
     df = pd.DataFrame(t, columns=[COL_PLANNED_WEEK] + status_list)
     return df
 
+
 def get_testruns_for_current_week(df, testcycle_key=None, testgroup_key=None, priority_key=None):
     df1 = filter_df(df, testcycle_key=testcycle_key, testgroup_key=testgroup_key, priority_key=priority_key)
     planned_weeks = df1.planned_week.unique()
@@ -267,6 +274,7 @@ def get_testrun_status_historical(df, testcycle_key=None, testgroup_key=None, pr
     df3['date'] = pd.to_datetime(df3['date'])
     return df3
 
+
 '''connect to JAMA server, download testruns for all testplans and return testruns as a JSON
 
 Parameters:
@@ -287,7 +295,7 @@ def retrieve_testruns(jama_username: str, jama_password: str):
     if len(projects) == 0:
         print('No projects found in config file')
         return None
-    if not client.connect(url=jama_url, username=jama_username, password=jama_password, projkey_list=config.get_projects()):
+    if not client.connect(url=jama_url, username=jama_username, password=jama_password):
         print('Error getting data from Jama/Contour')
         return None
 
@@ -295,7 +303,7 @@ def retrieve_testruns(jama_username: str, jama_password: str):
     frames = []
     for testplan_name in config.get_testplan_names():
         project, testplan = config.get_project_and_testplan(testplan_ui_key=testplan_name)
-        df = client.retrieve_testruns(project_key=project, testplan_key=testplan)
+        df = client.retrieve_testruns(project_id=project, testplan_key=testplan)
         if df is None:
             # skip
             continue
@@ -306,6 +314,7 @@ def retrieve_testruns(jama_username: str, jama_password: str):
     df = pd.concat(frames)
     return df
 
+
 # get list of priorities in DF
 def get_priority_labels(df, testplan_key, testcycle_key, testgroup_key):
     labels = [ALL_PRIORITIES, ]
@@ -314,9 +323,11 @@ def get_priority_labels(df, testplan_key, testcycle_key, testgroup_key):
     labels += [x for x in df1.priority.unique()] if COL_PRIORITY in df.columns else []
     return labels
 
+
 # get list of testplans in DF
 def get_testplan_labels(df):
     return df.testplan.unique() if COL_TESTPLAN in df.columns else []
+
 
 # get list of testcycles in DF given testplan
 def get_testcycle_labels(df, testplan_key):
@@ -325,6 +336,7 @@ def get_testcycle_labels(df, testplan_key):
     labels += [x for x in df1.testcycle.unique()] if COL_TESTCYCLE in df.columns else []
     return labels
 
+
 # get list of testcycles in DF given testplan
 def get_testgroup_labels(df, testplan_key, testcycle_key):
     labels = [ALL_TEST_GROUPS, ]
@@ -332,27 +344,34 @@ def get_testgroup_labels(df, testplan_key, testcycle_key):
     labels += [x for x in df1.testgroup.unique()] if COL_TESTGROUP in df.columns else []
     return labels
 
+
 def get_planned_week_labels(df, testplan_key, testcycle_key):
     labels = [ALL_WEEKS, ]
     df1 = filter_df(df=df, testplan_key=testplan_key, testcycle_key=testcycle_key)
     labels += [x for x in df1.planned_week.unique()] if COL_PLANNED_WEEK in df.columns else []
     return labels
 
+
 def get_testcycle_from_label(label):
     return None if label == ALL_TEST_CYCLES else label
+
 
 def get_testgroup_from_label(label):
     return None if label == ALL_TEST_GROUPS else label
 
+
 def get_priority_from_label(label):
     return None if label == ALL_PRIORITIES else label
+
 
 def get_planned_week_from_label(label):
     return None if label == ALL_WEEKS else label
 
+
 def df_to_json(df: pd.DataFrame):
     return df.to_json(date_format='iso', orient='split') \
         if df is not None else None
+
 
 def json_to_df(json_str):
     df = pd.read_json(json_str, orient='split')

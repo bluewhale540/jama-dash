@@ -95,6 +95,7 @@ def get_testgroup_status_bar_chart(df, testcycle, testgroup, priority, colormap,
             autosize=True))
     return figure
 
+
 def get_planned_week_bar_chart(df, testcycle, testgroup, priority, colormap, **kwargs):
     status_list = []
     if kwargs.get('show_not_run') is not None and kwargs['show_not_run'] is True:
@@ -111,21 +112,16 @@ def get_planned_week_bar_chart(df, testcycle, testgroup, priority, colormap, **k
     df1 = filter_df(df, testcycle_key=testcycle, testgroup_key=testgroup, priority_key=priority)
 
     weeks = [x for x  in iter(df1.planned_week.unique())]
-    print(weeks)
 
     data = []
-    print('LOG: status list')
-    print(status_list)
     for week in weeks:
-        df2 = filter_df(df, week_key=week)
+        df2 = filter_df(df1, week_key=week)
         counts = df2['status'].value_counts()
-        print(counts)
         total = 0
         for s in status_list:
             val = counts.get(s)
             if val is not None:
                 total += val
-        print(total)
         if total == 0:
             continue
 
@@ -136,7 +132,6 @@ def get_planned_week_bar_chart(df, testcycle, testgroup, priority, colormap, **k
         d.update(counts)
         data.append(d)
 
-    print(data)
     if len(data) == 0:
         return html.P(f'No test cases with status in {status_list}')
 
@@ -145,7 +140,75 @@ def get_planned_week_bar_chart(df, testcycle, testgroup, priority, colormap, **k
     df3.sort_values('planned_week', axis=0, ascending=True, inplace=True, na_position='first')
     data = []
     x_axis = df3['planned_week'].values
-    #print(x_axis)
+
+    for status in status_list:
+        y_axis = df3[status]
+        data.append(dict(name=status, x=x_axis, y=y_axis, type='bar',
+                         text=y_axis,
+                         textposition='auto',
+                         marker=dict(color=colormap[status])))
+    figure = dict(
+        data=data,
+        layout=dict(
+            height=800,
+            xaxis = dict(tickangle = 30),
+            yaxis=dict(title='Number Of Test Runs'),
+            margin=dict(b=200, r=100),
+            barmode='stack',
+            autosize=True))
+    return figure
+
+'''Generate the current status by person bar chart
+
+TODO: 
+    Functionalize all bar charts
+    Add explanations
+'''
+def get_person_bar_chart(df, testcycle, testgroup, priority, colormap, **kwargs):
+    status_list = []
+    if kwargs.get('show_not_run') is not None and kwargs['show_not_run'] is True:
+        status_list.append(STATUS_NOT_RUN)
+    if kwargs.get('show_inprogress') is not None and kwargs['show_inprogress'] is True:
+        status_list.append(STATUS_INPROGRESS)
+    if kwargs.get('show_blocked') is not None and kwargs['show_blocked'] is True:
+        status_list.append(STATUS_BLOCKED)
+    if kwargs.get('show_passed') is not None and kwargs['show_passed'] is True:
+        status_list.append(STATUS_PASSED)
+    if kwargs.get('show_failed') is not None and kwargs['show_failed'] is True:
+        status_list.append(STATUS_FAILED)
+
+    df1 = filter_df(df, testcycle_key=testcycle, testgroup_key=testgroup, priority_key=priority)
+
+    people = [x for x  in iter(df1.assigned_to.unique())]
+
+    data = []
+    for person in people:
+        df2 = filter_df(df1, person_key=person)
+        counts = df2['status'].value_counts()
+
+        total = 0
+        for s in status_list:
+            val = counts.get(s)
+            if val is not None:
+                total += val
+        if total == 0:
+            continue
+
+        d = {
+            'assigned_to': person,
+            'total': total
+        }
+        d.update(counts)
+        data.append(d)
+
+    if len(data) == 0:
+        return html.P(f'No test cases with status in {status_list}')
+
+    df3 = pd.DataFrame(data, columns=['assigned_to', 'total'] + status_list)
+    #df3.sort_values(by=['total'], ascending=False, inplace=True)
+    df3.sort_values('assigned_to', axis=0, ascending=True, inplace=True, na_position='first')
+    data = []
+    x_axis = df3['assigned_to'].values
 
     for status in status_list:
         y_axis = df3[status]

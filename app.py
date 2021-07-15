@@ -75,7 +75,7 @@ def connect(config):
     proj_list = config.get_projects()
 
     client = jama_client(blocking_as_not_run=False, inprogress_as_not_run=False)
-    if not client.connect(url=jama_url, username=jama_api_username, password=jama_api_password, projkey_list=proj_list):
+    if not client.connect(url=jama_url, username=jama_api_username, password=jama_api_password, project_list=proj_list):
         print('Error getting data from Jama/Contour')
         return None
     return client
@@ -250,7 +250,7 @@ def update_chart_data(n, testplan, testcycle, tesgroup):
         project, testplan = config.get_project_and_testplan(testplan_ui_key=t)
         if project is None or testplan is None:
             return 'Project or Testplan missing in config'
-        client.retrieve_testruns(project_key=project, testplan_key=testplan, update=True)
+        client.retrieve_testruns(project_id=project, testplan_key=testplan, update=True)
     #cache.delete_memoized(get_testruns)
     #cache.delete_memoized(get_chart)
     update_text = 'Last Updated: {} - Refresh to see updates'.format(datetime.now().strftime('%m-%d-%Y %H:%M:%S'))

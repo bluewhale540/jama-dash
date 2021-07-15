@@ -30,7 +30,6 @@ class jama_client:
     testcycle_db = {}  # DB of test cycles for the projects and test plans we want to track
     planned_weeks_lookup = {}  # dict of planned week id to name
     planned_weeks = [] # sorted list of start dates of planned weeks
-    project_id_lookup = {} # dict of project keys to id
     user_id_lookup = {} # dict of user ids to names
     network_type_id_lookup = {} # dict of network ids to names
     priority_id_lookup = {} # dict of priority ids to names
@@ -54,7 +53,6 @@ class jama_client:
         if not blocking_as_not_run:
             self.status_list.append('BLOCKED')
 
-
     def __get_user_info_from_jama(self, user_id):
         try:
             response = requests.get(self.url + '/rest/latest/users/' + str(user_id), auth=(self.username, self.password))
@@ -74,7 +72,6 @@ class jama_client:
             last_name = data['lastName']
             return first_name + ' ' + last_name
 
-
     # query the name for a user id
     def __get_user_from_id(self, user_id):
         if user_id is None:
@@ -91,91 +88,18 @@ class jama_client:
     def __get_network_type_from_id(self, id):
         return self.network_type_id_lookup.get(id) if id is not None else 'Unassigned'
 
-
-    # download the list of project ids given a list of project keys (names)
-    def __get_projects_info(self, projkey_list):
-        # get a list of all projects - not efficient but py_jama_rest_client does not support
-        # searching using a project key
-        # TODO: use REST API directly
-        print('getting a list of all projects...')
-        all_projects = self.client.get_projects()
-
-        for x in all_projects:
-            p = x.get('projectKey')
-            if p is None or x['isFolder'] is True:
-                continue
-
-            projkey_list = [a for a in projkey_list if a not in iter(self.project_id_lookup)]
-            for project_key in projkey_list:
-                if p == project_key:
-                    self.project_id_lookup[project_key] = x['id']
-                    print('found project {}!'.format(project_key))
-        if len(projkey_list) != 0:
-            print('following projects not found -')
-            for proj in projkey_list:
-                print(f'\t{proj}')
-
-    # process the week string in the format SprintX_mmmdd_mmmdd or SprintX_mmmdd_dd
-    # and return the start and end dates in the string. Returns None, None if format is
-    # invalid
-    def __get_start_and_end_date(self, week_str):
-        # strip 'Sprint\d_' prefix if it exists
-        print(week_str)
-        result = re.findall('^Sprint', week_str)
-        print(result)
-        if len(result) == 0:
-            return None, None
-        dates = week_str[len(result[0]):]
-        result = re.findall('^\D+', dates)
-        month_map = {'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5,
-                     'Jun': 6, 'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10,
-                     'Nov': 11, 'Dec': 12}
-        if len(result) == 0 or result[0] not in iter(month_map):
-            return None, None
-        start_month = month_map[result[0]]
-        end_month = start_month
-        days = re.split('-', dates[len(result[0]):])
-        if len(days) < 2:
-            return None, None
-        start_day = int(days[0])
-        # check for second month
-        result = re.findall('^\D+', days[1])
-        if len(result) != 0:
-            if result[0] not in iter(month_map):
-                return None, None
-            else:
-                end_month = month_map[result[0]]
-                days[1] = days[1][len(result[0]):]
-        end_day = int(days[1])
-
-        current_year = date.today().year
-        current_month = date.today().month
-        start_year = current_year
-        end_year = current_year
-        # empirically check if we are straddling years
-        # (assume month > current month + 6) as the threshold
-        if start_month > current_month + 6:
-            start_year -= 1
-        if end_month > current_month + 6:
-            end_year -= 1
-        start_date = date(year=start_year, month=start_month, day=start_day)
-        end_date = date(year=end_year, month=end_month, day=end_day)
-        return start_date, end_date
-
     '''Initializes the JamaClient class
 
     Parameters:
         url(string): The base URL of the Jama instance
         username(string): The username for the Jama login
         password(string): The password for the Jama login
-        projkey_list:
     '''
-    def connect(self, url, username, password, projkey_list):
+    def connect(self, url, username, password):
         # Create the Jama client
         try:
             self.client = JamaClient(host_domain=url, credentials=(username, password))
-            # create project id lookup table
-            self.__get_projects_info(projkey_list)
+
             # get item types for test plans and cycles
             self.item_types = self.client.get_item_types()
             self.testplan_type = next(x for x in self.item_types if x['typeKey'] == 'TSTPL')['id']
@@ -251,12 +175,11 @@ class jama_client:
     Returns:
         testcycles(list): A list of testcycles in the testplan
     '''
-    def retrieve_testcycles(self, project_key, testplan_key, update=False):
-        testcycles = self.testcycle_db.get((project_key, testplan_key))
+    def retrieve_testcycles(self, project_id, testplan_key, update=False):
+        testcycles = self.testcycle_db.get((project_id, testplan_key))
         if not update and self.testcycle_db is not None and testcycles is not None:
             return testcycles
 
-        project_id = project_key
         #print(f'querying for test plan {testplan_key}...')
         # get all test plans in project
         try:
@@ -291,7 +214,7 @@ class jama_client:
 
         # we just need test cycle id and name for our purposes
         testcycles = [(x['id'], x['fields']['name']) for x in tc]
-        self.testcycle_db[(project_key, testplan_key)] = testcycles
+        self.testcycle_db[(project_id, testplan_key)] = testcycles
         return testcycles
 
     '''Gets a list of testruns in a given project, testplan, and testcycle
@@ -304,13 +227,13 @@ class jama_client:
     Returns:
         new_df(JSON): A JSON containing all the testruns
     '''
-    def retrieve_testruns(self, project_key, testplan_key, testcycle_key=None, update=False):
+    def retrieve_testruns(self, project_id, testplan_key, testcycle_key=None, update=False):
         # check for cached test run data
         if not self.df.empty:
             print('checking cached test runs for project {} and test plan {}{}...'
-                  .format(project_key, testplan_key,
+                  .format(project_id, testplan_key,
                           '' if testcycle_key is None else ' and test cycle {}'.format(testcycle_key)))
-            query_df = self.df[self.df.project.isin([project_key]) & self.df.testplan.isin([testplan_key])]
+            query_df = self.df[self.df.project.isin([project_id]) & self.df.testplan.isin([testplan_key])]
             if not query_df.empty and testcycle_key is not None:
                 # filter by test cycle key
                 query_df = query_df[query_df.testcycle.isin([testcycle_key])]
@@ -324,8 +247,8 @@ class jama_client:
                     # remove any cached runs for this test plan
                     self.df = self.df[~self.df.testplan.eq(testplan_key)]
 
-        print('retrieving test runs for project {} and test plan {}...'.format(project_key, testplan_key))
-        testcycles = self.retrieve_testcycles(project_key=project_key, testplan_key=testplan_key)
+        print('retrieving test runs for project {} and test plan {}...'.format(project_id, testplan_key))
+        testcycles = self.retrieve_testcycles(project_id=project_id, testplan_key=testplan_key)
         if testcycles is None:
             print(f'invalid testplan {testplan_key}')
             return None
@@ -354,7 +277,7 @@ class jama_client:
                 network_type = self.__get_network_type_from_id(fields.get(self.network_type_field_name))
                 priority_id = fields.get(self.priority_field_name)
                 priority = self.__get_priority_from_id(priority_id)
-                row = [project_key,
+                row = [project_id,
                        testplan_key,
                        testcycle_name,
                        fields.get('testRunSetName'),

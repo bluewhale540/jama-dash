@@ -9,8 +9,6 @@ from celery import Celery
 from celery.utils.log import get_task_logger
 
 
-
-
 celery_app = Celery('iDirect Contour Reports App', broker=os.environ['REDIS_URL'])
 redis_instance = redis.StrictRedis.from_url(os.environ['REDIS_URL'])
 logger = get_task_logger(__name__)
@@ -44,7 +42,6 @@ def update_data():
     try:
         df = testrun_utils.retrieve_testruns(jama_username=jama_api_username, jama_password=jama_api_password)
         df.fillna("",inplace=True)
-        print(df['planned_week'])
         df.to_csv('contour_data.csv', index=False)
 
     except Exception as e:
