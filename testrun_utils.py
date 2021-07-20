@@ -34,7 +34,7 @@ class JamaReportsConfig:
     def __repr__(self):
         return f'{self.__class__.__name__})'
 
-    def read_config_file(self):
+    def read_config_file(self, username, password):
         for settings_dir in [expanduser('~'), '.']:
             path = settings_dir + '/' + self.config_file_name
             if isfile(path):
@@ -65,7 +65,7 @@ class JamaReportsConfig:
             return False
 
         for project in projects:
-            active_plans = rest_client.get_active_testplans(self.url, project)
+            active_plans = rest_client.get_active_testplans(self.url, project, username, password)
             for plan in active_plans:
                 title = '{}: {}'.format(project, plan)
                 # add plan to lookup
@@ -286,7 +286,7 @@ Returns:
 '''
 def retrieve_testruns(jama_username: str, jama_password: str):
     config = JamaReportsConfig()
-    if not config.read_config_file():
+    if not config.read_config_file(jama_username, jama_password):
         print('Error reading config file!')
         return None
     client = jama_client(blocking_as_not_run=False, inprogress_as_not_run=False)

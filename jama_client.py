@@ -21,6 +21,8 @@ COL_PRIORITY = 'priority'
 COL_NETWORK_TYPE = 'network_type'
 COL_ASSIGNED_TO = 'assigned_to'
 COL_BUG_ID = 'bug_id'
+COL_TEST_NETWORK = 'test_network'
+COL_EXECUTION_METHOD = 'execution_method'
 
 
 class jama_client:
@@ -31,8 +33,10 @@ class jama_client:
     planned_weeks_lookup = {}  # dict of planned week id to name
     planned_weeks = [] # sorted list of start dates of planned weeks
     user_id_lookup = {} # dict of user ids to names
-    network_type_id_lookup = {} # dict of network ids to names
     priority_id_lookup = {} # dict of priority ids to names
+    network_type_id_lookup = {} # dict of network ids to names
+    test_network_id_lookup = {} # dict of test network ids to names
+    execution_method_id_lookup = {} #dict of execution method ids to names
 
     def __repr__(self):
         return f'{self.__class__.__name__})'
@@ -82,11 +86,25 @@ class jama_client:
             self.user_id_lookup[user_id] = user
         return user
 
+    '''Gets the priority string from the ID
+    
+    Parameters:
+        id (int): The ID of the priority
+        
+    Returns:
+        The priority string
+    '''
     def __get_priority_from_id(self, id):
         return self.priority_id_lookup.get(id) if id is not None else 'Unassigned'
 
     def __get_network_type_from_id(self, id):
         return self.network_type_id_lookup.get(id) if id is not None else 'Unassigned'
+
+    def __get_test_network_from_id(self, id):
+        return self.test_network_id_lookup.get(id) if id is not None else 'Unassigned'
+
+    def __get_execution_method_from_id(self, id):
+        return self.execution_method_id_lookup.get(id) if id is not None else 'Unassigned'
 
     '''Initializes the JamaClient class
 
@@ -111,16 +129,17 @@ class jama_client:
             self.priority_field_name = None
             self.network_type_field_name = None
             self.planned_week_field_name = None
+            self.test_network_field_name = None
+            self.execution_method_field_name = None
 
             # find the name for the 'Planned week' field in a test run
             pick_lists = self.client.get_pick_lists()
             planned_week_id = next(x for x in pick_lists if x['name'] == 'Planned week')['id']
-
-            #print('LOG - the planned week ids:')
-            #print(planned_week_id)
-            
             priority_id = next(x for x in pick_lists if x['name'] == 'Priority')['id']
             network_type_id = next(x for x in pick_lists if x['name'] == 'Network')['id']
+            test_network_id = next(x for x in pick_lists if x['name'] == 'Test Network')['id']
+            execution_method_id = next(x for x in pick_lists if x['name'] == 'Execution Method')['id']
+
             for x in self.testrun_obj['fields']:
                 if 'label' in x:
                     if x['label'] == 'Bug ID':
@@ -131,6 +150,12 @@ class jama_client:
                         continue
                     if x['label'] == 'Network Type':
                         self.network_type_field_name = x['name']
+                        continue
+                    if x['label'] == 'Test Network':
+                        self.test_network_field_name = x['name']
+                        continue
+                    if x['label'] == 'Test Execution Method':
+                        self.execution_method_field_name = x['name']
                         continue
                 if 'pickList' in x and x['pickList'] == planned_week_id:
                     self.planned_week_field_name = x['name']
@@ -154,9 +179,18 @@ class jama_client:
             priorities = self.client.get_pick_list_options(priority_id)
             for x in priorities:
                 self.priority_id_lookup[x['id']] = x['name']
+
             network_types = self.client.get_pick_list_options(network_type_id)
             for x in network_types:
                 self.network_type_id_lookup[x['id']] = x['name']
+
+            test_networks = self.client.get_pick_list_options(test_network_id)
+            for network in test_networks:
+                self.test_network_id_lookup[network['id']] = network['name']
+
+            execution_methods = self.client.get_pick_list_options(execution_method_id)
+            for method in execution_methods:
+                self.execution_method_id_lookup[method['id']] = method['name']
 
         except requests.exceptions.ConnectionError as err:
             print('Jama server connection ERROR! -', err)
@@ -266,17 +300,21 @@ class jama_client:
                     week_id = y['fields'][self.planned_week_field_name]
                     if week_id in self.planned_weeks_lookup:
                         planned_week = self.planned_weeks_lookup[week_id]
+
                 bug_id = None
                 if self.bug_id_field_name is not None:
                     bug_id = y['fields'].get(self.bug_id_field_name)
+
                 fields = y.get('fields')
                 if fields is None:
                     continue
 
                 user = self.__get_user_from_id(fields.get('assignedTo'))
+                priority = self.__get_priority_from_id(fields.get(self.priority_field_name))
                 network_type = self.__get_network_type_from_id(fields.get(self.network_type_field_name))
-                priority_id = fields.get(self.priority_field_name)
-                priority = self.__get_priority_from_id(priority_id)
+                test_network = self.__get_test_network_from_id(fields.get(self.test_network_field_name))
+                execution_method = self.__get_execution_method_from_id(fields.get(self.execution_method_field_name))
+                
                 row = [project_id,
                        testplan_key,
                        testcycle_name,
@@ -290,7 +328,9 @@ class jama_client:
                        planned_week,
                        user,
                        bug_id,
-                       network_type]
+                       network_type,
+                       test_network,
+                       execution_method]
                 testruns_to_add.append(row)
 
         print('found {} test runs!'.format(len(testruns_to_add)))
@@ -299,9 +339,22 @@ class jama_client:
         new_df = pd.DataFrame(
             testruns_to_add,
             columns=[
-                COL_PROJECT, COL_TESTPLAN, COL_TESTCYCLE, COL_TESTGROUP, COL_TESTRUN, COL_PRIORITY,
-                COL_CREATED_DATE, COL_MODIFIED_DATE, COL_STATUS, COL_EXECUTION_DATE,
-                COL_PLANNED_WEEK, COL_ASSIGNED_TO, COL_BUG_ID, COL_NETWORK_TYPE
+                COL_PROJECT, 
+                COL_TESTPLAN, 
+                COL_TESTCYCLE, 
+                COL_TESTGROUP, 
+                COL_TESTRUN, 
+                COL_PRIORITY,
+                COL_CREATED_DATE, 
+                COL_MODIFIED_DATE, 
+                COL_STATUS, 
+                COL_EXECUTION_DATE,
+                COL_PLANNED_WEEK, 
+                COL_ASSIGNED_TO, 
+                COL_BUG_ID, 
+                COL_NETWORK_TYPE, 
+                COL_TEST_NETWORK, 
+                COL_EXECUTION_METHOD
             ]
         )
         new_df['created_date'] = pd.to_datetime(new_df['created_date'], format="%Y-%m-%d").dt.date
