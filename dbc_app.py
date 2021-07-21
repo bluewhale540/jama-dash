@@ -33,9 +33,10 @@ ID_DROPDOWN_PRIORITY='id-dropdown-priority'
 ID_DATE_PICKER_START_DATE='id-date-test-progress-start-date'
 ID_DATE_PICKER_DEADLINE='id-date-test-progress-deadline'
 ID_CHECKLIST_TEST_PROGRESS_OPTIONS='id-checklist-test-progress-options'
-ID_CHECKLIST_CURRENT_STATUS_BY_GROUP_OPTIONS='id-checklist-current-by-group-options'
-ID_CHECKLIST_CURRENT_STATUS_BY_PERSON_OPTIONS='id-checklist-current-by-person-options'
 ID_CHECKLIST_WEEKLY_STATUS_OPTIONS='id-checklist-weekly-status-options'
+ID_CHECKLIST_CURRENT_STATUS_BY_PERSON_OPTIONS='id-checklist-current-by-person-options'
+ID_CHECKLIST_CURRENT_STATUS_BY_NETWORK_OPTIONS='id-chekclist-current-by-network-options'
+ID_CHECKLIST_CURRENT_STATUS_BY_GROUP_OPTIONS='id-checklist-current-by-group-options'
 ID_CHECKLIST_TEST_RUNS_OPTIONS='id-checklist-test-runs-options'
 
 # checklist options for the test progress card
@@ -80,30 +81,34 @@ test_runs_table_options = [
 
 ID_CARD_TEST_PROGRESS='id-card-test-progress'
 ID_CARD_CURRENT_STATUS_OVERALL='id-card-current-status-overall'
-ID_CARD_CURRENT_STATUS_BY_GROUP='id-card-current-status-by-group'
-ID_CARD_CURRENT_STATUS_BY_PERSON='id-card-current-status-by-person'
 ID_CARD_WEEKLY_STATUS='id-card-weekly-status'
+ID_CARD_CURRENT_STATUS_BY_PERSON='id-card-current-status-by-person'
+ID_CARD_CURRENT_STATUS_BY_NETWORK = 'id-car-current-status-by-network'
+ID_CARD_CURRENT_STATUS_BY_GROUP='id-card-current-status-by-group'
 ID_CARD_TEST_RUNS_TABLE='id-card-test-runs-table'
 
 ID_CHART_TEST_PROGRESS= 'id-chart-test-progress'
 ID_CHART_CURRENT_STATUS_OVERALL= 'id-chart-current-status-overall'
-ID_CHART_CURRENT_STATUS_BY_GROUP= 'id-chart-current-status-by-group'
-ID_CHART_CURRENT_STATUS_BY_PERSON='id-chart-current-status-by-person'
 ID_CHART_WEEKLY_STATUS='id-chart-weekly-status'
+ID_CHART_CURRENT_STATUS_BY_PERSON='id-chart-current-status-by-person'
+ID_CHART_CURRENT_STATUS_BY_NETWORK='id-chart-current-status-by-network'
+ID_CHART_CURRENT_STATUS_BY_GROUP= 'id-chart-current-status-by-group'
 ID_CHART_TEST_RUNS_TABLE='id-chart-test-runs-table'
 
 ID_COLLAPSE_TEST_PROGRESS= 'id-collapse-test-progress'
 ID_COLLAPSE_CURRENT_STATUS_OVERALL= 'id-collapse-current-status-overall'
-ID_COLLAPSE_CURRENT_STATUS_BY_GROUP= 'id-collapse-current-status-by-group'
-ID_COLLAPSE_CURRENT_STATUS_BY_PERSON='id-collapse-current-status-by-person'
 ID_COLLAPSE_WEEKLY_STATUS='id-collapse-weekly-status'
+ID_COLLAPSE_CURRENT_STATUS_BY_PERSON='id-collapse-current-status-by-person'
+ID_COLLAPSE_CURRENT_STATUS_BY_NETWORK='id-collapse-current-status-by-network'
+ID_COLLAPSE_CURRENT_STATUS_BY_GROUP= 'id-collapse-current-status-by-group'
 ID_COLLAPSE_TEST_RUNS_TABLE='id-collapse-test-runs-table'
 
 ID_COLLAPSE_BUTTON_TEST_PROGRESS= 'id-collapse-button-test-progress'
 ID_COLLAPSE_BUTTON_CURRENT_STATUS_OVERALL= 'id-collapse-button-current-status-overall'
-ID_COLLAPSE_BUTTON_CURRENT_STATUS_BY_GROUP= 'id-collapse-button-current-status-by-group'
-ID_COLLAPSE_BUTTON_CURRENT_STATUS_BY_PERSON='id-collapse-button-current-status-by-person'
 ID_COLLAPSE_BUTTON_WEEKLY_STATUS='id-collapse-button-weekly-status'
+ID_COLLAPSE_BUTTON_CURRENT_STATUS_BY_PERSON='id-collapse-button-current-status-by-person'
+ID_COLLAPSE_BUTTON_CURRENT_STATUS_BY_NETWORK='id-collapse-button-current-status-by-network'
+ID_COLLAPSE_BUTTON_CURRENT_STATUS_BY_GROUP= 'id-collapse-button-current-status-by-group'
 ID_COLLAPSE_BUTTON_TEST_RUNS_TABLE='id-collapse-button-test-runs-table'
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
@@ -421,6 +426,48 @@ supported_cards = {
         CARD_KEY_COLLAPSE_INITIAL_STATE: True,
         CARD_KEY_CHART_TYPE: charts.FIG_TYPE_CURRENT_STATUS_PIE_CHART,
     },
+    ID_CARD_WEEKLY_STATUS: {
+        CARD_KEY_TITLE: 'weekly status',
+        CARD_KEY_OBJ_TYPE: CARD_OBJ_TYPE_GRAPH,
+        CARD_KEY_CHART_ID: ID_CHART_WEEKLY_STATUS,
+        CARD_KEY_COLLAPSE_ID: ID_COLLAPSE_WEEKLY_STATUS,
+        CARD_KEY_COLLAPSE_BUTTON_ID: ID_COLLAPSE_BUTTON_WEEKLY_STATUS,
+        CARD_KEY_COLLAPSE_INITIAL_STATE: True,
+        CARD_KEY_CHART_TYPE: charts.FIG_TYPE_WEEKLY_STATUS_BAR_CHART,
+        CARD_KEY_CONTROLS_LAYOUT_FUNC: get_current_status_by_group_controls(ID_CHECKLIST_WEEKLY_STATUS_OPTIONS),
+        CARD_KEY_CONTROLS_LIST: [
+            dict(id=ID_CHECKLIST_WEEKLY_STATUS_OPTIONS, type=CTRL_CHECKLIST,
+                 kwarg_key={'show_not_run', 'show_blocked', 'show_inprogress', 'show_failed', 'show_passed'})
+        ]
+    },
+    ID_CARD_CURRENT_STATUS_BY_PERSON: {
+        CARD_KEY_TITLE: 'current status (by person)',
+        CARD_KEY_OBJ_TYPE: CARD_OBJ_TYPE_GRAPH,
+        CARD_KEY_CHART_ID: ID_CHART_CURRENT_STATUS_BY_PERSON,
+        CARD_KEY_COLLAPSE_ID: ID_COLLAPSE_CURRENT_STATUS_BY_PERSON,
+        CARD_KEY_COLLAPSE_BUTTON_ID: ID_COLLAPSE_BUTTON_CURRENT_STATUS_BY_PERSON,
+        CARD_KEY_COLLAPSE_INITIAL_STATE: True,
+        CARD_KEY_CHART_TYPE: charts.FIG_TYPE_CURRENT_STATUS_BY_PERSON_BAR_CHART,
+        CARD_KEY_CONTROLS_LAYOUT_FUNC: get_current_status_by_group_controls(ID_CHECKLIST_CURRENT_STATUS_BY_PERSON_OPTIONS),
+        CARD_KEY_CONTROLS_LIST: [
+            dict(id=ID_CHECKLIST_CURRENT_STATUS_BY_PERSON_OPTIONS, type=CTRL_CHECKLIST,
+                 kwarg_key={'show_not_run', 'show_blocked', 'show_inprogress', 'show_failed', 'show_passed'})
+        ]
+    },
+    ID_CARD_CURRENT_STATUS_BY_NETWORK: {
+        CARD_KEY_TITLE: 'current status (by test network)',
+        CARD_KEY_OBJ_TYPE: CARD_OBJ_TYPE_GRAPH,
+        CARD_KEY_CHART_ID: ID_CHART_CURRENT_STATUS_BY_NETWORK,
+        CARD_KEY_COLLAPSE_ID: ID_COLLAPSE_CURRENT_STATUS_BY_NETWORK,
+        CARD_KEY_COLLAPSE_BUTTON_ID: ID_COLLAPSE_BUTTON_CURRENT_STATUS_BY_NETWORK,
+        CARD_KEY_COLLAPSE_INITIAL_STATE: False,
+        CARD_KEY_CHART_TYPE: charts.FIG_TYPE_CURRENT_STATUS_BY_NETWORK_BAR_CHART,
+        CARD_KEY_CONTROLS_LAYOUT_FUNC: get_current_status_by_group_controls(ID_CHECKLIST_CURRENT_STATUS_BY_NETWORK_OPTIONS),
+        CARD_KEY_CONTROLS_LIST: [
+            dict(id=ID_CHECKLIST_CURRENT_STATUS_BY_NETWORK_OPTIONS, type=CTRL_CHECKLIST,
+                 kwarg_key={'show_not_run', 'show_blocked', 'show_inprogress', 'show_failed', 'show_passed'})
+        ]
+    },
     ID_CARD_CURRENT_STATUS_BY_GROUP: {
         CARD_KEY_TITLE: 'current status (by test group)',
         CARD_KEY_OBJ_TYPE: CARD_OBJ_TYPE_GRAPH,
@@ -435,41 +482,13 @@ supported_cards = {
                  kwarg_key={'show_not_run', 'show_blocked', 'show_inprogress', 'show_failed', 'show_passed'})
         ]
     },
-    ID_CARD_CURRENT_STATUS_BY_PERSON: {
-        CARD_KEY_TITLE: 'current status (by person)',
-        CARD_KEY_OBJ_TYPE: CARD_OBJ_TYPE_GRAPH,
-        CARD_KEY_CHART_ID: ID_CHART_CURRENT_STATUS_BY_PERSON,
-        CARD_KEY_COLLAPSE_ID: ID_COLLAPSE_CURRENT_STATUS_BY_PERSON,
-        CARD_KEY_COLLAPSE_BUTTON_ID: ID_COLLAPSE_BUTTON_CURRENT_STATUS_BY_PERSON,
-        CARD_KEY_COLLAPSE_INITIAL_STATE: False,
-        CARD_KEY_CHART_TYPE: charts.FIG_TYPE_CURRENT_STATUS_BY_PERSON_BAR_CHART,
-        CARD_KEY_CONTROLS_LAYOUT_FUNC: get_current_status_by_group_controls(ID_CHECKLIST_CURRENT_STATUS_BY_PERSON_OPTIONS),
-        CARD_KEY_CONTROLS_LIST: [
-            dict(id=ID_CHECKLIST_CURRENT_STATUS_BY_PERSON_OPTIONS, type=CTRL_CHECKLIST,
-                 kwarg_key={'show_not_run', 'show_blocked', 'show_inprogress', 'show_failed', 'show_passed'})
-        ]
-    },
-    ID_CARD_WEEKLY_STATUS: {
-        CARD_KEY_TITLE: 'weekly status',
-        CARD_KEY_OBJ_TYPE: CARD_OBJ_TYPE_GRAPH,
-        CARD_KEY_CHART_ID: ID_CHART_WEEKLY_STATUS,
-        CARD_KEY_COLLAPSE_ID: ID_COLLAPSE_WEEKLY_STATUS,
-        CARD_KEY_COLLAPSE_BUTTON_ID: ID_COLLAPSE_BUTTON_WEEKLY_STATUS,
-        CARD_KEY_COLLAPSE_INITIAL_STATE: False,
-        CARD_KEY_CHART_TYPE: charts.FIG_TYPE_WEEKLY_STATUS_BAR_CHART,
-        CARD_KEY_CONTROLS_LAYOUT_FUNC: get_current_status_by_group_controls(ID_CHECKLIST_WEEKLY_STATUS_OPTIONS),
-        CARD_KEY_CONTROLS_LIST: [
-            dict(id=ID_CHECKLIST_WEEKLY_STATUS_OPTIONS, type=CTRL_CHECKLIST,
-                 kwarg_key={'show_not_run', 'show_blocked', 'show_inprogress', 'show_failed', 'show_passed'})
-        ]
-    },
     ID_CARD_TEST_RUNS_TABLE: {
         CARD_KEY_TITLE: 'test run data',
         CARD_KEY_OBJ_TYPE: CARD_OBJ_TYPE_TABLE,
         CARD_KEY_CHART_ID: ID_CHART_TEST_RUNS_TABLE,
         CARD_KEY_COLLAPSE_ID: ID_COLLAPSE_TEST_RUNS_TABLE,
         CARD_KEY_COLLAPSE_BUTTON_ID: ID_COLLAPSE_BUTTON_TEST_RUNS_TABLE,
-        CARD_KEY_COLLAPSE_INITIAL_STATE: False,
+        CARD_KEY_COLLAPSE_INITIAL_STATE: True,
         CARD_KEY_CHART_TYPE: charts.FIG_TYPE_CURRENT_RUNS_TABLE,
         CARD_KEY_CONTROLS_LAYOUT_FUNC: get_test_runs_controls(),
         CARD_KEY_CONTROLS_LIST: [

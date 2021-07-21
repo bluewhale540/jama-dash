@@ -119,17 +119,17 @@ def get_status_names():
 '''Filters the testrun dataframe by matching the specified keys
 
 Parameters:
-    df(dataframe): The dataframe
-    testplan_key(string): The name of the testplan
-    testcycle_key(string): The name of the testcycle
-    testgroup_key(string): The name of the testgroup
-    priority_key(string): The priority of the testruns
-    week_key(string): The planned week of the testruns
+    df (dataframe): The dataframe
+    testplan_key (string): The name of the testplan
+    testcycle_key (string): The name of the testcycle
+    testgroup_key (string): The name of the testgroup
+    priority_key (string): The priority of the testruns
+    week_key (string): The planned week of the testruns
     
 Returns:
-    filtered(dataframe): The filtered dataframe
+    filtered (dataframe): The filtered dataframe
 '''
-def filter_df(df, testplan_key=None, testcycle_key=None, testgroup_key=None, priority_key=None, person_key=None, week_key=None):
+def filter_df(df, testplan_key=None, testcycle_key=None, testgroup_key=None, priority_key=None, person_key=None, week_key=None, network_key=None):
     filtered = df
     if testplan_key is not None:
         filtered = filtered[filtered.testplan.eq(testplan_key)]
@@ -143,6 +143,8 @@ def filter_df(df, testplan_key=None, testcycle_key=None, testgroup_key=None, pri
         filtered = filtered[filtered.assigned_to.eq(person_key)]
     if week_key is not None:
         filtered = filtered[filtered.planned_week.eq(week_key)]
+    if network_key is not None:
+        filtered = filtered[filtered.test_network.eq(network_key)]
     return filtered
 
 
@@ -278,11 +280,11 @@ def get_testrun_status_historical(df, testcycle_key=None, testgroup_key=None, pr
 '''connect to JAMA server, download testruns for all testplans and return testruns as a JSON
 
 Parameters:
-    jama_username(string): The username for the Jama login
-    jama_password(string): The password for the Jama login
+    jama_username (string): The username for the Jama login
+    jama_password (string): The password for the Jama login
 
 Returns:
-    df(JSON): All of the testruns as a JSON
+    df (JSON): All of the testruns as a JSON
 '''
 def retrieve_testruns(jama_username: str, jama_password: str):
     config = JamaReportsConfig()

@@ -97,21 +97,45 @@ class jama_client:
     def __get_priority_from_id(self, id):
         return self.priority_id_lookup.get(id) if id is not None else 'Unassigned'
 
+    '''Gets the network type string from the ID
+    
+    Parameters:
+        id (int): The ID of the network type
+        
+    Returns:
+        The network type string
+    '''
     def __get_network_type_from_id(self, id):
         return self.network_type_id_lookup.get(id) if id is not None else 'Unassigned'
 
+    '''Gets the test network string from the ID
+    
+    Parameters:
+        id (int): The ID of the test network
+        
+    Returns:
+        The test network string
+    '''
     def __get_test_network_from_id(self, id):
         return self.test_network_id_lookup.get(id) if id is not None else 'Unassigned'
 
+    '''Gets the execution method string from the ID
+    
+    Parameters:
+        id (int): The ID of the execution method
+        
+    Returns:
+        The execution method string
+    '''
     def __get_execution_method_from_id(self, id):
         return self.execution_method_id_lookup.get(id) if id is not None else 'Unassigned'
 
-    '''Initializes the JamaClient class
+    '''Initializes the client connection
 
     Parameters:
-        url(string): The base URL of the Jama instance
-        username(string): The username for the Jama login
-        password(string): The password for the Jama login
+        url (string): The base URL of the Jama instance
+        username (string): The username for the Jama login
+        password (string): The password for the Jama login
     '''
     def connect(self, url, username, password):
         # Create the Jama client
@@ -162,9 +186,6 @@ class jama_client:
                     continue
 
             weeks = self.client.get_pick_list_options(planned_week_id)
-            #print('LOG - the weeks:')
-            #print(weeks)
-
             for x in weeks:
                 week = x['name']
                 self.planned_weeks_lookup[x['id']] = week
@@ -172,9 +193,6 @@ class jama_client:
             self.planned_weeks = sorted(self.planned_weeks)
             # Add None to the list for tests with unassigned weeks
             self.planned_weeks = [None] + self.planned_weeks
-
-            #print('LOG - the planned weeks:')
-            #print (self.planned_weeks)
 
             priorities = self.client.get_pick_list_options(priority_id)
             for x in priorities:
@@ -203,11 +221,11 @@ class jama_client:
     '''Gets a list of testcycles in a given project and testplan
 
     Parameters:
-        project_id(int): The ID of the project
-        testplan_key(string): The name of the testplan
+        project_id (int): The ID of the project
+        testplan_key (string): The name of the testplan
     
     Returns:
-        testcycles(list): A list of testcycles in the testplan
+        testcycles (list): A list of testcycles in the testplan
     '''
     def retrieve_testcycles(self, project_id, testplan_key, update=False):
         testcycles = self.testcycle_db.get((project_id, testplan_key))
@@ -254,12 +272,12 @@ class jama_client:
     '''Gets a list of testruns in a given project, testplan, and testcycle
 
     Parameters:
-        project_id(int): The ID of the project
-        testplan_key(string): The name of the testplan
-        testcycle_key(string): The name of the testcycle
+        project_id (int): The ID of the project
+        testplan_key (string): The name of the testplan
+        testcycle_key (string): The name of the testcycle
     
     Returns:
-        new_df(JSON): A JSON containing all the testruns
+        new_df (JSON): A JSON containing all the testruns
     '''
     def retrieve_testruns(self, project_id, testplan_key, testcycle_key=None, update=False):
         # check for cached test run data

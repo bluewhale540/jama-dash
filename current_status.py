@@ -5,6 +5,18 @@ import pandas as pd
 import dash_table
 
 
+'''Generates the current status pie chart
+
+Parameters:
+    df (dataframe): The data
+    testcycle (string): The selected testcycle
+    testgroup (string): The selected test group
+    priority (string): The selected priority
+    colormap (dict): The colors to use for each status
+
+Returns:
+    figure: The pie chart
+'''
 def get_current_status_pie_chart(df, testcycle, testgroup, priority=None, colormap=None):
     df1 = filter_df(df, testcycle_key=testcycle, testgroup_key=testgroup, priority_key=priority)
     counts = df1['status'].value_counts()
@@ -30,10 +42,22 @@ def get_current_status_pie_chart(df, testcycle, testgroup, priority=None, colorm
             insidetextorientation='radial',
             marker=dict(colors=pie_colors))]
 
-    fig = dict(data=data, layout=dict(height=600))
-    return fig
+    figure = dict(data=data, layout=dict(height=600))
+    return figure
 
 
+'''Generates the testgroup bar chart
+
+Parameters:
+    df (dataframe): The data
+    testcycle (string): The selected testcycle
+    testgroup (string): The selected test group
+    priority (string): The selected priority
+    colormap (dict): The colors to use for each status
+
+Returns:
+    figure: The bar chart
+'''
 def get_testgroup_status_bar_chart(df, testcycle, testgroup, priority, colormap, **kwargs):
     status_list = []
     if kwargs.get('show_not_run') is not None and kwargs['show_not_run'] is True:
@@ -96,6 +120,18 @@ def get_testgroup_status_bar_chart(df, testcycle, testgroup, priority, colormap,
     return figure
 
 
+'''Generates the planned week bar chart
+
+Parameters:
+    df (dataframe): The data
+    testcycle (string): The selected testcycle
+    testgroup (string): The selected test group
+    priority (string): The selected priority
+    colormap (dict): The colors to use for each status
+
+Returns:
+    figure: The bar chart
+'''
 def get_planned_week_bar_chart(df, testcycle, testgroup, priority, colormap, **kwargs):
     status_list = []
     if kwargs.get('show_not_run') is not None and kwargs['show_not_run'] is True:
@@ -158,11 +194,18 @@ def get_planned_week_bar_chart(df, testcycle, testgroup, priority, colormap, **k
             autosize=True))
     return figure
 
-'''Generate the current status by person bar chart
 
-TODO: 
-    Functionalize all bar charts
-    Add explanations
+'''Generates the people bar chart
+
+Parameters:
+    df (dataframe): The data
+    testcycle (string): The selected testcycle
+    testgroup (string): The selected test group
+    priority (string): The selected priority
+    colormap (dict): The colors to use for each status
+
+Returns:
+    figure: The bar chart
 '''
 def get_person_bar_chart(df, testcycle, testgroup, priority, colormap, **kwargs):
     status_list = []
@@ -228,6 +271,94 @@ def get_person_bar_chart(df, testcycle, testgroup, priority, colormap, **kwargs)
     return figure
 
 
+'''Generates the test network bar chart
+
+Parameters:
+    df (dataframe): The data
+    testcycle (string): The selected testcycle
+    testgroup (string): The selected test group
+    priority (string): The selected priority
+    colormap (dict): The colors to use for each status
+
+Returns:
+    figure: The bar chart
+'''
+def get_test_network_bar_chart(df, testcycle, testgroup, priority, colormap, **kwargs):
+    status_list = []
+    if kwargs.get('show_not_run') is not None and kwargs['show_not_run'] is True:
+        status_list.append(STATUS_NOT_RUN)
+    if kwargs.get('show_inprogress') is not None and kwargs['show_inprogress'] is True:
+        status_list.append(STATUS_INPROGRESS)
+    if kwargs.get('show_blocked') is not None and kwargs['show_blocked'] is True:
+        status_list.append(STATUS_BLOCKED)
+    if kwargs.get('show_passed') is not None and kwargs['show_passed'] is True:
+        status_list.append(STATUS_PASSED)
+    if kwargs.get('show_failed') is not None and kwargs['show_failed'] is True:
+        status_list.append(STATUS_FAILED)
+
+    df1 = filter_df(df, testcycle_key=testcycle, testgroup_key=testgroup, priority_key=priority)
+
+    networks = [x for x  in iter(df1.test_network.unique())]
+
+    data = []
+    for network in networks:
+        df2 = filter_df(df1, network_key=network)
+        counts = df2['status'].value_counts()
+
+        total = 0
+        for s in status_list:
+            val = counts.get(s)
+            if val is not None:
+                total += val
+        if total == 0:
+            continue
+
+        d = {
+            'test_network': network,
+            'total': total
+        }
+        d.update(counts)
+        data.append(d)
+
+    if len(data) == 0:
+        return html.P(f'No test cases with status in {status_list}')
+
+    df3 = pd.DataFrame(data, columns=['test_network', 'total'] + status_list)
+    df3.sort_values(by=['total'], ascending=False, inplace=True)
+    #df3.sort_values('test_network', axis=0, ascending=True, inplace=True, na_position='first')
+    data = []
+    x_axis = df3['test_network'].values
+
+    for status in status_list:
+        y_axis = df3[status]
+        data.append(dict(name=status, x=x_axis, y=y_axis, type='bar',
+                         text=y_axis,
+                         textposition='auto',
+                         marker=dict(color=colormap[status])))
+    figure = dict(
+        data=data,
+        layout=dict(
+            height=800,
+            xaxis = dict(tickangle = 30),
+            yaxis=dict(title='Number Of Test Runs'),
+            margin=dict(b=200, r=100),
+            barmode='stack',
+            autosize=True))
+    return figure
+
+
+'''Generates the testruns data table
+
+Parameters:
+    df (dataframe): The data
+    testcycle (string): The selected testcycle
+    testgroup (string): The selected test group
+    priority (string): The selected priority
+    colormap (dict): The colors to use for each status
+
+Returns:
+    table: The data table
+'''
 def get_testruns_table(df, testcycle, testgroup, priority, colormap, **kwargs):
     if kwargs.get('current_week') is not None and kwargs['current_week'] is True:
         df1 = get_testruns_for_current_week(df=df, testcycle_key=testcycle, testgroup_key=testgroup, priority_key=priority)

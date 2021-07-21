@@ -4,11 +4,11 @@ import json
 '''Gets a list of active testplans in a project
 
 Parameters:
-  url(string): The base url of the Jama instance
-  project(int): The project ID
+  url (string): The base url of the Jama instance
+  project (int): The project ID
 
 Returns:
-  active_plans(list): A list of all active testplans
+  active_plans (list): A list of all active testplans
 '''
 def get_active_testplans(url, project, username, password):
   result_count = 50
@@ -16,7 +16,6 @@ def get_active_testplans(url, project, username, password):
   active_plans = []
   while result_count == 50:
     full_url = url + '/rest/latest/testplans?project={}&maxResults=50&startAt={}'.format(str(project), str(start))
-    # CHANGE THIS BEFORE DEPLOYMENT
     myResponse = requests.get(full_url,auth=(username, password))
 
     # For successful API call, response code will be 200 (OK)
