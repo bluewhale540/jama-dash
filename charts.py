@@ -7,11 +7,14 @@ from testrun_utils import get_testcycle_from_label, \
     STATUS_FAILED, \
     STATUS_INPROGRESS, \
     STATUS_BLOCKED, \
-    STATUS_PASSED
-from weekly_status import get_weekly_status_bar_chart
+    STATUS_PASSED, \
+    METHOD_MANUAL, \
+    METHOD_UNASSIGNED, \
+    METHOD_MIXED, \
+    METHOD_AUTOMATED
 from historical_status import get_historical_status_line_chart
-from current_status import (get_current_status_pie_chart, get_testgroup_status_bar_chart, 
-    get_person_bar_chart, get_planned_week_bar_chart, 
+from current_status import (get_current_status_pie_chart, get_exec_method_pie_chart, 
+    get_testgroup_status_bar_chart, get_person_bar_chart, get_planned_week_bar_chart, 
     get_test_network_bar_chart, get_testruns_table)
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
@@ -19,6 +22,7 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s %(message)s', datefmt='%
 
 FIG_TYPE_HISTORICAL_STATUS_LINE_CHART = 'Historical Status'
 FIG_TYPE_CURRENT_STATUS_PIE_CHART = 'Current Status'
+FIG_TYPE_EXEC_METHOD_PIE_CHART = 'Execution Method'
 FIG_TYPE_WEEKLY_STATUS_BAR_CHART = 'Weekly Status'
 FIG_TYPE_CURRENT_STATUS_BY_PERSON_BAR_CHART = 'Current Status by Person'
 FIG_TYPE_CURRENT_STATUS_BY_NETWORK_BAR_CHART = 'Current Satus by Test Network'
@@ -35,6 +39,7 @@ def get_chart_types():
     chart_types = [
         FIG_TYPE_HISTORICAL_STATUS_LINE_CHART,
         FIG_TYPE_CURRENT_STATUS_PIE_CHART,
+        FIG_TYPE_EXEC_METHOD_PIE_CHART,
         FIG_TYPE_WEEKLY_STATUS_BAR_CHART,
         FIG_TYPE_CURRENT_STATUS_BY_TESTGROUP_BAR_CHART,
         FIG_TYPE_BLOCKED_FAILED_TESTGROUP_BAR_CHART,
@@ -43,6 +48,12 @@ def get_chart_types():
     return chart_types
 
 
+'''Gets the correct chart given the chart type and other parameters
+
+Parameters:
+    df (dataframe): The dataframe
+    testplan_ui():
+'''
 def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, priority_ui, chart_type, colormap, **kwargs):
     testcycle = get_testcycle_from_label(label=testcycle_ui)
     testgroup = get_testgroup_from_label(label=testgroup_ui)
@@ -104,6 +115,15 @@ def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, priority_ui, chart_ty
                 colormap=colormap
                 )
 
+    if chart_type == FIG_TYPE_EXEC_METHOD_PIE_CHART:
+        chart = get_exec_method_pie_chart(
+            df=df,
+            testcycle=testcycle,
+            testgroup=testgroup,
+            priority=priority,
+            colormap=colormap
+        )
+
     if chart_type == FIG_TYPE_CURRENT_RUNS_TABLE:
         chart = \
             get_testruns_table(
@@ -152,5 +172,9 @@ def get_default_colormap():
         STATUS_PASSED: 'green',
         STATUS_FAILED: 'firebrick',
         STATUS_BLOCKED: 'royalblue',
-        STATUS_INPROGRESS: 'darkorange'
+        STATUS_INPROGRESS: 'darkorange',
+        METHOD_UNASSIGNED: '#553D67',
+        METHOD_MANUAL: '#2F2FA2',
+        METHOD_MIXED: '#FF6B45',
+        METHOD_AUTOMATED: '#FF2E7E'
     }

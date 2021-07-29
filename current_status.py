@@ -40,6 +40,49 @@ def get_current_status_pie_chart(df, testcycle, testgroup, priority=None, colorm
             texttemplate='%{label}<br>%{value:,s}<br>(%{percent})',
             textinfo='text',
             insidetextorientation='radial',
+            hole=.4,
+            marker=dict(colors=pie_colors))]
+
+    figure = dict(data=data, layout=dict(height=600))
+    return figure
+
+
+'''Generates the execution method pie chart
+
+Parameters:
+    df (dataframe): The data
+    testcycle (string): The selected testcycle
+    testgroup (string): The selected test group
+    priority (string): The selected priority
+    colormap (dict): The colors to use for each status
+
+Returns:
+    figure: The pie chart
+'''
+def get_exec_method_pie_chart(df, testcycle, testgroup, priority=None, colormap=None):
+    df1 = filter_df(df, testcycle_key=testcycle, testgroup_key=testgroup, priority_key=priority)
+    counts = df1['execution_method'].value_counts()
+
+    exec_methods = []
+    values = []
+    for index, value in counts.items():
+        exec_methods.append(index)
+        values.append(value)
+
+    # create pie chart
+    pie_colors = []
+    if colormap is not None:
+        for method in exec_methods:
+            pie_colors.append(colormap[method])
+
+    data = [
+        dict(type='pie',
+            labels=exec_methods,
+            values=values,
+            texttemplate='%{label}<br>%{value:,s}<br>(%{percent})',
+            textinfo='text',
+            insidetextorientation='radial',
+            hole=.4,
             marker=dict(colors=pie_colors))]
 
     figure = dict(data=data, layout=dict(height=600))

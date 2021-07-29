@@ -6,13 +6,6 @@
   "projects": [268],
   "chartSettings": {
 	"testStart": "Feb 2 2020",
-	"testDeadline": "Mar 13 2022",
-    "colormap": {
-      "NOT_RUN": "darkslategray",
-      "PASSED": "green",
-      "FAILED": "firebrick",
-      "BLOCKED": "royalblue",
-      "INPROGRESS": "darkorange"
-    }
+	"testDeadline": "Mar 13 2022"
   }
 }

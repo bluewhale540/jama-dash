@@ -26,24 +26,24 @@ from charts import get_chart_types, get_default_colormap
 import redis_data
 import testrun_utils
 
-ID_DROPDOWN_TEST_PLAN='id-dropdown-test-plan'
-ID_DROPDOWN_TEST_CYCLE='id-dropdown-test-cycle'
-ID_DROPDOWN_TEST_GROUP='id-dropdown-test-group'
-ID_DROPDOWN_PRIORITY='id-dropdown-priority'
-ID_DATE_PICKER_START_DATE='id-date-test-progress-start-date'
-ID_DATE_PICKER_DEADLINE='id-date-test-progress-deadline'
-ID_CHECKLIST_TEST_PROGRESS_OPTIONS='id-checklist-test-progress-options'
-ID_CHECKLIST_WEEKLY_STATUS_OPTIONS='id-checklist-weekly-status-options'
-ID_CHECKLIST_CURRENT_STATUS_BY_PERSON_OPTIONS='id-checklist-current-by-person-options'
-ID_CHECKLIST_CURRENT_STATUS_BY_NETWORK_OPTIONS='id-chekclist-current-by-network-options'
-ID_CHECKLIST_CURRENT_STATUS_BY_GROUP_OPTIONS='id-checklist-current-by-group-options'
+ID_DROPDOWN_TEST_PLAN = 'id-dropdown-test-plan'
+ID_DROPDOWN_TEST_CYCLE = 'id-dropdown-test-cycle'
+ID_DROPDOWN_TEST_GROUP = 'id-dropdown-test-group'
+ID_DROPDOWN_PRIORITY = 'id-dropdown-priority'
+ID_DATE_PICKER_START_DATE = 'id-date-test-progress-start-date'
+ID_DATE_PICKER_DEADLINE = 'id-date-test-progress-deadline'
+ID_CHECKLIST_TEST_PROGRESS_OPTIONS = 'id-checklist-test-progress-options'
+ID_CHECKLIST_WEEKLY_STATUS_OPTIONS = 'id-checklist-weekly-status-options'
+ID_CHECKLIST_CURRENT_STATUS_BY_PERSON_OPTIONS = 'id-checklist-current-by-person-options'
+ID_CHECKLIST_CURRENT_STATUS_BY_NETWORK_OPTIONS = 'id-chekclist-current-by-network-options'
+ID_CHECKLIST_CURRENT_STATUS_BY_GROUP_OPTIONS = 'id-checklist-current-by-group-options'
 ID_CHECKLIST_TEST_RUNS_OPTIONS='id-checklist-test-runs-options'
 
 # checklist options for the test progress card
-CHECKLIST_LABEL_BLOCKED_NOT_RUN='blocked as not run'
-CHECKLIST_LABEL_INPROGRESS_NOT_RUN='in progress as not run'
-CHECKLIST_VALUE_BLOCKED_NOT_RUN='treat_blocked_as_not_run'
-CHECKLIST_VALUE_INPROGRESS_NOT_RUN='treat_inprogress_as_not_run'
+CHECKLIST_LABEL_BLOCKED_NOT_RUN = 'blocked as not run'
+CHECKLIST_LABEL_INPROGRESS_NOT_RUN = 'in progress as not run'
+CHECKLIST_VALUE_BLOCKED_NOT_RUN = 'treat_blocked_as_not_run'
+CHECKLIST_VALUE_INPROGRESS_NOT_RUN = 'treat_inprogress_as_not_run'
 
 test_progress_options = [
     dict(label=CHECKLIST_LABEL_BLOCKED_NOT_RUN, value=CHECKLIST_VALUE_BLOCKED_NOT_RUN),
@@ -51,16 +51,16 @@ test_progress_options = [
 ]
 
 # checklist options for the test progress card
-CHECKLIST_LABEL_SHOW_NOT_RUN='not run'
-CHECKLIST_LABEL_SHOW_IN_PROGRESS='in progress'
-CHECKLIST_LABEL_SHOW_BLOCKED='blocked'
-CHECKLIST_LABEL_SHOW_PASSED='passed'
-CHECKLIST_LABEL_SHOW_FAILED='failed'
-CHECKLIST_VALUE_SHOW_NOT_RUN='show_not_run'
-CHECKLIST_VALUE_SHOW_IN_PROGRESS='show_inprogress'
-CHECKLIST_VALUE_SHOW_BLOCKED='show_blocked'
-CHECKLIST_VALUE_SHOW_PASSED='show_passed'
-CHECKLIST_VALUE_SHOW_FAILED='show_failed'
+CHECKLIST_LABEL_SHOW_NOT_RUN = 'not run'
+CHECKLIST_LABEL_SHOW_IN_PROGRESS = 'in progress'
+CHECKLIST_LABEL_SHOW_BLOCKED = 'blocked'
+CHECKLIST_LABEL_SHOW_PASSED = 'passed'
+CHECKLIST_LABEL_SHOW_FAILED = 'failed'
+CHECKLIST_VALUE_SHOW_NOT_RUN = 'show_not_run'
+CHECKLIST_VALUE_SHOW_IN_PROGRESS = 'show_inprogress'
+CHECKLIST_VALUE_SHOW_BLOCKED = 'show_blocked'
+CHECKLIST_VALUE_SHOW_PASSED = 'show_passed'
+CHECKLIST_VALUE_SHOW_FAILED = 'show_failed'
 
 current_status_by_group_options = [
     dict(label=CHECKLIST_LABEL_SHOW_NOT_RUN, value=CHECKLIST_VALUE_SHOW_NOT_RUN),
@@ -79,37 +79,41 @@ test_runs_table_options = [
 ]
 
 
-ID_CARD_TEST_PROGRESS='id-card-test-progress'
-ID_CARD_CURRENT_STATUS_OVERALL='id-card-current-status-overall'
-ID_CARD_WEEKLY_STATUS='id-card-weekly-status'
-ID_CARD_CURRENT_STATUS_BY_PERSON='id-card-current-status-by-person'
+ID_CARD_TEST_PROGRESS = 'id-card-test-progress'
+ID_CARD_CURRENT_STATUS_OVERALL = 'id-card-current-status-overall'
+ID_CARD_EXECUTION_METHOD = 'id-card-execution-method'
+ID_CARD_WEEKLY_STATUS = 'id-card-weekly-status'
+ID_CARD_CURRENT_STATUS_BY_PERSON = 'id-card-current-status-by-person'
 ID_CARD_CURRENT_STATUS_BY_NETWORK = 'id-car-current-status-by-network'
-ID_CARD_CURRENT_STATUS_BY_GROUP='id-card-current-status-by-group'
-ID_CARD_TEST_RUNS_TABLE='id-card-test-runs-table'
+ID_CARD_CURRENT_STATUS_BY_GROUP = 'id-card-current-status-by-group'
+ID_CARD_TEST_RUNS_TABLE = 'id-card-test-runs-table'
 
 ID_CHART_TEST_PROGRESS= 'id-chart-test-progress'
 ID_CHART_CURRENT_STATUS_OVERALL= 'id-chart-current-status-overall'
+ID_CHART_EXECUTION_METHOD= 'id-chart-execution-method'
 ID_CHART_WEEKLY_STATUS='id-chart-weekly-status'
 ID_CHART_CURRENT_STATUS_BY_PERSON='id-chart-current-status-by-person'
 ID_CHART_CURRENT_STATUS_BY_NETWORK='id-chart-current-status-by-network'
 ID_CHART_CURRENT_STATUS_BY_GROUP= 'id-chart-current-status-by-group'
 ID_CHART_TEST_RUNS_TABLE='id-chart-test-runs-table'
 
-ID_COLLAPSE_TEST_PROGRESS= 'id-collapse-test-progress'
-ID_COLLAPSE_CURRENT_STATUS_OVERALL= 'id-collapse-current-status-overall'
-ID_COLLAPSE_WEEKLY_STATUS='id-collapse-weekly-status'
-ID_COLLAPSE_CURRENT_STATUS_BY_PERSON='id-collapse-current-status-by-person'
-ID_COLLAPSE_CURRENT_STATUS_BY_NETWORK='id-collapse-current-status-by-network'
-ID_COLLAPSE_CURRENT_STATUS_BY_GROUP= 'id-collapse-current-status-by-group'
-ID_COLLAPSE_TEST_RUNS_TABLE='id-collapse-test-runs-table'
+ID_COLLAPSE_TEST_PROGRESS = 'id-collapse-test-progress'
+ID_COLLAPSE_CURRENT_STATUS_OVERALL = 'id-collapse-current-status-overall'
+ID_COLLAPSE_EXECUTION_METHOD = 'id-collapse-execution-method'
+ID_COLLAPSE_WEEKLY_STATUS = 'id-collapse-weekly-status'
+ID_COLLAPSE_CURRENT_STATUS_BY_PERSON = 'id-collapse-current-status-by-person'
+ID_COLLAPSE_CURRENT_STATUS_BY_NETWORK = 'id-collapse-current-status-by-network'
+ID_COLLAPSE_CURRENT_STATUS_BY_GROUP = 'id-collapse-current-status-by-group'
+ID_COLLAPSE_TEST_RUNS_TABLE ='id-collapse-test-runs-table'
 
-ID_COLLAPSE_BUTTON_TEST_PROGRESS= 'id-collapse-button-test-progress'
-ID_COLLAPSE_BUTTON_CURRENT_STATUS_OVERALL= 'id-collapse-button-current-status-overall'
-ID_COLLAPSE_BUTTON_WEEKLY_STATUS='id-collapse-button-weekly-status'
-ID_COLLAPSE_BUTTON_CURRENT_STATUS_BY_PERSON='id-collapse-button-current-status-by-person'
-ID_COLLAPSE_BUTTON_CURRENT_STATUS_BY_NETWORK='id-collapse-button-current-status-by-network'
-ID_COLLAPSE_BUTTON_CURRENT_STATUS_BY_GROUP= 'id-collapse-button-current-status-by-group'
-ID_COLLAPSE_BUTTON_TEST_RUNS_TABLE='id-collapse-button-test-runs-table'
+ID_COLLAPSE_BUTTON_TEST_PROGRESS = 'id-collapse-button-test-progress'
+ID_COLLAPSE_BUTTON_CURRENT_STATUS_OVERALL = 'id-collapse-button-current-status-overall'
+ID_COLLAPSE_BUTTON_EXECUTION_METHOD = 'id-collapse-button-execution-method'
+ID_COLLAPSE_BUTTON_WEEKLY_STATUS = 'id-collapse-button-weekly-status'
+ID_COLLAPSE_BUTTON_CURRENT_STATUS_BY_PERSON = 'id-collapse-button-current-status-by-person'
+ID_COLLAPSE_BUTTON_CURRENT_STATUS_BY_NETWORK = 'id-collapse-button-current-status-by-network'
+ID_COLLAPSE_BUTTON_CURRENT_STATUS_BY_GROUP = 'id-collapse-button-current-status-by-group'
+ID_COLLAPSE_BUTTON_TEST_RUNS_TABLE = 'id-collapse-button-test-runs-table'
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
@@ -169,7 +173,6 @@ def get_data():
     df.to_csv('contour_data.csv', index=False)
     jsonified_df = testrun_utils.df_to_json(df)
     return jsonified_df
-
 
 
 init_value = lambda a: a[0]['value'] if len(a) > 0 and 'value' in a[0] else None
@@ -378,15 +381,15 @@ def get_test_runs_controls():
     return controls
 
 
-CARD_KEY_TITLE='title'
-CARD_KEY_OBJ_TYPE='type' # graph or table
-CARD_KEY_CHART_ID='chart_id'
-CARD_KEY_COLLAPSE_ID='collapse_id'
-CARD_KEY_COLLAPSE_BUTTON_ID='collapse_button_id'
-CARD_KEY_COLLAPSE_INITIAL_STATE='collapse_initial_state' # open=True, collapsed=False
-CARD_KEY_CHART_TYPE='chart_type'
-CARD_KEY_CONTROLS_LAYOUT_FUNC='controls_layout_func'
-CARD_KEY_CONTROLS_LIST= 'controls_list'
+CARD_KEY_TITLE = 'title'
+CARD_KEY_OBJ_TYPE = 'type' # graph or table
+CARD_KEY_CHART_ID = 'chart_id'
+CARD_KEY_COLLAPSE_ID = 'collapse_id'
+CARD_KEY_COLLAPSE_BUTTON_ID = 'collapse_button_id'
+CARD_KEY_COLLAPSE_INITIAL_STATE = 'collapse_initial_state' # open=True, collapsed=False
+CARD_KEY_CHART_TYPE = 'chart_type'
+CARD_KEY_CONTROLS_LAYOUT_FUNC = 'controls_layout_func'
+CARD_KEY_CONTROLS_LIST = 'controls_list'
 
 CTRL_DATE_PICKER_SINGLE=1
 CTRL_CHECKLIST=2
@@ -426,6 +429,15 @@ supported_cards = {
         CARD_KEY_COLLAPSE_INITIAL_STATE: True,
         CARD_KEY_CHART_TYPE: charts.FIG_TYPE_CURRENT_STATUS_PIE_CHART,
     },
+    ID_CARD_EXECUTION_METHOD: {
+        CARD_KEY_TITLE: 'execution method',
+        CARD_KEY_OBJ_TYPE: CARD_OBJ_TYPE_GRAPH,
+        CARD_KEY_CHART_ID: ID_CHART_EXECUTION_METHOD,
+        CARD_KEY_COLLAPSE_ID: ID_COLLAPSE_EXECUTION_METHOD,
+        CARD_KEY_COLLAPSE_BUTTON_ID: ID_COLLAPSE_BUTTON_EXECUTION_METHOD,
+        CARD_KEY_COLLAPSE_INITIAL_STATE: True,
+        CARD_KEY_CHART_TYPE: charts.FIG_TYPE_EXEC_METHOD_PIE_CHART,
+    },
     ID_CARD_WEEKLY_STATUS: {
         CARD_KEY_TITLE: 'weekly status',
         CARD_KEY_OBJ_TYPE: CARD_OBJ_TYPE_GRAPH,
@@ -460,7 +472,7 @@ supported_cards = {
         CARD_KEY_CHART_ID: ID_CHART_CURRENT_STATUS_BY_NETWORK,
         CARD_KEY_COLLAPSE_ID: ID_COLLAPSE_CURRENT_STATUS_BY_NETWORK,
         CARD_KEY_COLLAPSE_BUTTON_ID: ID_COLLAPSE_BUTTON_CURRENT_STATUS_BY_NETWORK,
-        CARD_KEY_COLLAPSE_INITIAL_STATE: False,
+        CARD_KEY_COLLAPSE_INITIAL_STATE: True,
         CARD_KEY_CHART_TYPE: charts.FIG_TYPE_CURRENT_STATUS_BY_NETWORK_BAR_CHART,
         CARD_KEY_CONTROLS_LAYOUT_FUNC: get_current_status_by_group_controls(ID_CHECKLIST_CURRENT_STATUS_BY_NETWORK_OPTIONS),
         CARD_KEY_CONTROLS_LIST: [
@@ -474,7 +486,7 @@ supported_cards = {
         CARD_KEY_CHART_ID: ID_CHART_CURRENT_STATUS_BY_GROUP,
         CARD_KEY_COLLAPSE_ID: ID_COLLAPSE_CURRENT_STATUS_BY_GROUP,
         CARD_KEY_COLLAPSE_BUTTON_ID: ID_COLLAPSE_BUTTON_CURRENT_STATUS_BY_GROUP,
-        CARD_KEY_COLLAPSE_INITIAL_STATE: False,
+        CARD_KEY_COLLAPSE_INITIAL_STATE: True,
         CARD_KEY_CHART_TYPE: charts.FIG_TYPE_CURRENT_STATUS_BY_TESTGROUP_BAR_CHART,
         CARD_KEY_CONTROLS_LAYOUT_FUNC: get_current_status_by_group_controls(ID_CHECKLIST_CURRENT_STATUS_BY_GROUP_OPTIONS),
         CARD_KEY_CONTROLS_LIST: [
@@ -520,20 +532,20 @@ def get_card_header(title, collapse_button_id, collapse_text):
 def collapse_button_text(state):
     return 'collapse' if state is True else 'expand'
 
-def get_card_layout(card):
-    if card not in supported_cards:
+def get_card_layout(card_id):
+    if card_id not in supported_cards:
         return None
-    x = supported_cards[card]
-    chart_id = x[CARD_KEY_CHART_ID]
-    collapse_id = x[CARD_KEY_COLLAPSE_ID]
-    collapse_button_id = x[CARD_KEY_COLLAPSE_BUTTON_ID]
-    collapse_initial_state = x[CARD_KEY_COLLAPSE_INITIAL_STATE]
-    title = x[CARD_KEY_TITLE]
+    card = supported_cards[card_id]
+    chart_id = card[CARD_KEY_CHART_ID]
+    collapse_id = card[CARD_KEY_COLLAPSE_ID]
+    collapse_button_id = card[CARD_KEY_COLLAPSE_BUTTON_ID]
+    collapse_initial_state = card[CARD_KEY_COLLAPSE_INITIAL_STATE]
+    title = card[CARD_KEY_TITLE]
     card_body_children = []
-    controls_func = x.get(CARD_KEY_CONTROLS_LAYOUT_FUNC)
+    controls_func = card.get(CARD_KEY_CONTROLS_LAYOUT_FUNC)
     if controls_func is not None:
         card_body_children.append(controls_func)
-    chart_obj = dcc.Graph(id=chart_id) if x.get(CARD_KEY_OBJ_TYPE) == CARD_OBJ_TYPE_GRAPH else html.Div(id=chart_id)
+    chart_obj = dcc.Graph(id=chart_id) if card.get(CARD_KEY_OBJ_TYPE) == CARD_OBJ_TYPE_GRAPH else html.Div(id=chart_id)
     chart = dcc.Loading(dbc.Row([dbc.Col(chart_obj)]))
     card_body_children.append(chart)
     return dbc.Card([
@@ -543,8 +555,7 @@ def get_card_layout(card):
 
 
 def serve_layout():
-    modified_datetime = "Now"
-    #redis_data.get_modified_datetime(redis_inst)
+    modified_datetime = redis_data.get_modified_datetime(redis_inst)
 
     layout = dbc.Container(
         [
@@ -579,8 +590,31 @@ def serve_layout():
         ] +
         [
             dbc.Row([
-                dbc.Col(get_card_layout(x), width=12),
-            ]) for x in supported_cards
+                dbc.Col(get_card_layout(ID_CARD_TEST_PROGRESS), width=12)
+            ], no_gutters=True)
+        ] +
+        [
+            dbc.Row([
+                dbc.Col(get_card_layout(ID_CARD_CURRENT_STATUS_OVERALL), width=6),
+                dbc.Col(get_card_layout(ID_CARD_EXECUTION_METHOD), width=6)
+            ], no_gutters=True)
+        ] +
+        [
+            dbc.Row([
+                dbc.Col(get_card_layout(ID_CARD_WEEKLY_STATUS), width=6),
+                dbc.Col(get_card_layout(ID_CARD_CURRENT_STATUS_BY_PERSON), width=6)
+            ], no_gutters=True)
+        ] +
+        [
+            dbc.Row([
+                dbc.Col(get_card_layout(ID_CARD_CURRENT_STATUS_BY_NETWORK), width=6),
+                dbc.Col(get_card_layout(ID_CARD_CURRENT_STATUS_BY_GROUP), width=6)
+            ], no_gutters=True)
+        ] +
+        [
+            dbc.Row([
+                dbc.Col(get_card_layout(ID_CARD_TEST_RUNS_TABLE), width=12),
+            ], no_gutters=True)
         ] +
         [
             dbc.CardFooter([
