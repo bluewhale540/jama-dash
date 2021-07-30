@@ -41,9 +41,12 @@ def get_current_status_pie_chart(df, testcycle, testgroup, priority=None, colorm
             textinfo='text',
             insidetextorientation='radial',
             hole=.4,
+            title='Status',
+            titlefont=dict(size='30'),
             marker=dict(colors=pie_colors))]
 
     figure = dict(data=data, layout=dict(height=600))
+
     return figure
 
 
@@ -83,6 +86,8 @@ def get_exec_method_pie_chart(df, testcycle, testgroup, priority=None, colormap=
             textinfo='text',
             insidetextorientation='radial',
             hole=.4,
+            title='Execution<br>Method',
+            titlefont=dict(size='30'),
             marker=dict(colors=pie_colors))]
 
     figure = dict(data=data, layout=dict(height=600))
