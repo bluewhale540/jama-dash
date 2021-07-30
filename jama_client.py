@@ -137,10 +137,10 @@ class jama_client:
         username (string): The username for the Jama login
         password (string): The password for the Jama login
     '''
-    def connect(self, url, username, password):
+    def connect(self, url, username, password, ssl_verify=True):
         # Create the Jama client
         try:
-            self.client = JamaClient(host_domain=url, credentials=(username, password))
+            self.client = JamaClient(host_domain=url, credentials=(username, password), verify=ssl_verify)
 
             # get item types for test plans and cycles
             self.item_types = self.client.get_item_types()

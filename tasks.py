@@ -40,16 +40,24 @@ def update_data():
         jama_url = 'https://paperclip.idirect.net'
 
     try:
-        df = testrun_utils.retrieve_testruns(jama_username=jama_api_username, jama_password=jama_api_password)
+        df = testrun_utils.retrieve_testruns(jama_username=jama_api_username, jama_password=jama_api_password, ssl_verify=True)
         df.fillna("",inplace=True)
         df.to_csv('contour_data.csv', index=False)
 
     except Exception as e:
-        logger.error(f'caught exception {e} trying to get test runs')
-        return
+        logger.error(f'Caught exception {e} trying to get test runs. Trying again without SSL verification...')
+        
+        try:
+            df = testrun_utils.retrieve_testruns(jama_username=jama_api_username, jama_password=jama_api_password, ssl_verify=False)
+            df.fillna("",inplace=True)
+            df.to_csv('contour_data.csv', index=False)
+
+        except Exception as e:
+            logger.error(f'Caught exception {e} trying to get test runs. Exiting...')
+            return
 
     if df is None:
-        logger.error('cannot retrieve data from Jama/Contour server. Check config file!')
+        logger.error('Cannot retrieve data from Jama/Contour server. Check config file!')
         return
 
     # compare data with existing data in redis

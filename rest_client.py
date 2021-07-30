@@ -10,13 +10,13 @@ Parameters:
 Returns:
   active_plans (list): A list of all active testplans
 '''
-def get_active_testplans(url, project, username, password):
+def get_active_testplans(url, project, username, password, ssl_verify=True):
   result_count = 50
   start = 0
   active_plans = []
   while result_count == 50:
     full_url = url + '/rest/latest/testplans?project={}&maxResults=50&startAt={}'.format(str(project), str(start))
-    myResponse = requests.get(full_url,auth=(username, password))
+    myResponse = requests.get(full_url, auth=(username, password), verify=ssl_verify)
 
     # For successful API call, response code will be 200 (OK)
     if myResponse.ok:

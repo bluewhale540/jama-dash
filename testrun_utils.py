@@ -34,7 +34,7 @@ class JamaReportsConfig:
     def __repr__(self):
         return f'{self.__class__.__name__})'
 
-    def read_config_file(self, username, password):
+    def read_config_file(self, username, password, ssl_verify=True):
         for settings_dir in [expanduser('~'), '.']:
             path = settings_dir + '/' + self.config_file_name
             if isfile(path):
@@ -65,7 +65,7 @@ class JamaReportsConfig:
             return False
 
         for project in projects:
-            active_plans = rest_client.get_active_testplans(self.url, project, username, password)
+            active_plans = rest_client.get_active_testplans(self.url, project, username, password, ssl_verify)
             for plan in active_plans:
                 title = '{}: {}'.format(project, plan)
                 # add plan to lookup
@@ -291,9 +291,9 @@ Parameters:
 Returns:
     df (JSON): All of the testruns as a JSON
 '''
-def retrieve_testruns(jama_username: str, jama_password: str):
+def retrieve_testruns(jama_username: str, jama_password: str, ssl_verify=True):
     config = JamaReportsConfig()
-    if not config.read_config_file(jama_username, jama_password):
+    if not config.read_config_file(jama_username, jama_password, ssl_verify):
         print('Error reading config file!')
         return None
     client = jama_client(blocking_as_not_run=False, inprogress_as_not_run=False)
@@ -302,7 +302,7 @@ def retrieve_testruns(jama_username: str, jama_password: str):
     if len(projects) == 0:
         print('No projects found in config file')
         return None
-    if not client.connect(url=jama_url, username=jama_username, password=jama_password):
+    if not client.connect(url=jama_url, username=jama_username, password=jama_password, ssl_verify=ssl_verify):
         print('Error getting data from Jama/Contour')
         return None
 
