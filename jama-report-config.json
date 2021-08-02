@@ -3,7 +3,7 @@
   "version": 0.1,
   "releaseDate": "2020-02-27T00:00:00.000Z",
   "url" : "https://paperclip.idirect.net",
-  "projects": [268],
+  "projects": [268, 269],
   "chartSettings": {
 	"testStart": "Feb 2 2020",
 	"testDeadline": "Mar 13 2022"

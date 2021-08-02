@@ -808,4 +808,4 @@ for card_id in supported_cards:
     register_chart_update_callback(card_id)
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run_server(host='0.0.0.0', debug=True)

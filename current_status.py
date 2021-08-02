@@ -406,6 +406,9 @@ Parameters:
 
 Returns:
     table: The data table
+
+TODO:
+    Use backend filtering to perform case-insensitive search
 '''
 def get_testruns_table(df, testcycle, testgroup, priority, colormap, **kwargs):
     if kwargs.get('current_week') is not None and kwargs['current_week'] is True:

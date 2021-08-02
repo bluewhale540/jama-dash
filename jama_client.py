@@ -146,8 +146,8 @@ class jama_client:
             self.item_types = self.client.get_item_types()
             self.testplan_type = next(x for x in self.item_types if x['typeKey'] == 'TSTPL')['id']
             self.testcycle_type = next(x for x in self.item_types if x['typeKey'] == 'TSTCY')['id']
-
             self.testrun_obj = next(x for x in self.item_types if x['typeKey'] == 'TSTRN')
+
             # find the name for the 'Bug ID' field in a test run
             self.bug_id_field_name = None
             self.priority_field_name = None

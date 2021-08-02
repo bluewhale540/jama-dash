@@ -14,14 +14,18 @@ def get_active_testplans(url, project, username, password, ssl_verify=True):
   result_count = 50
   start = 0
   active_plans = []
+
+  # the API can only get 50 runs at a time, so while result count == 50, there are stil more
   while result_count == 50:
     full_url = url + '/rest/latest/testplans?project={}&maxResults=50&startAt={}'.format(str(project), str(start))
     myResponse = requests.get(full_url, auth=(username, password), verify=ssl_verify)
 
-    # For successful API call, response code will be 200 (OK)
+    # for successful API call, response code will be 200 (OK)
     if myResponse.ok:
-      # Loading the response data into a dict variable
+      # load the response data into a dict variable
       resp_json = json.loads(myResponse.content)
+
+      # update result_count and start
       result_count = resp_json['meta']['pageInfo']['resultCount']
       start = start + 50
       print('found {} testplans:'.format(result_count))
