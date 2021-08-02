@@ -345,7 +345,7 @@ Parameters:
 Returns:
     controls: The checklist controls for the app
 """
-def get_current_status_by_group_controls(id):
+def get_status_checklist_controls(id):
     controls = dbc.Row([
         dbc.Col(
             dbc.FormGroup([
@@ -353,7 +353,11 @@ def get_current_status_by_group_controls(id):
                 dcc.Checklist(
                     id=id,
                     options=current_status_by_group_options,
-                    value=[CHECKLIST_VALUE_SHOW_BLOCKED, CHECKLIST_VALUE_SHOW_FAILED],
+                    value=[CHECKLIST_VALUE_SHOW_NOT_RUN,
+                        CHECKLIST_VALUE_SHOW_IN_PROGRESS,
+                        CHECKLIST_VALUE_SHOW_BLOCKED, 
+                        CHECKLIST_VALUE_SHOW_PASSED,
+                        CHECKLIST_VALUE_SHOW_FAILED],
                     labelStyle={'display': 'block'},
                     inputStyle={'margin-right': '5px'},
                     persistence=True
@@ -446,7 +450,7 @@ supported_cards = {
         CARD_KEY_COLLAPSE_BUTTON_ID: ID_COLLAPSE_BUTTON_WEEKLY_STATUS,
         CARD_KEY_COLLAPSE_INITIAL_STATE: True,
         CARD_KEY_CHART_TYPE: charts.FIG_TYPE_WEEKLY_STATUS_BAR_CHART,
-        CARD_KEY_CONTROLS_LAYOUT_FUNC: get_current_status_by_group_controls(ID_CHECKLIST_WEEKLY_STATUS_OPTIONS),
+        CARD_KEY_CONTROLS_LAYOUT_FUNC: get_status_checklist_controls(ID_CHECKLIST_WEEKLY_STATUS_OPTIONS),
         CARD_KEY_CONTROLS_LIST: [
             dict(id=ID_CHECKLIST_WEEKLY_STATUS_OPTIONS, type=CTRL_CHECKLIST,
                  kwarg_key={'show_not_run', 'show_blocked', 'show_inprogress', 'show_failed', 'show_passed'})
@@ -460,7 +464,7 @@ supported_cards = {
         CARD_KEY_COLLAPSE_BUTTON_ID: ID_COLLAPSE_BUTTON_CURRENT_STATUS_BY_PERSON,
         CARD_KEY_COLLAPSE_INITIAL_STATE: True,
         CARD_KEY_CHART_TYPE: charts.FIG_TYPE_CURRENT_STATUS_BY_PERSON_BAR_CHART,
-        CARD_KEY_CONTROLS_LAYOUT_FUNC: get_current_status_by_group_controls(ID_CHECKLIST_CURRENT_STATUS_BY_PERSON_OPTIONS),
+        CARD_KEY_CONTROLS_LAYOUT_FUNC: get_status_checklist_controls(ID_CHECKLIST_CURRENT_STATUS_BY_PERSON_OPTIONS),
         CARD_KEY_CONTROLS_LIST: [
             dict(id=ID_CHECKLIST_CURRENT_STATUS_BY_PERSON_OPTIONS, type=CTRL_CHECKLIST,
                  kwarg_key={'show_not_run', 'show_blocked', 'show_inprogress', 'show_failed', 'show_passed'})
@@ -474,7 +478,7 @@ supported_cards = {
         CARD_KEY_COLLAPSE_BUTTON_ID: ID_COLLAPSE_BUTTON_CURRENT_STATUS_BY_NETWORK,
         CARD_KEY_COLLAPSE_INITIAL_STATE: True,
         CARD_KEY_CHART_TYPE: charts.FIG_TYPE_CURRENT_STATUS_BY_NETWORK_BAR_CHART,
-        CARD_KEY_CONTROLS_LAYOUT_FUNC: get_current_status_by_group_controls(ID_CHECKLIST_CURRENT_STATUS_BY_NETWORK_OPTIONS),
+        CARD_KEY_CONTROLS_LAYOUT_FUNC: get_status_checklist_controls(ID_CHECKLIST_CURRENT_STATUS_BY_NETWORK_OPTIONS),
         CARD_KEY_CONTROLS_LIST: [
             dict(id=ID_CHECKLIST_CURRENT_STATUS_BY_NETWORK_OPTIONS, type=CTRL_CHECKLIST,
                  kwarg_key={'show_not_run', 'show_blocked', 'show_inprogress', 'show_failed', 'show_passed'})
@@ -488,7 +492,7 @@ supported_cards = {
         CARD_KEY_COLLAPSE_BUTTON_ID: ID_COLLAPSE_BUTTON_CURRENT_STATUS_BY_GROUP,
         CARD_KEY_COLLAPSE_INITIAL_STATE: True,
         CARD_KEY_CHART_TYPE: charts.FIG_TYPE_CURRENT_STATUS_BY_TESTGROUP_BAR_CHART,
-        CARD_KEY_CONTROLS_LAYOUT_FUNC: get_current_status_by_group_controls(ID_CHECKLIST_CURRENT_STATUS_BY_GROUP_OPTIONS),
+        CARD_KEY_CONTROLS_LAYOUT_FUNC: get_status_checklist_controls(ID_CHECKLIST_CURRENT_STATUS_BY_GROUP_OPTIONS),
         CARD_KEY_CONTROLS_LIST: [
             dict(id=ID_CHECKLIST_CURRENT_STATUS_BY_GROUP_OPTIONS, type=CTRL_CHECKLIST,
                  kwarg_key={'show_not_run', 'show_blocked', 'show_inprogress', 'show_failed', 'show_passed'})
