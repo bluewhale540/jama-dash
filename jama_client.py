@@ -37,6 +37,7 @@ class jama_client:
     network_type_id_lookup = {} # dict of network ids to names
     test_network_id_lookup = {} # dict of test network ids to names
     execution_method_id_lookup = {} #dict of execution method ids to names
+    ssl = True # Whether or not to use SSL verification
 
     def __repr__(self):
         return f'{self.__class__.__name__})'
@@ -59,7 +60,7 @@ class jama_client:
 
     def __get_user_info_from_jama(self, user_id):
         try:
-            response = requests.get(self.url + '/rest/latest/users/' + str(user_id), auth=(self.username, self.password))
+            response = requests.get(self.url + '/rest/latest/users/' + str(user_id), auth=(self.username, self.password), verify=self.ssl)
             # If the response was successful, no Exception will be raised
             response.raise_for_status()
         except HTTPError as http_err:
@@ -140,7 +141,8 @@ class jama_client:
     def connect(self, url, username, password, ssl_verify=True):
         # Create the Jama client
         try:
-            self.client = JamaClient(host_domain=url, credentials=(username, password), verify=ssl_verify)
+            self.ssl=ssl_verify
+            self.client = JamaClient(host_domain=url, credentials=(username, password), verify=self.ssl)
 
             # get item types for test plans and cycles
             self.item_types = self.client.get_item_types()
