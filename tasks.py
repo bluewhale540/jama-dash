@@ -79,6 +79,3 @@ def update_data():
 
     # set updated time
     redis_data.set_updated_datetime(redis_instance)
-
-# update the data - modifed by mathew
-update_data()
