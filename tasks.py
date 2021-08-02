@@ -22,7 +22,7 @@ logging.basicConfig(format=log_format,
 def setup_periodic_tasks(sender, **kwargs):
     print('----> setup_periodic_tasks')
     sender.add_periodic_task(
-        300,  # seconds
+        1800,  # seconds
         # an alternative to the @app.task decorator:
         # wrap the function in the app.task function
         update_data.s(),
