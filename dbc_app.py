@@ -327,7 +327,7 @@ def get_test_progress_controls():
                 dcc.Checklist(
                     id=ID_CHECKLIST_TEST_PROGRESS_OPTIONS,
                     options=test_progress_options,
-                    value=[CHECKLIST_VALUE_BLOCKED_NOT_RUN, CHECKLIST_VALUE_INPROGRESS_NOT_RUN],
+                    value=[],
                     labelStyle={'display': 'block'},
                     inputStyle={'margin-right': '5px'},
                     persistence=True
