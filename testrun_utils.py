@@ -326,7 +326,6 @@ def retrieve_testruns(jama_username: str, jama_password: str, ssl_verify=True):
 def get_priority_labels(df, testplan_key, testcycle_key, testgroup_key):
     labels = [ALL_PRIORITIES, ]
     df1 = filter_df(df=df, testplan_key=testplan_key, testcycle_key=testcycle_key, testgroup_key=testgroup_key)
-    unique_labels = df[COL_PRIORITY]
     labels += [x for x in df1.priority.unique()] if COL_PRIORITY in df.columns else []
     return labels
 
@@ -352,10 +351,19 @@ def get_testgroup_labels(df, testplan_key, testcycle_key):
     return labels
 
 
-def get_planned_week_labels(df, testplan_key, testcycle_key):
+def get_planned_week_labels(df, testplan_key, testcycle_key, testgroup_key):
     labels = [ALL_WEEKS, ]
-    df1 = filter_df(df=df, testplan_key=testplan_key, testcycle_key=testcycle_key)
-    labels += [x for x in df1.planned_week.unique()] if COL_PLANNED_WEEK in df.columns else []
+    weeks = []
+
+    # filter df using dropdown states
+    df1 = filter_df(df=df, testplan_key=testplan_key, testcycle_key=testcycle_key, testgroup_key=testgroup_key)
+
+    # weeks without the ALL_WEEKS option
+    weeks += [x for x in df1.planned_week.unique()] if COL_PLANNED_WEEK in df.columns else []
+    weeks = sorted(weeks, key=lambda x: (x == "", x.lower()))
+
+    # add the ALL_WEEKS option
+    labels += weeks
     return labels
 
 

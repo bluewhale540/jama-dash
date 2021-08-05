@@ -414,7 +414,7 @@ def get_testruns_table(df, testcycle, testgroup, priority, colormap, **kwargs):
     if kwargs.get('current_week') is not None and kwargs['current_week'] is True:
         df1 = get_testruns_for_current_week(df=df, testcycle_key=testcycle, testgroup_key=testgroup, priority_key=priority)
     else:
-        df1 = df
+        df1 = filter_df(df, testcycle_key=testcycle, testgroup_key=testgroup, priority_key=priority)
 
     if df1 is None:
         return html.P('No test runs found!')

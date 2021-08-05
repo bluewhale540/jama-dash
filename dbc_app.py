@@ -18,6 +18,8 @@ from testrun_utils import get_testplan_labels, \
     get_testgroup_from_label, \
     get_priority_labels, \
     get_priority_from_label, \
+    get_planned_week_labels, \
+    get_planned_week_from_label, \
     json_to_df, \
     retrieve_testruns
 
@@ -30,6 +32,7 @@ ID_DROPDOWN_TEST_PLAN = 'id-dropdown-test-plan'
 ID_DROPDOWN_TEST_CYCLE = 'id-dropdown-test-cycle'
 ID_DROPDOWN_TEST_GROUP = 'id-dropdown-test-group'
 ID_DROPDOWN_PRIORITY = 'id-dropdown-priority'
+ID_DROPDOWN_WEEK = 'id-dropdown-week'
 ID_DATE_PICKER_START_DATE = 'id-date-test-progress-start-date'
 ID_DATE_PICKER_DEADLINE = 'id-date-test-progress-deadline'
 ID_CHECKLIST_TEST_PROGRESS_OPTIONS = 'id-checklist-test-progress-options'
@@ -115,6 +118,13 @@ ID_COLLAPSE_BUTTON_CURRENT_STATUS_BY_NETWORK = 'id-collapse-button-current-statu
 ID_COLLAPSE_BUTTON_CURRENT_STATUS_BY_GROUP = 'id-collapse-button-current-status-by-group'
 ID_COLLAPSE_BUTTON_TEST_RUNS_TABLE = 'id-collapse-button-test-runs-table'
 
+ID_WEEK_DROPDOWN_CURRENT_STATUS_OVERALL = 'id-week-dropdown-current-status'
+ID_WEEK_DROPDOWN_EXECUTION_METHOD = 'id-week-dropdown-execution-method'
+ID_WEEK_DROPDOWN_CURRENT_STATUS_BY_PERSON = 'id-week-dropdown-current-status-by-person'
+ID_WEEK_DROPDOWN_CURRENT_STATUS_BY_NETWORK = 'id-week-dropdown-current-status-by-network'
+ID_WEEK_DROPDOWN_CURRENT_STATUS_BY_GROUP = 'id-week-dropdown-current-status-by-group'
+ID_WEEK_DROPDOWN_TEST_RUNS_TABLE = 'id-week-dropdown-testruns-table'
+
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
 CACHE_CONFIG = {
@@ -188,16 +198,6 @@ def get_value_from_options(options, current_value=None):
             return current_value
     return init_value(options)
 
-@cache.memoize()
-def get_priority_options(testplan, testcycle, testgroup):
-    df = json_to_df(get_data())
-    priorities =  \
-        [{'label': i, 'value': i} for i in get_priority_labels(
-            df, testplan_key=testplan,
-            testcycle_key=get_testcycle_from_label(testcycle),
-            testgroup_key=get_testgroup_from_label(testgroup))]
-    return priorities
-
 
 # get testplans and first value
 @cache.memoize()
@@ -206,6 +206,7 @@ def get_testplan_options():
     testplans =  [{'label': i, 'value': i} for i in get_testplan_labels(df)]
     return testplans
 
+
 # get testplans and first value
 @cache.memoize()
 def get_testcycle_options(testplan):
@@ -213,6 +214,7 @@ def get_testcycle_options(testplan):
     testcycles = [{'label': i, 'value': i}
                    for i in get_testcycle_labels(df, testplan_key=testplan)]
     return testcycles
+
 
 # get testplans and first value
 @cache.memoize()
@@ -224,10 +226,34 @@ def get_testgroup_options(testplan, testcycle):
                                                  testcycle_key=get_testcycle_from_label(testcycle))]
     return testgroups
 
+
+@cache.memoize()
+def get_priority_options(testplan, testcycle, testgroup):
+    df = json_to_df(get_data())
+    priorities =  \
+        [{'label': i, 'value': i} for i in get_priority_labels(
+            df, testplan_key=testplan,
+            testcycle_key=get_testcycle_from_label(testcycle),
+            testgroup_key=get_testgroup_from_label(testgroup))]
+    return priorities
+
+
+@cache.memoize()
+def get_week_options(testplan, testcycle, testgroup):
+    df = json_to_df(get_data())
+    weeks =  \
+        [{'label': i, 'value': i} for i in get_planned_week_labels(
+            df, testplan_key=testplan,
+            testcycle_key=get_testcycle_from_label(testcycle),
+            testgroup_key=get_testgroup_from_label(testgroup))]
+    return weeks
+
+
 @cache.memoize()
 def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, priority_ui, chart_type, colormap, **kwargs):
     return charts.get_chart(
         df, testplan_ui, testcycle_ui, testgroup_ui, priority_ui, chart_type, colormap, **kwargs)
+
 
 def get_selection_ui():
     testplans = get_testplan_options()
@@ -391,6 +417,8 @@ CARD_KEY_CHART_ID = 'chart_id'
 CARD_KEY_COLLAPSE_ID = 'collapse_id'
 CARD_KEY_COLLAPSE_BUTTON_ID = 'collapse_button_id'
 CARD_KEY_COLLAPSE_INITIAL_STATE = 'collapse_initial_state' # open=True, collapsed=False
+CARD_KEY_WEEK_DROPDOWN_ID = 'week_dropdown_id'
+CARD_KEY_WEEK_DROPDOWN_PRESENT = 'week_dropdown_present'
 CARD_KEY_CHART_TYPE = 'chart_type'
 CARD_KEY_CONTROLS_LAYOUT_FUNC = 'controls_layout_func'
 CARD_KEY_CONTROLS_LIST = 'controls_list'
@@ -415,6 +443,7 @@ supported_cards = {
         CARD_KEY_COLLAPSE_ID: ID_COLLAPSE_TEST_PROGRESS,
         CARD_KEY_COLLAPSE_BUTTON_ID: ID_COLLAPSE_BUTTON_TEST_PROGRESS,
         CARD_KEY_COLLAPSE_INITIAL_STATE: True,
+        CARD_KEY_WEEK_DROPDOWN_PRESENT: False,
         CARD_KEY_CHART_TYPE: charts.FIG_TYPE_HISTORICAL_STATUS_LINE_CHART,
         CARD_KEY_CONTROLS_LAYOUT_FUNC: get_test_progress_controls(),
         CARD_KEY_CONTROLS_LIST: [
@@ -431,6 +460,7 @@ supported_cards = {
         CARD_KEY_COLLAPSE_ID: ID_COLLAPSE_CURRENT_STATUS_OVERALL,
         CARD_KEY_COLLAPSE_BUTTON_ID: ID_COLLAPSE_BUTTON_CURRENT_STATUS_OVERALL,
         CARD_KEY_COLLAPSE_INITIAL_STATE: True,
+        CARD_KEY_WEEK_DROPDOWN_ID: ID_WEEK_DROPDOWN_CURRENT_STATUS_OVERALL,
         CARD_KEY_CHART_TYPE: charts.FIG_TYPE_CURRENT_STATUS_PIE_CHART,
     },
     ID_CARD_EXECUTION_METHOD: {
@@ -440,6 +470,7 @@ supported_cards = {
         CARD_KEY_COLLAPSE_ID: ID_COLLAPSE_EXECUTION_METHOD,
         CARD_KEY_COLLAPSE_BUTTON_ID: ID_COLLAPSE_BUTTON_EXECUTION_METHOD,
         CARD_KEY_COLLAPSE_INITIAL_STATE: True,
+        CARD_KEY_WEEK_DROPDOWN_ID: ID_WEEK_DROPDOWN_EXECUTION_METHOD,
         CARD_KEY_CHART_TYPE: charts.FIG_TYPE_EXEC_METHOD_PIE_CHART,
     },
     ID_CARD_WEEKLY_STATUS: {
@@ -449,6 +480,7 @@ supported_cards = {
         CARD_KEY_COLLAPSE_ID: ID_COLLAPSE_WEEKLY_STATUS,
         CARD_KEY_COLLAPSE_BUTTON_ID: ID_COLLAPSE_BUTTON_WEEKLY_STATUS,
         CARD_KEY_COLLAPSE_INITIAL_STATE: True,
+        CARD_KEY_WEEK_DROPDOWN_PRESENT: False,
         CARD_KEY_CHART_TYPE: charts.FIG_TYPE_WEEKLY_STATUS_BAR_CHART,
         CARD_KEY_CONTROLS_LAYOUT_FUNC: get_status_checklist_controls(ID_CHECKLIST_WEEKLY_STATUS_OPTIONS),
         CARD_KEY_CONTROLS_LIST: [
@@ -463,6 +495,7 @@ supported_cards = {
         CARD_KEY_COLLAPSE_ID: ID_COLLAPSE_CURRENT_STATUS_BY_PERSON,
         CARD_KEY_COLLAPSE_BUTTON_ID: ID_COLLAPSE_BUTTON_CURRENT_STATUS_BY_PERSON,
         CARD_KEY_COLLAPSE_INITIAL_STATE: True,
+        CARD_KEY_WEEK_DROPDOWN_ID: ID_WEEK_DROPDOWN_CURRENT_STATUS_BY_PERSON,
         CARD_KEY_CHART_TYPE: charts.FIG_TYPE_CURRENT_STATUS_BY_PERSON_BAR_CHART,
         CARD_KEY_CONTROLS_LAYOUT_FUNC: get_status_checklist_controls(ID_CHECKLIST_CURRENT_STATUS_BY_PERSON_OPTIONS),
         CARD_KEY_CONTROLS_LIST: [
@@ -477,6 +510,7 @@ supported_cards = {
         CARD_KEY_COLLAPSE_ID: ID_COLLAPSE_CURRENT_STATUS_BY_NETWORK,
         CARD_KEY_COLLAPSE_BUTTON_ID: ID_COLLAPSE_BUTTON_CURRENT_STATUS_BY_NETWORK,
         CARD_KEY_COLLAPSE_INITIAL_STATE: True,
+        CARD_KEY_WEEK_DROPDOWN_ID: ID_WEEK_DROPDOWN_CURRENT_STATUS_BY_NETWORK,
         CARD_KEY_CHART_TYPE: charts.FIG_TYPE_CURRENT_STATUS_BY_NETWORK_BAR_CHART,
         CARD_KEY_CONTROLS_LAYOUT_FUNC: get_status_checklist_controls(ID_CHECKLIST_CURRENT_STATUS_BY_NETWORK_OPTIONS),
         CARD_KEY_CONTROLS_LIST: [
@@ -491,6 +525,7 @@ supported_cards = {
         CARD_KEY_COLLAPSE_ID: ID_COLLAPSE_CURRENT_STATUS_BY_GROUP,
         CARD_KEY_COLLAPSE_BUTTON_ID: ID_COLLAPSE_BUTTON_CURRENT_STATUS_BY_GROUP,
         CARD_KEY_COLLAPSE_INITIAL_STATE: True,
+        CARD_KEY_WEEK_DROPDOWN_ID: ID_WEEK_DROPDOWN_CURRENT_STATUS_BY_GROUP,
         CARD_KEY_CHART_TYPE: charts.FIG_TYPE_CURRENT_STATUS_BY_TESTGROUP_BAR_CHART,
         CARD_KEY_CONTROLS_LAYOUT_FUNC: get_status_checklist_controls(ID_CHECKLIST_CURRENT_STATUS_BY_GROUP_OPTIONS),
         CARD_KEY_CONTROLS_LIST: [
@@ -505,6 +540,7 @@ supported_cards = {
         CARD_KEY_COLLAPSE_ID: ID_COLLAPSE_TEST_RUNS_TABLE,
         CARD_KEY_COLLAPSE_BUTTON_ID: ID_COLLAPSE_BUTTON_TEST_RUNS_TABLE,
         CARD_KEY_COLLAPSE_INITIAL_STATE: True,
+        CARD_KEY_WEEK_DROPDOWN_ID: ID_WEEK_DROPDOWN_TEST_RUNS_TABLE,
         CARD_KEY_CHART_TYPE: charts.FIG_TYPE_CURRENT_RUNS_TABLE,
         CARD_KEY_CONTROLS_LAYOUT_FUNC: get_test_runs_controls(),
         CARD_KEY_CONTROLS_LIST: [
@@ -525,25 +561,76 @@ for x in supported_cards:
     collapse_id_to_card_id[supported_cards[x][CARD_KEY_COLLAPSE_ID]] = x
 
 
-def get_card_header(title, collapse_button_id, collapse_text):
-    return dbc.CardHeader([
-        dbc.Row([
-            dbc.Col([html.H6(title, className='card-title')], width=10),
-            dbc.Col([dbc.Button(collapse_text, id=collapse_button_id)], width=2)
+def get_card_header(title, collapse_button_id, collapse_text, week_dropdown=True, week_dropdown_id=None):
+    testplans = get_testplan_options()
+    initial_testplan = init_value(testplans)
+    testcycles = get_testcycle_options(testplan=initial_testplan)
+    initial_testcycle = init_value(testcycles)
+    testgroups = get_testgroup_options(testplan=initial_testplan, testcycle=initial_testcycle)
+    initial_testgroup = init_value(testgroups)
+    if week_dropdown:
+        weeks = get_week_options(testplan=initial_testplan, testcycle=initial_testcycle, testgroup=initial_testgroup)
+        initial_week = init_value(weeks)
+        return dbc.CardHeader([
+            dbc.Row([
+                dbc.Col([html.H6(title, className='card-title')], width=3),
+                dbc.Col([
+                    dcc.Dropdown(
+                        id=week_dropdown_id,
+                        options=weeks,
+                        value=initial_week,
+                        persistence=True,
+                        persistence_type='local'
+                        #multi='True'
+                    ),
+                ],
+                width=6),
+                dbc.Col(width=1),
+                dbc.Col([dbc.Button(collapse_text, id=collapse_button_id)], width=2)
+            ])
         ])
-    ])
+    
+    else:
+        return dbc.CardHeader([
+            dbc.Row([
+                dbc.Col([html.H6(title, className='card-title')], width=10),
+                dbc.Col([dbc.Button(collapse_text, id=collapse_button_id)], width=2)
+            ])
+        ])
 
 def collapse_button_text(state):
     return 'collapse' if state is True else 'expand'
 
+
+'''Gets the full card layout for the charts
+
+Parameters:
+    card_id: The ID of the supported card
+    
+Returns:
+    The dashboard card'''
 def get_card_layout(card_id):
     if card_id not in supported_cards:
         return None
     card = supported_cards[card_id]
     chart_id = card[CARD_KEY_CHART_ID]
+
+    # parameters for the collapse button
     collapse_id = card[CARD_KEY_COLLAPSE_ID]
     collapse_button_id = card[CARD_KEY_COLLAPSE_BUTTON_ID]
     collapse_initial_state = card[CARD_KEY_COLLAPSE_INITIAL_STATE]
+
+    # if the card has a week dropdown or not
+    if CARD_KEY_WEEK_DROPDOWN_PRESENT in card:
+        week_dropdown = card[CARD_KEY_WEEK_DROPDOWN_PRESENT]
+    else:
+        week_dropdown = True
+    
+    # if there is a week dropdown, assign its id
+    week_dropdown_id = None
+    if week_dropdown:
+        week_dropdown_id = card[CARD_KEY_WEEK_DROPDOWN_ID]
+
     title = card[CARD_KEY_TITLE]
     card_body_children = []
     controls_func = card.get(CARD_KEY_CONTROLS_LAYOUT_FUNC)
@@ -553,7 +640,11 @@ def get_card_layout(card_id):
     chart = dcc.Loading(dbc.Row([dbc.Col(chart_obj)]))
     card_body_children.append(chart)
     return dbc.Card([
-        get_card_header(title=title, collapse_button_id=collapse_button_id, collapse_text=collapse_button_text(True)),
+        get_card_header(title=title, 
+            collapse_button_id=collapse_button_id, 
+            collapse_text=collapse_button_text(True),
+            week_dropdown=week_dropdown,
+            week_dropdown_id=week_dropdown_id),
         dbc.Collapse(dbc.CardBody(card_body_children), id=collapse_id, is_open=collapse_initial_state)
     ])
 
@@ -688,10 +779,11 @@ def update_graph(modified_datetime, current_testplan):
         raise PreventUpdate
     # invalidate caches
     cache.delete_memoized(get_data)
-    cache.delete_memoized(get_priority_options)
     cache.delete_memoized(get_testplan_options)
     cache.delete_memoized(get_testcycle_options)
     cache.delete_memoized(get_testgroup_options)
+    cache.delete_memoized(get_priority_options)
+    cache.delete_memoized(get_week_options)
     cache.delete_memoized(get_chart)
     testplan_options = get_testplan_options()
     testplan_value = get_value_from_options(testplan_options, current_testplan)
@@ -711,6 +803,7 @@ def update_testcycle_options(testplan_ui, current_value):
     value = get_value_from_options(options, current_value)
     return [options, value, testplan_ui]
 
+
 @app.callback(
     [Output(ID_DROPDOWN_TEST_GROUP, 'options'),
      Output(ID_DROPDOWN_TEST_GROUP, 'value'),
@@ -724,6 +817,7 @@ def update_testgroup_options(testplan_ui, testcycle_ui, current_value):
     value = get_value_from_options(options, current_value)
     persistence = testplan_ui + ':' + testcycle_ui
     return [options, value, persistence]
+
 
 @app.callback(
     [Output(ID_DROPDOWN_PRIORITY, 'options'),
@@ -739,6 +833,36 @@ def update_priority_options(testplan_ui, testcycle_ui, testgroup_ui, current_val
     value = get_value_from_options(options, current_value)
     persistence = testplan_ui + ':' + testcycle_ui + ':' + testgroup_ui
     return [options, value, persistence]
+
+
+@app.callback(
+    [Output(ID_WEEK_DROPDOWN_CURRENT_STATUS_OVERALL, 'options'),
+     Output(ID_WEEK_DROPDOWN_CURRENT_STATUS_OVERALL, 'value'),
+     Output(ID_WEEK_DROPDOWN_CURRENT_STATUS_OVERALL, 'persistence'),
+     Output(ID_WEEK_DROPDOWN_EXECUTION_METHOD, 'options'),
+     Output(ID_WEEK_DROPDOWN_EXECUTION_METHOD, 'value'),
+     Output(ID_WEEK_DROPDOWN_EXECUTION_METHOD, 'persistence'),
+     Output(ID_WEEK_DROPDOWN_CURRENT_STATUS_BY_PERSON, 'options'),
+     Output(ID_WEEK_DROPDOWN_CURRENT_STATUS_BY_PERSON, 'value'),
+     Output(ID_WEEK_DROPDOWN_CURRENT_STATUS_BY_PERSON, 'persistence'),
+     Output(ID_WEEK_DROPDOWN_CURRENT_STATUS_BY_NETWORK, 'options'),
+     Output(ID_WEEK_DROPDOWN_CURRENT_STATUS_BY_NETWORK, 'value'),
+     Output(ID_WEEK_DROPDOWN_CURRENT_STATUS_BY_NETWORK, 'persistence'),
+     Output(ID_WEEK_DROPDOWN_CURRENT_STATUS_BY_GROUP, 'options'),
+     Output(ID_WEEK_DROPDOWN_CURRENT_STATUS_BY_GROUP, 'value'),
+     Output(ID_WEEK_DROPDOWN_CURRENT_STATUS_BY_GROUP, 'persistence'),
+     Output(ID_WEEK_DROPDOWN_TEST_RUNS_TABLE, 'options'),
+     Output(ID_WEEK_DROPDOWN_TEST_RUNS_TABLE, 'value'),
+     Output(ID_WEEK_DROPDOWN_TEST_RUNS_TABLE, 'persistence')],
+    [Input(ID_DROPDOWN_TEST_PLAN, 'value'),
+     Input(ID_DROPDOWN_TEST_CYCLE, 'value'),
+     Input(ID_DROPDOWN_TEST_GROUP, 'value')]
+)
+def update_week_options(testplan_ui, testcycle_ui, testgroup_ui):
+    options = get_week_options(testplan=testplan_ui, testcycle=testcycle_ui, testgroup=testgroup_ui)
+    value = get_value_from_options(options)
+    persistence = testplan_ui + ':' + testcycle_ui + ':' + testgroup_ui
+    return [options, value, persistence] * 6
 
 
 def update_figure(is_open, testplan, testcycle, testgroup, priority, *args):
