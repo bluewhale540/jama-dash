@@ -124,6 +124,7 @@ ID_WEEK_DROPDOWN_CURRENT_STATUS_BY_PERSON = 'id-week-dropdown-current-status-by-
 ID_WEEK_DROPDOWN_CURRENT_STATUS_BY_NETWORK = 'id-week-dropdown-current-status-by-network'
 ID_WEEK_DROPDOWN_CURRENT_STATUS_BY_GROUP = 'id-week-dropdown-current-status-by-group'
 ID_WEEK_DROPDOWN_TEST_RUNS_TABLE = 'id-week-dropdown-testruns-table'
+ID_WEEK_DROPDOWN_NOT_PRESENT = 'id-week-dropdown-not-present'
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
@@ -865,7 +866,7 @@ def update_week_options(testplan_ui, testcycle_ui, testgroup_ui):
     return [options, value, persistence] * 6
 
 
-def update_figure(is_open, testplan, testcycle, testgroup, priority, *args):
+def update_figure_with_week(is_open, testplan, testcycle, testgroup, priority, week, *args):
     if not is_open:
         raise PreventUpdate
     ctx = dash.callback_context
@@ -892,6 +893,37 @@ def update_figure(is_open, testplan, testcycle, testgroup, priority, *args):
                       chart_type=chart_type,
                       colormap=get_default_colormap(),
                       **kwargs_to_pass)
+    
+    return chart
+
+def update_figure_without_week(is_open, testplan, testcycle, testgroup, priority, *args):
+    if not is_open:
+        raise PreventUpdate
+    ctx = dash.callback_context
+    collapse_id = list(ctx.inputs.keys())[0].split('.')[0]
+    chart_type = collapse_id_to_chart_type[collapse_id]
+    card_id = collapse_id_to_card_id[collapse_id]
+    card_info = supported_cards[card_id]
+    kwargs_to_pass = {}
+    ctrl_list = card_info.get(CARD_KEY_CONTROLS_LIST)
+    if ctrl_list is not None:
+        for arg, item in zip(args, ctrl_list):
+            kwarg_key = item['kwarg_key']
+            if isinstance(kwarg_key, list):
+                for arg1, kwarg_key1 in zip(arg, kwarg_key):
+                    kwargs_to_pass[kwarg_key1] = arg1
+            elif isinstance(kwarg_key, set): # this is the case for a checklist
+                for arg1 in arg:
+                    kwargs_to_pass[arg1] = True if arg1 in kwarg_key else False
+            else:
+                kwargs_to_pass[kwarg_key] = arg
+
+    df = json_to_df(get_data())
+    chart = get_chart(df, testplan, testcycle, testgroup, priority,
+                      chart_type=chart_type,
+                      colormap=get_default_colormap(),
+                      **kwargs_to_pass)
+    
     return chart
 
 
@@ -901,20 +933,38 @@ def register_chart_update_callback(card_id):
     chart_id = card_info[CARD_KEY_CHART_ID]
     chart_obj_type = card_info[CARD_KEY_OBJ_TYPE]
     output = Output(chart_id, 'figure') if chart_obj_type == CARD_OBJ_TYPE_GRAPH else Output(chart_id, 'children')
-    inputs = [
-        Input(collapse_id, 'is_open'),
-        Input(ID_DROPDOWN_TEST_PLAN, 'value'),
-        Input(ID_DROPDOWN_TEST_CYCLE, 'value'),
-        Input(ID_DROPDOWN_TEST_GROUP, 'value'),
-        Input(ID_DROPDOWN_PRIORITY, 'value')
-    ]
+    
+    week_dropdown = card_info.get(CARD_KEY_WEEK_DROPDOWN_ID)
+    week_value = None
+    if week_dropdown is not None:
+        week_value = Input(week_dropdown, 'value')
+        inputs = [
+            Input(collapse_id, 'is_open'),
+            Input(ID_DROPDOWN_TEST_PLAN, 'value'),
+            Input(ID_DROPDOWN_TEST_CYCLE, 'value'),
+            Input(ID_DROPDOWN_TEST_GROUP, 'value'),
+            Input(ID_DROPDOWN_PRIORITY, 'value'),
+            week_value
+        ]
+        if card_info.get(CARD_KEY_CONTROLS_LIST) is not None:
+            for ctrl in card_info[CARD_KEY_CONTROLS_LIST]:
+                inputs.append(Input(ctrl['id'], control_to_value_map[ctrl['type']]))
 
-    if card_info.get(CARD_KEY_CONTROLS_LIST) is not None:
-        for ctrl in card_info[CARD_KEY_CONTROLS_LIST]:
-            inputs.append(Input(ctrl['id'], control_to_value_map[ctrl['type']]))
+        app.callback(output, inputs)(update_figure_with_week)
 
-    app.callback(output, inputs)(update_figure)
+    else:
+        inputs = [
+            Input(collapse_id, 'is_open'),
+            Input(ID_DROPDOWN_TEST_PLAN, 'value'),
+            Input(ID_DROPDOWN_TEST_CYCLE, 'value'),
+            Input(ID_DROPDOWN_TEST_GROUP, 'value'),
+            Input(ID_DROPDOWN_PRIORITY, 'value'),
+        ]
+        if card_info.get(CARD_KEY_CONTROLS_LIST) is not None:
+            for ctrl in card_info[CARD_KEY_CONTROLS_LIST]:
+                inputs.append(Input(ctrl['id'], control_to_value_map[ctrl['type']]))
 
+        app.callback(output, inputs)(update_figure_without_week)
 
 
 def toggle_collapse(n, is_open):
