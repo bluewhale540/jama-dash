@@ -12,6 +12,7 @@ Parameters:
     testcycle (string): The selected testcycle
     testgroup (string): The selected test group
     priority (string): The selected priority
+    week (string): The selected week
     colormap (dict): The colors to use for each status
 
 Returns:
@@ -57,6 +58,7 @@ Parameters:
     testcycle (string): The selected testcycle
     testgroup (string): The selected test group
     priority (string): The selected priority
+    week (string): The selected week
     colormap (dict): The colors to use for each status
 
 Returns:
@@ -101,6 +103,7 @@ Parameters:
     testcycle (string): The selected testcycle
     testgroup (string): The selected test group
     priority (string): The selected priority
+    week (string): The selected week
     colormap (dict): The colors to use for each status
 
 Returns:
@@ -250,6 +253,7 @@ Parameters:
     testcycle (string): The selected testcycle
     testgroup (string): The selected test group
     priority (string): The selected priority
+    week (string): The selected week
     colormap (dict): The colors to use for each status
 
 Returns:
@@ -326,6 +330,7 @@ Parameters:
     testcycle (string): The selected testcycle
     testgroup (string): The selected test group
     priority (string): The selected priority
+    week (string): The selected week
     colormap (dict): The colors to use for each status
 
 Returns:
@@ -402,6 +407,7 @@ Parameters:
     testcycle (string): The selected testcycle
     testgroup (string): The selected test group
     priority (string): The selected priority
+    week (string): The selected week
     colormap (dict): The colors to use for each status
 
 Returns:
