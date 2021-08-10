@@ -17,8 +17,8 @@ Parameters:
 Returns:
     figure: The pie chart
 '''
-def get_current_status_pie_chart(df, testcycle, testgroup, priority=None, colormap=None):
-    df1 = filter_df(df, testcycle_key=testcycle, testgroup_key=testgroup, priority_key=priority)
+def get_current_status_pie_chart(df, testcycle, testgroup, priority=None, week=None, colormap=None):
+    df1 = filter_df(df, testcycle_key=testcycle, testgroup_key=testgroup, priority_key=priority, week_key=week)
     counts = df1['status'].value_counts()
 
     status_names = []
@@ -62,8 +62,8 @@ Parameters:
 Returns:
     figure: The pie chart
 '''
-def get_exec_method_pie_chart(df, testcycle, testgroup, priority=None, colormap=None):
-    df1 = filter_df(df, testcycle_key=testcycle, testgroup_key=testgroup, priority_key=priority)
+def get_exec_method_pie_chart(df, testcycle, testgroup, priority=None, week=None, colormap=None):
+    df1 = filter_df(df, testcycle_key=testcycle, testgroup_key=testgroup, priority_key=priority, week_key=week)
     counts = df1['execution_method'].value_counts()
 
     exec_methods = []
@@ -106,7 +106,7 @@ Parameters:
 Returns:
     figure: The bar chart
 '''
-def get_testgroup_status_bar_chart(df, testcycle, testgroup, priority, colormap, **kwargs):
+def get_testgroup_status_bar_chart(df, testcycle, testgroup, priority, week, colormap, **kwargs):
     status_list = []
     if kwargs.get('show_not_run') is not None and kwargs['show_not_run'] is True:
         status_list.append(STATUS_NOT_RUN)
@@ -119,7 +119,7 @@ def get_testgroup_status_bar_chart(df, testcycle, testgroup, priority, colormap,
     if kwargs.get('show_failed') is not None and kwargs['show_failed'] is True:
         status_list.append(STATUS_FAILED)
 
-    df1 = filter_df(df, testcycle_key=testcycle, priority_key=priority)
+    df1 = filter_df(df, testcycle_key=testcycle, priority_key=priority, week_key=week)
 
     testgroups = [x for x  in iter(df1.testgroup.unique())]
 
@@ -255,7 +255,7 @@ Parameters:
 Returns:
     figure: The bar chart
 '''
-def get_person_bar_chart(df, testcycle, testgroup, priority, colormap, **kwargs):
+def get_person_bar_chart(df, testcycle, testgroup, priority, week, colormap, **kwargs):
     status_list = []
     if kwargs.get('show_not_run') is not None and kwargs['show_not_run'] is True:
         status_list.append(STATUS_NOT_RUN)
@@ -268,7 +268,7 @@ def get_person_bar_chart(df, testcycle, testgroup, priority, colormap, **kwargs)
     if kwargs.get('show_failed') is not None and kwargs['show_failed'] is True:
         status_list.append(STATUS_FAILED)
 
-    df1 = filter_df(df, testcycle_key=testcycle, testgroup_key=testgroup, priority_key=priority)
+    df1 = filter_df(df, testcycle_key=testcycle, testgroup_key=testgroup, priority_key=priority, week_key=week)
 
     people = [x for x  in iter(df1.assigned_to.unique())]
 
@@ -331,7 +331,7 @@ Parameters:
 Returns:
     figure: The bar chart
 '''
-def get_test_network_bar_chart(df, testcycle, testgroup, priority, colormap, **kwargs):
+def get_test_network_bar_chart(df, testcycle, testgroup, priority, week, colormap, **kwargs):
     status_list = []
     if kwargs.get('show_not_run') is not None and kwargs['show_not_run'] is True:
         status_list.append(STATUS_NOT_RUN)
@@ -344,7 +344,7 @@ def get_test_network_bar_chart(df, testcycle, testgroup, priority, colormap, **k
     if kwargs.get('show_failed') is not None and kwargs['show_failed'] is True:
         status_list.append(STATUS_FAILED)
 
-    df1 = filter_df(df, testcycle_key=testcycle, testgroup_key=testgroup, priority_key=priority)
+    df1 = filter_df(df, testcycle_key=testcycle, testgroup_key=testgroup, priority_key=priority, week_key=week)
 
     networks = [x for x  in iter(df1.test_network.unique())]
 
@@ -410,11 +410,11 @@ Returns:
 TODO:
     Use backend filtering to perform case-insensitive search
 '''
-def get_testruns_table(df, testcycle, testgroup, priority, colormap, **kwargs):
+def get_testruns_table(df, testcycle, testgroup, priority, week, colormap, **kwargs):
     if kwargs.get('current_week') is not None and kwargs['current_week'] is True:
         df1 = get_testruns_for_current_week(df=df, testcycle_key=testcycle, testgroup_key=testgroup, priority_key=priority)
     else:
-        df1 = filter_df(df, testcycle_key=testcycle, testgroup_key=testgroup, priority_key=priority)
+        df1 = filter_df(df, testcycle_key=testcycle, testgroup_key=testgroup, priority_key=priority, week_key=week)
 
     if df1 is None:
         return html.P('No test runs found!')

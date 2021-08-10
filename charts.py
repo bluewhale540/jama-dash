@@ -1,5 +1,5 @@
 import logging
-from testrun_utils import get_testcycle_from_label, \
+from testrun_utils import get_planned_week_from_label, get_testcycle_from_label, \
     get_testgroup_from_label, \
     get_priority_from_label, \
     get_status_names, \
@@ -54,21 +54,25 @@ Parameters:
     df (dataframe): The dataframe
     testplan_ui():
 '''
-def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, priority_ui, chart_type, colormap, **kwargs):
+def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, priority_ui, week_ui, chart_type, colormap, **kwargs):
     testcycle = get_testcycle_from_label(label=testcycle_ui)
     testgroup = get_testgroup_from_label(label=testgroup_ui)
     priority = get_priority_from_label(label=priority_ui)
+    week = get_planned_week_from_label(label=week_ui)
+
     if df is None:
         return  None
     # filter df by testplan
     df = df[df.testplan == testplan_ui]
     title = f'{chart_type} - {testplan_ui}'
     if testcycle is not None:
-        title += f':{testcycle_ui}'
+        title += f': {testcycle_ui}'
     if testgroup is not None:
-        title += f':{testgroup_ui}'
+        title += f': {testgroup_ui}'
     if priority is not None:
-        title += f':{priority_ui}'
+        title += f': {priority_ui}'
+    if week is not None:
+        title += f': {week_ui}'
 
     logging.info(f'Creating chart for {title}...')
     chart = None
@@ -78,6 +82,7 @@ def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, priority_ui, chart_ty
                 testcycle=testcycle,
                 testgroup=testgroup,
                 priority=priority,
+                week=week,
                 colormap=colormap,
                 status_list=get_status_names(),
                 **kwargs
@@ -112,6 +117,7 @@ def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, priority_ui, chart_ty
                 testcycle=testcycle,
                 testgroup=testgroup,
                 priority=priority,
+                week=week,
                 colormap=colormap
                 )
 
@@ -121,6 +127,7 @@ def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, priority_ui, chart_ty
             testcycle=testcycle,
             testgroup=testgroup,
             priority=priority,
+            week=week,
             colormap=colormap
         )
 
@@ -131,6 +138,7 @@ def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, priority_ui, chart_ty
                 testcycle=testcycle,
                 testgroup=testgroup,
                 priority=priority,
+                week=week,
                 colormap=colormap,
                 **kwargs
             )
@@ -141,6 +149,7 @@ def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, priority_ui, chart_ty
                 testcycle=testcycle,
                 testgroup=testgroup,
                 priority=priority,
+                week=week,
                 colormap=colormap,
                 **kwargs
         )
@@ -152,6 +161,7 @@ def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, priority_ui, chart_ty
             testgroup=testgroup,
             colormap=colormap,
             priority=priority,
+            week=week,
             status_list=get_status_names(),
             **kwargs
             )

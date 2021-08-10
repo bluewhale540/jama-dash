@@ -251,9 +251,10 @@ def get_week_options(testplan, testcycle, testgroup):
 
 
 @cache.memoize()
-def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, priority_ui, chart_type, colormap, **kwargs):
+def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, priority_ui, week_ui, chart_type, colormap, **kwargs):
     return charts.get_chart(
-        df, testplan_ui, testcycle_ui, testgroup_ui, priority_ui, chart_type, colormap, **kwargs)
+            df, testplan_ui, testcycle_ui, testgroup_ui, priority_ui, week_ui, chart_type, colormap, **kwargs)
+
 
 
 def get_selection_ui():
@@ -890,6 +891,7 @@ def update_figure_with_week(is_open, testplan, testcycle, testgroup, priority, w
 
     df = json_to_df(get_data())
     chart = get_chart(df, testplan, testcycle, testgroup, priority,
+                      week_ui=week,
                       chart_type=chart_type,
                       colormap=get_default_colormap(),
                       **kwargs_to_pass)
@@ -921,6 +923,7 @@ def update_figure_without_week(is_open, testplan, testcycle, testgroup, priority
     df = json_to_df(get_data())
     chart = get_chart(df, testplan, testcycle, testgroup, priority,
                       chart_type=chart_type,
+                      week_ui=None,
                       colormap=get_default_colormap(),
                       **kwargs_to_pass)
     
