@@ -125,7 +125,7 @@ def get_testgroup_status_bar_chart(df, testcycle, testgroup, priority, week, col
 
     data = []
     for group in testgroups:
-        df2 = filter_df(df, testgroup_key=group)
+        df2 = filter_df(df1, testgroup_key=group)
         counts = df2['status'].value_counts()
         total = 0
         for s in status_list:
