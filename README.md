@@ -62,4 +62,6 @@ Then start the Dash server using this command:
 python3 server.py
 ```
 
-At this point the dashboard can be accessed at the IP:8080, where IP is the IP address of the machine the server command was run on. Again, feel free to detach from the screen/tmux and disconnect from SSH.
+At this point the dashboard can be accessed at IP:8080, where IP is the IP address of the machine the server command was run on. Again, feel free to detach from the screen/tmux and disconnect from SSH.
+
+## Usage
