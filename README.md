@@ -2,6 +2,9 @@
 
 This is a replacement to the Jama Connect dashboards for projects and test plans, with support for the automatic generation of charts and figures from each test plan's data.
 
+### Screenshots
+
+
 ### Built With
 
 * [Python](https://www.python.org/downloads/source/)
@@ -21,4 +24,4 @@ To deploy this tool, you will need a linux OS to manage the Redis database. The 
 
 The dashboard is set up to track the Velocity Releases project (VRel), which has the project ID 268. To change the projects the dashboard pulls data from, navigate to the "projects" field of jama-report-config.json and add/remove the appropriate project IDs from the array. To get the ID of a project, navigate to one of the project's pages on Contour and copy the number in the link.
 
-[![project-id.png](https://i.postimg.cc/9FzBjF7d/project-id.png)](https://postimg.cc/JGVXN8K0)
+![project-id.png](https://i.postimg.cc/9FzBjF7d/project-id.png)
