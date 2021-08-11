@@ -44,12 +44,12 @@ To update the data manually, run update.py:
 ```sh
 python3 update.py
 ```
-To update the data periodically using Celery, run these commands:
+To update the data periodically using Celery, run these commands. The dashboard is configured to update the data every 30 minutes.
 ```sh
 celery -A tasks beat --loglevel=INFO &
 celery -A tasks worker --loglevel=INFO &
 ```
-Once the commands have been run, feel free to detach from the screen/tmux.
+Once the commands have been run, feel free to detach from the screen/tmux. The data will continue to be updated in the background.
 
 ### Serving the Dashboard
 
