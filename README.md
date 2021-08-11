@@ -49,7 +49,17 @@ To update the data periodically using Celery, run these commands:
 celery -A tasks beat --loglevel=INFO &
 celery -A tasks worker --loglevel=INFO &
 ```
+Once the commands have been run, feel free to detach from the screen/tmux.
 
 ### Serving the Dashboard
 
-In a new screen or tmux window, 
+In a new screen or tmux window, set the REDIS_URL environment variable like before:
+```sh
+export REDIS_URL='redis://localhost:6379/0'
+```
+Then start the Dash server using this command:
+```sh
+python3 server.py
+```
+
+At this point the dashboard can be accessed at the IP:8080, where IP is the IP address of the machine the server command was run on. Again, feel free to detach from the screen/tmux and disconnect from SSH.
