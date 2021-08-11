@@ -1,6 +1,6 @@
 ## About
 
-This is a replacement to the Jama connect dashboards for projects and test plans, with support for the automatic generation of charts and figures from each test plan's data.
+This is a replacement to the Jama Connect dashboards for projects and test plans, with support for the automatic generation of charts and figures from each test plan's data.
 
 ### Built With
 
@@ -15,5 +15,10 @@ To deploy the Plotly dashboard, follow these steps.
 
 ### Prerequisites
 
-To deploy this tool, you will need a linux OS to manage the Redis database. 
-Make sure Python (preferably 3.9 or greater, but older versions may work) is installed on your system, along with pip. Also install Redis and Celery, if they are not. 
+To deploy this tool, you will need a linux OS to manage the Redis database. The dashboard can still be hosted on a Windows machine, but Redis must be handled by linux. Make sure Python (preferably 3.9 or greater, but older versions may work) is installed on your system, along with pip. Also install Redis and Celery (optional, ignore if updating data manually or using a different automation tool), if they are not. 
+
+### Configuration
+
+The dashboard is set up to track the Velocity Releases project (VRel), which has the project ID 268. To change the projects the dashboard pulls data from, navigate to the "projects" field of jama-report-config.json and add/remove the appropriate project IDs from the array. To get the ID of a project, navigate to one of the project's pages on Contour and copy the number in the link.
+
+[![project-id.png](https://i.postimg.cc/9FzBjF7d/project-id.png)](https://postimg.cc/JGVXN8K0)
