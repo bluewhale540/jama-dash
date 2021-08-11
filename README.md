@@ -33,7 +33,7 @@ The dashboard is set up to track the Velocity Releases project (VRel), which has
 
 ### Updating Data
 
-Pulling the data from Contour requires some variables to be set up properly. It is recommended to do the following in a screen or tmux window. Set these environment variables, replacing the values with appropriate alternatives as needed. 
+Pulling the data from Contour requires some variables to be set up properly. It is recommended to do the following in a screen or tmux window to keep the processes alive after disconnecting from SSH. Set these environment variables, replacing the values with appropriate alternatives as needed. 
 ```sh
 export REDIS_URL='redis://localhost:6379/0'
 export JAMA_API_URL='https://paperclip.idirect.net'
@@ -49,3 +49,7 @@ To update the data periodically using Celery, run these commands:
 celery -A tasks beat --loglevel=INFO &
 celery -A tasks worker --loglevel=INFO &
 ```
+
+### Serving the Dashboard
+
+In a new screen or tmux window, 
