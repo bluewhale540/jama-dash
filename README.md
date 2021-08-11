@@ -44,7 +44,7 @@ To update the data manually, run update.py:
 ```sh
 python3 update.py
 ```
-To update the data periodically using Celery, run these commands. The dashboard is configured to update the data every 30 minutes.
+To update the data periodically using Celery, run these commands. The Celery task is configured to update the data every 30 minutes.
 ```sh
 celery -A tasks beat --loglevel=INFO &
 celery -A tasks worker --loglevel=INFO &
