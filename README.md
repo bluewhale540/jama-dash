@@ -31,8 +31,8 @@ Using an older version of Python may cause some of the packages to fail installi
 
 The dashboard is set up to track the Velocity Releases project (VRel), which has the project ID 268. To change the projects the dashboard pulls data from, navigate to the "projects" field of jama-report-config.json and add/remove the appropriate project IDs from the array. Make sure to git pull the changes to the server if not changing the file directly on the server. To get the ID of a project, navigate to one of the project's pages on Contour and copy the number in the link.
 
-![project-id.png](/images/project_id.png)
-![config.png](/images/config.png)
+![project_id.png](images/project_id.png)
+![config.png](images/config.png)
 
 ### Updating Data
 
@@ -83,30 +83,30 @@ At this point the dashboard can be accessed at IP:8080, where IP is the IP addre
 
 The dashboard is based around various dropdowns that filter the data. The main dropdowns at the top allow you to select the test plan, test cycle, test group, and priority of the test runs, and will update all of the charts when any of them are changed.
 
-![main-dropdown.png](/images/main_dropdown.png)
+![main_dropdown.png](images/main_dropdown.png)
 
 Where it is applicable, charts will have a dropdown to filter by week. This will only update the chart associated with the dropdown. In addition, all charts can be hidden with their respective collapse buttons.
 
-![week-dropdown.png](/images/week_dropdown.png)
+![week_dropdown.png](images/week_dropdown.png)
 
 ### Line Chart
 
 The historical status line chart allows you to observe the status of all the test runs over time. Choosing a start date will start the graph at that date; otherwise, the graph starts at creation date of the oldest test run. Choosing a test deadline will generate a required test run rate dotted line that shows the rate at which the remaining test runs need to be executed in order for all runs to finish before that date. The two check boxes will have the chart treat blocked or in progress runs as not run if checked.
 
-![line-chart.png](/images/line_chart.png)
+![line_chart.png](images/line_chart.png)
 
 ### Bar Charts
 
 Each bar chart has a checklist that will modify which statuses appear in the chart. By default, all of the statuses are checked. You can zoom in by using a click-and-drag gesture, selecting which parts of the chart to zoom in on. Zoom back out by double clicking the chart.
 
-![bar-chart.png](/images/bar_chart.png)
+![bar_chart.png](images/bar_chart.png)
 
 ### Test Runs Table
 
 The columns shown in the test runs table can be configured using the 'Toggle Columns' button, where the desired columns can be selected or deselected. The table can be filtered by typing a search string into the field below the header of each column (case-sensitive). The 'Export' button will save the data with all filters applied to a csv file.
 
-![table.png](/images/table.png)
+![table.png](images/table.png)
 
 ## Full App Showcase
 
-![full_app.png](/images/full_app.png)
+![full_app.png](images/full_app.png)
