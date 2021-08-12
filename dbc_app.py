@@ -385,6 +385,7 @@ def get_test_progress_controls():
     ])
     return controls
 
+
 """Generates the checklist controls for some charts
 
 Parameters:
@@ -414,6 +415,7 @@ def get_status_checklist_controls(id):
         ),
     ])
     return controls
+
 
 '''Testruns table show current week checklist - DEPRECATED'''
 def get_test_runs_controls():
