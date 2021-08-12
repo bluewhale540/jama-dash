@@ -3,6 +3,23 @@ import pandas as pd
 from dateutil import parser
 from testrun_utils import get_testrun_status_historical, get_status_names
 
+
+'''Generate the testrun line chart trace data
+
+Parameters:
+    df (dataframe): The test run data
+    testcycle (stirng): The test cycle
+    testgroup (string): The test group
+    priority (string): The priority
+    start_date (string): The earliest date to show
+    test_deadline (string): The target date for all runs to be finished
+    colormap (dict): The colors to use for the statuses
+    treat_blocked_as_not_run (bool): Whether or not to treat blocked as not run
+    treat_inprogress_as_not_run (bool): Whether or not to treat in progress runs as not run
+
+Returns:
+    data (list): Traces for each status over time
+'''
 def get_historical_status_line_traces(
         df, testcycle, testgroup, priority,
         start_date, test_deadline, colormap,
@@ -62,6 +79,19 @@ def get_historical_status_line_traces(
                          line=dict(dash='dash', color='black')))
     return data
 
+
+'''Generate the test run line chart
+
+Parameters:
+    df (dataframe): The data
+    testcycle (string): The test cycle
+    testgroup (string): The test group
+    priority (string): The priority
+    colormap (dict): The colors to use for each status
+
+Returns:
+    fig: The line chart
+'''
 def get_historical_status_line_chart(df, testcycle, testgroup, priority, title, colormap, **kwargs):
 
     start_date = None

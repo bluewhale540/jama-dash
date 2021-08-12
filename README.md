@@ -2,6 +2,11 @@
 
 This is a replacement to the Jama Connect dashboards for projects and test plans, with support for the automatic generation of charts and figures from each test plan's data.
 
+### Authors
+
+* Chander Raja
+* Mathew Pham
+
 ### Built With
 
 * [Python](https://www.python.org/downloads/source/)

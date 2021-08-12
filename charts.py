@@ -35,6 +35,11 @@ ALL_TEST_CYCLES = 'All Test Cycles'
 ALL_TEST_GROUPS = 'All Test Groups'
 
 
+'''Get all supported chart types
+
+Returns:
+    chart_types (list): A list of all supported charts
+'''
 def get_chart_types():
     chart_types = [
         FIG_TYPE_HISTORICAL_STATUS_LINE_CHART,
@@ -62,8 +67,11 @@ def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, priority_ui, week_ui,
 
     if df is None:
         return  None
+
     # filter df by testplan
     df = df[df.testplan == testplan_ui]
+
+    # create title for logging
     title = f'{chart_type} - {testplan_ui}'
     if testcycle is not None:
         title += f': {testcycle_ui}'
@@ -75,6 +83,8 @@ def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, priority_ui, week_ui,
         title += f': {week_ui}'
 
     logging.info(f'Creating chart for {title}...')
+
+    # generate the correct chart
     chart = None
     if chart_type == FIG_TYPE_CURRENT_STATUS_BY_PERSON_BAR_CHART:
         chart = get_person_bar_chart(
@@ -176,6 +186,11 @@ def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, priority_ui, week_ui,
     return chart
 
 
+'''The colors to use for the different states
+
+Returns:
+    A dict of states to colors
+'''
 def get_default_colormap():
     return {
         STATUS_NOT_RUN: 'darkslategray',

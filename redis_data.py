@@ -6,6 +6,7 @@ import redis_params
 import testrun_utils
 
 
+'''Get the Redis database instance'''
 def get_redis_inst():
     redis_url = os.getenv('REDIS_URL')
     if redis_url is None:
@@ -14,8 +15,7 @@ def get_redis_inst():
     return redis_inst
 
 
-'''Update data to redis if data has changed
-'''
+'''Update data to redis if data has changed'''
 def set_dataframe(redis_inst, df):
     json_str = testrun_utils.df_to_json(df)
 
@@ -29,8 +29,7 @@ def set_dataframe(redis_inst, df):
     return resp
 
 
-'''Get dataframe from redis in json format
-'''
+'''Get dataframe from redis in json format'''
 def get_dataframe_json(redis_inst):
     data = redis_inst.hget(
         redis_params.REDIS_HASH_NAME, redis_params.REDIS_DATASET_KEY
@@ -40,8 +39,8 @@ def get_dataframe_json(redis_inst):
     jsonified_df = data.decode('utf-8')
     return jsonified_df
 
-'''Get dataframe from redis in pandas dataframe format
-'''
+
+'''Get dataframe from redis in pandas dataframe format'''
 def get_dataframe(redis_inst):
     jsonified_df = get_dataframe_json(redis_inst)
     return testrun_utils.json_to_df(jsonified_df) if jsonified_df is not None else None
@@ -70,8 +69,7 @@ def get_updated_datetime(redis_inst):
     return data_last_updated
 
 
-'''set the date and time the data was last modified
-'''
+'''set the date and time the data was last modified'''
 def set_modified_datetime(redis_inst):
     redis_inst.hset(
         redis_params.REDIS_HASH_NAME,
@@ -80,8 +78,8 @@ def set_modified_datetime(redis_inst):
             tzlocal.get_localzone()).strftime(redis_params.REDIS_TIME_FORMAT))
     )
 
-'''retrieve the date and time the data was last modified
-'''
+
+'''retrieve the date and time the data was last modified'''
 def get_modified_datetime(redis_inst):
     data_last_modified = redis_inst.hget(
         redis_params.REDIS_HASH_NAME,

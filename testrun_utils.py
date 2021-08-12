@@ -34,7 +34,18 @@ class JamaReportsConfig:
     def __repr__(self):
         return f'{self.__class__.__name__})'
 
+    '''Read config file and pull testplans from projects
+    
+    Parameters:
+        username (string): The Jama username
+        password (string): The Jama password
+        ssl_verify (bool): Whether or not to use SSL verification accessing the API
+
+    Returns:
+        True if successful
+    '''
     def read_config_file(self, username, password, ssl_verify=True):
+        # look for config file
         for settings_dir in [expanduser('~'), '.']:
             path = settings_dir + '/' + self.config_file_name
             if isfile(path):
@@ -46,6 +57,7 @@ class JamaReportsConfig:
             print(f'settings file {self.config_file_name} not found!')
             return False
 
+        # attempt to open file
         try:
             with open(self.config_file_path) as f:
                 self.config = json.load(f)
@@ -58,12 +70,14 @@ class JamaReportsConfig:
             print(f'{e}')
             return False
 
+        # read URL and project list
         self.url = self.config.get('url')
         projects = self.config.get('projects')
         if projects is None:
             print('Invalid config. No projects found!')
             return False
 
+        # get all active test plans from projects
         for project in projects:
             active_plans = rest_client.get_active_testplans(self.url, project, username, password, ssl_verify)
             for plan in active_plans:
@@ -80,27 +94,33 @@ class JamaReportsConfig:
         self.test_deadline = parser.parse(dt) if dt is not None else None
         return True
 
+    '''Gets the Jama URL'''
     def get_url(self):
         return self.url
 
+    '''Gets the list of projects'''
     def get_projects(self):
         if self.testplan_lookup is None:
             return None
         return [x[0] for x in self.testplan_lookup.values()]
 
-    # return UI friendly testplan names
+    '''Gets UI friendly testplan names'''
     def get_testplan_names(self):
         return [x for x in iter(self.testplan_lookup)]
 
+    '''Gets the project of a testplan'''
     def get_project_and_testplan(self, testplan_ui_key):
         return self.testplan_lookup.get(testplan_ui_key)
 
+    '''Gets the colormap'''
     def get_colormap(self):
         return self.colormap
 
+    '''Gets the start date'''
     def get_start_date(self):
         return self.start_date
 
+    '''Gets the test deadline'''
     def get_test_deadline(self):
         return self.test_deadline
 
@@ -153,8 +173,17 @@ def filter_df(df, testplan_key=None, testcycle_key=None, testgroup_key=None, pri
     return filtered
 
 
-# retuns an array of counts of the values in the status field in the df
-# if override_total_runs is not None, calculate not_run using this value
+'''retuns an array of counts of the values in the status field in the df
+   if override_total_runs is not None, calculate not_run using this value
+   
+Parameters: 
+    df (dataframe): The test run data
+    inprogress_as_not_run (bool): Whether or not to treat in progress runs as not run
+    blocking_as_not_run (bool): Whether or not to treat blocked runs as not run
+
+Returns:
+    datadict (dict): A dict of statuses to counts
+'''
 def __get_status_counts(df, override_total_runs=None, inprogress_as_not_run=False, blocking_as_not_run=False):
     df_counts = df['status'].value_counts()
     passed = 0
@@ -202,6 +231,7 @@ def __get_status_counts_as_list(df, override_total_runs=None,
     return status_list, data_row
 
 
+'''Gets current planned week - DEPRECATED'''
 def __get_current_planned_week(planned_weeks):
     for start_date in planned_weeks:
         if start_date is None:
@@ -211,6 +241,7 @@ def __get_current_planned_week(planned_weeks):
     return None
 
 
+'''Gets testrun statuses in planned weeks - DEPRECATED'''
 def get_testrun_status_by_planned_weeks(df, testcycle_key=None, testgroup_key=None, priority_key=None):
     df1 = filter_df(df, testcycle_key=testcycle_key, testgroup_key=testgroup_key, priority_key=priority_key)
     t = []
@@ -235,7 +266,7 @@ def get_testrun_status_by_planned_weeks(df, testcycle_key=None, testgroup_key=No
     df = pd.DataFrame(t, columns=[COL_PLANNED_WEEK] + status_list)
     return df
 
-
+'''Gets testruns in current week - DEPRECATED'''
 def get_testruns_for_current_week(df, testcycle_key=None, testgroup_key=None, priority_key=None):
     df1 = filter_df(df, testcycle_key=testcycle_key, testgroup_key=testgroup_key, priority_key=priority_key)
     planned_weeks = df1.planned_week.unique()
@@ -249,6 +280,18 @@ def get_testruns_for_current_week(df, testcycle_key=None, testgroup_key=None, pr
     return df1
 
 
+'''Gets status of test runs over time
+
+Parameters:
+    df (dataframe): The test run data
+    testcycle_key (string): The test cycle
+    testgroup_key (string): The test group
+    priority_key (string): The selected priority
+    start_date (string): The oldest date to consider
+    
+Returns
+    df3 (dataframe): A dataframe containing the historical statuses of the test runs
+'''
 def get_testrun_status_historical(df, testcycle_key=None, testgroup_key=None, priority_key=None, start_date=None):
     df1 = filter_df(df, testcycle_key=testcycle_key, testgroup_key=testgroup_key, priority_key=priority_key)
     if df1.empty:
@@ -282,7 +325,7 @@ def get_testrun_status_historical(df, testcycle_key=None, testgroup_key=None, pr
     return df3
 
 
-'''connect to JAMA server, download testruns for all testplans and return testruns as a JSON
+'''Connect to JAMA server, download testruns for all testplans and return testruns as a JSON
 
 Parameters:
     jama_username (string): The username for the Jama login
@@ -292,6 +335,7 @@ Returns:
     df (JSON): All of the testruns as a JSON
 '''
 def retrieve_testruns(jama_username: str, jama_password: str, ssl_verify=True):
+    # try to read config file and pull projects
     config = JamaReportsConfig()
     if not config.read_config_file(jama_username, jama_password, ssl_verify):
         print('Error reading config file!')
@@ -322,40 +366,94 @@ def retrieve_testruns(jama_username: str, jama_password: str, ssl_verify=True):
     return df
 
 
-# get list of priorities in DF
+'''Get list of priorities given testplan, testcycle, and testgroup
+
+Parameters:
+    df (dataframe): The test run data
+    testplan_key (string): The selected test plan
+    testcycle_key (string): The selected test cycle
+    testgroup_key (string): The selected test group
+    
+Returns:
+    labels (list): A list of unique labels to display in the priority dropdown
+'''
 def get_priority_labels(df, testplan_key, testcycle_key, testgroup_key):
     labels = [ALL_PRIORITIES, ]
+
+    # filter df using current dropdown states
     df1 = filter_df(df=df, testplan_key=testplan_key, testcycle_key=testcycle_key, testgroup_key=testgroup_key)
+    
     labels += [x for x in df1.priority.unique()] if COL_PRIORITY in df.columns else []
     return labels
 
 
-# get list of testplans in DF
+'''Get list of test plans in DF
+
+Parameters:
+    df (dataframe): The test run data
+    
+Returns:
+    labels (list): A list of unique labels to display in the test plan dropdown
+'''
 def get_testplan_labels(df):
     return df.testplan.unique() if COL_TESTPLAN in df.columns else []
 
 
-# get list of testcycles in DF given testplan
+'''Get list of test cycles in DF given testplan
+
+Parameters:
+    df (dataframe): The test run data
+    testplan_key (string): The selected test plan
+    
+Returns:
+    labels (list): A list of unique labels to display in the test cycle dropdown
+'''
 def get_testcycle_labels(df, testplan_key):
     labels = [ALL_TEST_CYCLES, ]
+
+    # filter df using current dropdown states
     df1 = filter_df(df=df, testplan_key=testplan_key)
+
     labels += [x for x in df1.testcycle.unique()] if COL_TESTCYCLE in df.columns else []
     return labels
 
 
-# get list of testcycles in DF given testplan
+'''Get list of test groups in DF given testplan and testcycle
+
+Parameters:
+    df (dataframe): The test run data
+    testplan_key (string): The selected test plan
+    testcycle_key (string): The selected test cycle
+
+Returns:
+    labels (list): A list of unique labels to display in the test group dropdown
+'''
 def get_testgroup_labels(df, testplan_key, testcycle_key):
     labels = [ALL_TEST_GROUPS, ]
+
+    # filter df using current dropdown states
     df1 = filter_df(df=df, testplan_key=testplan_key, testcycle_key=testcycle_key)
+
     labels += [x for x in df1.testgroup.unique()] if COL_TESTGROUP in df.columns else []
     return labels
 
 
+'''Get list of weeks given testplan, testcycle, and testgroup
+
+Parameters:
+    df (dataframe): The test run data
+    testplan_key (string): The selected test plan
+    testcycle_key (string): The selected test cycle
+    testgroup_key (string): The selected test group
+    
+Returns:
+    labels (list): A list of unique labels to display in the week dropdowns
+'''
 def get_planned_week_labels(df, testplan_key, testcycle_key, testgroup_key):
     labels = [ALL_WEEKS, ]
     weeks = []
 
-    # filter df using dropdown states
+    # filter df using current dropdown states
     df1 = filter_df(df=df, testplan_key=testplan_key, testcycle_key=testcycle_key, testgroup_key=testgroup_key)
 
     # weeks without the ALL_WEEKS option
@@ -367,27 +465,33 @@ def get_planned_week_labels(df, testplan_key, testcycle_key, testgroup_key):
     return labels
 
 
+''''Get testcycle given its label'''
 def get_testcycle_from_label(label):
     return None if label == ALL_TEST_CYCLES else label
 
 
+''''Get testgroup given its label'''
 def get_testgroup_from_label(label):
     return None if label == ALL_TEST_GROUPS else label
 
 
+'''Get priority given its label'''
 def get_priority_from_label(label):
     return None if label == ALL_PRIORITIES else label
 
 
+'''Get week given its label'''
 def get_planned_week_from_label(label):
     return None if label == ALL_WEEKS else label
 
 
+'''Converts dataframe to JSON format'''
 def df_to_json(df: pd.DataFrame):
     return df.to_json(date_format='iso', orient='split') \
         if df is not None else None
 
 
+'''Converts JSON to dataframe format'''
 def json_to_df(json_str):
     df = pd.read_json(json_str, orient='split')
     convert_date_column = lambda df, col, fmt: pd.to_datetime(df[col], format=fmt).dt.date

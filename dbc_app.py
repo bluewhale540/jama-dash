@@ -28,6 +28,8 @@ from charts import get_chart_types, get_default_colormap
 import redis_data
 import testrun_utils
 
+
+# ids for interactive elements
 ID_DROPDOWN_TEST_PLAN = 'id-dropdown-test-plan'
 ID_DROPDOWN_TEST_CYCLE = 'id-dropdown-test-cycle'
 ID_DROPDOWN_TEST_GROUP = 'id-dropdown-test-group'
@@ -42,18 +44,22 @@ ID_CHECKLIST_CURRENT_STATUS_BY_NETWORK_OPTIONS = 'id-chekclist-current-by-networ
 ID_CHECKLIST_CURRENT_STATUS_BY_GROUP_OPTIONS = 'id-checklist-current-by-group-options'
 ID_CHECKLIST_TEST_RUNS_OPTIONS='id-checklist-test-runs-options'
 
+
 # checklist options for the test progress card
 CHECKLIST_LABEL_BLOCKED_NOT_RUN = 'blocked as not run'
 CHECKLIST_LABEL_INPROGRESS_NOT_RUN = 'in progress as not run'
 CHECKLIST_VALUE_BLOCKED_NOT_RUN = 'treat_blocked_as_not_run'
 CHECKLIST_VALUE_INPROGRESS_NOT_RUN = 'treat_inprogress_as_not_run'
 
+
+# checklist options for line chart
 test_progress_options = [
     dict(label=CHECKLIST_LABEL_BLOCKED_NOT_RUN, value=CHECKLIST_VALUE_BLOCKED_NOT_RUN),
     dict(label=CHECKLIST_LABEL_INPROGRESS_NOT_RUN, value=CHECKLIST_VALUE_INPROGRESS_NOT_RUN),
 ]
 
-# checklist options for the test progress card
+
+# checklist options for bar charts
 CHECKLIST_LABEL_SHOW_NOT_RUN = 'not run'
 CHECKLIST_LABEL_SHOW_IN_PROGRESS = 'in progress'
 CHECKLIST_LABEL_SHOW_BLOCKED = 'blocked'
@@ -73,7 +79,7 @@ current_status_by_group_options = [
     dict(label=CHECKLIST_LABEL_SHOW_FAILED, value=CHECKLIST_VALUE_SHOW_FAILED),
 ]
 
-# checklist options for the test runs table card
+# checklist options for the test runs table card - DEPRECATED
 CHECKLIST_LABEL_SHOW_CURRENT_WEEK='show test runs scheduled for current week'
 CHECKLIST_VALUE_SHOW_CURRENT_WEEK='current_week'
 
@@ -82,6 +88,7 @@ test_runs_table_options = [
 ]
 
 
+# ids for each card
 ID_CARD_TEST_PROGRESS = 'id-card-test-progress'
 ID_CARD_CURRENT_STATUS_OVERALL = 'id-card-current-status-overall'
 ID_CARD_EXECUTION_METHOD = 'id-card-execution-method'
@@ -91,6 +98,7 @@ ID_CARD_CURRENT_STATUS_BY_NETWORK = 'id-car-current-status-by-network'
 ID_CARD_CURRENT_STATUS_BY_GROUP = 'id-card-current-status-by-group'
 ID_CARD_TEST_RUNS_TABLE = 'id-card-test-runs-table'
 
+# ids for each chart
 ID_CHART_TEST_PROGRESS= 'id-chart-test-progress'
 ID_CHART_CURRENT_STATUS_OVERALL= 'id-chart-current-status-overall'
 ID_CHART_EXECUTION_METHOD= 'id-chart-execution-method'
@@ -100,6 +108,7 @@ ID_CHART_CURRENT_STATUS_BY_NETWORK='id-chart-current-status-by-network'
 ID_CHART_CURRENT_STATUS_BY_GROUP= 'id-chart-current-status-by-group'
 ID_CHART_TEST_RUNS_TABLE='id-chart-test-runs-table'
 
+# ids for each collapse
 ID_COLLAPSE_TEST_PROGRESS = 'id-collapse-test-progress'
 ID_COLLAPSE_CURRENT_STATUS_OVERALL = 'id-collapse-current-status-overall'
 ID_COLLAPSE_EXECUTION_METHOD = 'id-collapse-execution-method'
@@ -109,6 +118,7 @@ ID_COLLAPSE_CURRENT_STATUS_BY_NETWORK = 'id-collapse-current-status-by-network'
 ID_COLLAPSE_CURRENT_STATUS_BY_GROUP = 'id-collapse-current-status-by-group'
 ID_COLLAPSE_TEST_RUNS_TABLE ='id-collapse-test-runs-table'
 
+# ids for each collapse button
 ID_COLLAPSE_BUTTON_TEST_PROGRESS = 'id-collapse-button-test-progress'
 ID_COLLAPSE_BUTTON_CURRENT_STATUS_OVERALL = 'id-collapse-button-current-status-overall'
 ID_COLLAPSE_BUTTON_EXECUTION_METHOD = 'id-collapse-button-execution-method'
@@ -118,6 +128,7 @@ ID_COLLAPSE_BUTTON_CURRENT_STATUS_BY_NETWORK = 'id-collapse-button-current-statu
 ID_COLLAPSE_BUTTON_CURRENT_STATUS_BY_GROUP = 'id-collapse-button-current-status-by-group'
 ID_COLLAPSE_BUTTON_TEST_RUNS_TABLE = 'id-collapse-button-test-runs-table'
 
+# ids for each week dropdown
 ID_WEEK_DROPDOWN_CURRENT_STATUS_OVERALL = 'id-week-dropdown-current-status'
 ID_WEEK_DROPDOWN_EXECUTION_METHOD = 'id-week-dropdown-execution-method'
 ID_WEEK_DROPDOWN_CURRENT_STATUS_BY_PERSON = 'id-week-dropdown-current-status-by-person'
@@ -126,7 +137,9 @@ ID_WEEK_DROPDOWN_CURRENT_STATUS_BY_GROUP = 'id-week-dropdown-current-status-by-g
 ID_WEEK_DROPDOWN_TEST_RUNS_TABLE = 'id-week-dropdown-testruns-table'
 ID_WEEK_DROPDOWN_NOT_PRESENT = 'id-week-dropdown-not-present'
 
+
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+
 
 CACHE_CONFIG = {
     # 'redis' or 'filesystem'
@@ -144,8 +157,6 @@ with app.server.app_context():
 
 server = app.server
 
-# initialize the data when the app starts
-#tasks.update_data()
 
 redis_inst = redis_data.get_redis_inst()
 jama_url = os.environ.get('JAMA_API_URL')
@@ -200,7 +211,7 @@ def get_value_from_options(options, current_value=None):
     return init_value(options)
 
 
-# get testplans and first value
+'''get testplans and first value'''
 @cache.memoize()
 def get_testplan_options():
     df = json_to_df(get_data())
@@ -208,7 +219,7 @@ def get_testplan_options():
     return testplans
 
 
-# get testplans and first value
+'''get testplans and first value'''
 @cache.memoize()
 def get_testcycle_options(testplan):
     df = json_to_df(get_data())
@@ -217,7 +228,7 @@ def get_testcycle_options(testplan):
     return testcycles
 
 
-# get testplans and first value
+'''get testplans and first value'''
 @cache.memoize()
 def get_testgroup_options(testplan, testcycle):
     df = json_to_df(get_data())
@@ -227,7 +238,7 @@ def get_testgroup_options(testplan, testcycle):
                                                  testcycle_key=get_testcycle_from_label(testcycle))]
     return testgroups
 
-
+'''Get priorities and first value'''
 @cache.memoize()
 def get_priority_options(testplan, testcycle, testgroup):
     df = json_to_df(get_data())
@@ -257,6 +268,11 @@ def get_chart(df, testplan_ui, testcycle_ui, testgroup_ui, priority_ui, week_ui,
 
 
 
+'''Generate the main dropdown menu
+
+Returns:
+    form: The main four dropdowns at the top of the app
+'''
 def get_selection_ui():
     testplans = get_testplan_options()
     initial_testplan = init_value(testplans)
@@ -442,6 +458,7 @@ control_to_value_map = {
 }
 
 
+# all cards in the app and their properties
 supported_cards = {
     ID_CARD_TEST_PROGRESS: {
         CARD_KEY_TITLE: 'test progress',
@@ -562,6 +579,7 @@ collapse_id_to_card_id= {}
 for x in supported_cards:
     collapse_id_to_card_id[supported_cards[x][CARD_KEY_COLLAPSE_ID]] = x
 
+
 '''Generates the header strip for each chart
 
 Parameters:
@@ -581,6 +599,8 @@ def get_card_header(title, collapse_button_id, collapse_text, week_dropdown=True
     initial_testcycle = init_value(testcycles)
     testgroups = get_testgroup_options(testplan=initial_testplan, testcycle=initial_testcycle)
     initial_testgroup = init_value(testgroups)
+    
+    # if the chart needs a week dropdown, create it
     if week_dropdown:
         weeks = get_week_options(testplan=initial_testplan, testcycle=initial_testcycle, testgroup=initial_testgroup)
         initial_week = init_value(weeks)
@@ -621,7 +641,8 @@ Parameters:
     card_id: The ID of the supported card
     
 Returns:
-    The dashboard card'''
+    The dashboard card
+'''
 def get_card_layout(card_id):
     if card_id not in supported_cards:
         return None
@@ -878,6 +899,19 @@ def update_week_options(testplan_ui, testcycle_ui, testgroup_ui):
     return [options, value, persistence] * 6
 
 
+'''Update figure with present week dropdown
+
+Parameters:
+    is_open (bool): If the figure is open
+    testplan (string): The selected test plan
+    testcycle (string): The selected test cycle
+    testgroup (string): The selected test group
+    priority (string): The selected priority
+    week (string): The selected week
+    
+Returns:
+    chart: The updated chart
+'''
 def update_figure_with_week(is_open, testplan, testcycle, testgroup, priority, week, *args):
     if not is_open:
         raise PreventUpdate
@@ -909,6 +943,19 @@ def update_figure_with_week(is_open, testplan, testcycle, testgroup, priority, w
     
     return chart
 
+
+'''Update figure without week dropdown
+
+Parameters:
+    is_open (bool): If the figure is open
+    testplan (string): The selected test plan
+    testcycle (string): The selected test cycle
+    testgroup (string): The selected test group
+    priority (string): The selected priority
+    
+Returns:
+    chart: The updated chart
+'''
 def update_figure_without_week(is_open, testplan, testcycle, testgroup, priority, *args):
     if not is_open:
         raise PreventUpdate
@@ -986,6 +1033,7 @@ def toggle_collapse(n, is_open):
         return [not is_open, collapse_button_text(not is_open)]
     return [is_open, collapse_button_text(is_open)]
 
+
 def register_card_collapse_callback(card_id):
     x = supported_cards[card_id]
     collapse_id = x[CARD_KEY_COLLAPSE_ID]
@@ -995,9 +1043,11 @@ def register_card_collapse_callback(card_id):
     states = [State(collapse_id, 'is_open')]
     app.callback(outputs, inputs, states)(toggle_collapse)
 
+
 for card_id in supported_cards:
     register_card_collapse_callback(card_id)
     register_chart_update_callback(card_id)
+
 
 if __name__ == '__main__':
     app.run_server(host='0.0.0.0', debug=True)

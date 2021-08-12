@@ -58,6 +58,14 @@ class jama_client:
         if not blocking_as_not_run:
             self.status_list.append('BLOCKED')
 
+    '''Query Jama for the user's name given an ID
+    
+    Parameters:
+        user_id (int): The ID of a user in Jama
+        
+    Returns:
+        A string with the user's first and last name
+    '''
     def __get_user_info_from_jama(self, user_id):
         try:
             response = requests.get(self.url + '/rest/latest/users/' + str(user_id), auth=(self.username, self.password), verify=self.ssl)
@@ -77,13 +85,26 @@ class jama_client:
             last_name = data['lastName']
             return first_name + ' ' + last_name
 
-    # query the name for a user id
+    '''Gets the name for a user id
+    
+    Parameters:
+        user_id (int): The ID of a user in Jama
+        
+    Returns:
+        user (string): The name of the user with the ID
+    '''
     def __get_user_from_id(self, user_id):
         if user_id is None:
             return ''
+
+        # try checking the existing lookup table
         user = self.user_id_lookup.get(user_id)
+
+        # if still not found, query Jama using REST API
         if user is None:
             user = self.__get_user_info_from_jama(user_id)
+
+            # store the found name in the lookup table
             self.user_id_lookup[user_id] = user
         return user
 
@@ -150,7 +171,7 @@ class jama_client:
             self.testcycle_type = next(x for x in self.item_types if x['typeKey'] == 'TSTCY')['id']
             self.testrun_obj = next(x for x in self.item_types if x['typeKey'] == 'TSTRN')
 
-            # find the name for the 'Bug ID' field in a test run
+            # names for the fields in a test run
             self.bug_id_field_name = None
             self.priority_field_name = None
             self.network_type_field_name = None
@@ -158,7 +179,7 @@ class jama_client:
             self.test_network_field_name = None
             self.execution_method_field_name = None
 
-            # find the name for the 'Planned week' field in a test run
+            # find the IDs for fields in a test run
             pick_lists = self.client.get_pick_lists()
             planned_week_id = next(x for x in pick_lists if x['name'] == 'Planned week')['id']
             priority_id = next(x for x in pick_lists if x['name'] == 'Priority')['id']
@@ -166,6 +187,7 @@ class jama_client:
             test_network_id = next(x for x in pick_lists if x['name'] == 'Test Network')['id']
             execution_method_id = next(x for x in pick_lists if x['name'] == 'Execution Method')['id']
 
+            # find the names for the fields in a test run
             for x in self.testrun_obj['fields']:
                 if 'label' in x:
                     if x['label'] == 'Bug ID':
@@ -187,6 +209,7 @@ class jama_client:
                     self.planned_week_field_name = x['name']
                     continue
 
+            # create week lookup table
             weeks = self.client.get_pick_list_options(planned_week_id)
             for x in weeks:
                 week = x['name']
@@ -196,18 +219,22 @@ class jama_client:
             # Add None to the list for tests with unassigned weeks
             self.planned_weeks = [None] + self.planned_weeks
 
+            # create priority lookup table
             priorities = self.client.get_pick_list_options(priority_id)
             for x in priorities:
                 self.priority_id_lookup[x['id']] = x['name']
 
+            # create network type lookup table
             network_types = self.client.get_pick_list_options(network_type_id)
             for x in network_types:
                 self.network_type_id_lookup[x['id']] = x['name']
 
+            # create test network lookup table
             test_networks = self.client.get_pick_list_options(test_network_id)
             for network in test_networks:
                 self.test_network_id_lookup[network['id']] = network['name']
 
+            # create execution method lookup table
             execution_methods = self.client.get_pick_list_options(execution_method_id)
             for method in execution_methods:
                 self.execution_method_id_lookup[method['id']] = method['name']
@@ -314,6 +341,7 @@ class jama_client:
                 print('Jama server connection ERROR! -', err)
                 return None
 
+            # Get all the data for each test run
             for y in testruns_raw:
                 planned_week = None
                 if self.planned_week_field_name is not None and self.planned_week_field_name in y['fields']:
