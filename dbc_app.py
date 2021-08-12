@@ -324,7 +324,11 @@ def get_selection_ui():
     return form
 
 
+'''Testrun line chart options
 
+Returns:
+    controls: The plotly options for the graph
+'''
 def get_test_progress_controls():
     controls = dbc.Row([
         dbc.Col(
@@ -395,6 +399,7 @@ def get_status_checklist_controls(id):
     ])
     return controls
 
+'''Testruns table show current week checklist - DEPRECATED'''
 def get_test_runs_controls():
     controls = dbc.Row([
         dbc.Col(
@@ -543,12 +548,7 @@ supported_cards = {
         CARD_KEY_COLLAPSE_BUTTON_ID: ID_COLLAPSE_BUTTON_TEST_RUNS_TABLE,
         CARD_KEY_COLLAPSE_INITIAL_STATE: True,
         CARD_KEY_WEEK_DROPDOWN_ID: ID_WEEK_DROPDOWN_TEST_RUNS_TABLE,
-        CARD_KEY_CHART_TYPE: charts.FIG_TYPE_CURRENT_RUNS_TABLE,
-        CARD_KEY_CONTROLS_LAYOUT_FUNC: get_test_runs_controls(),
-        CARD_KEY_CONTROLS_LIST: [
-            dict(id=ID_CHECKLIST_TEST_RUNS_OPTIONS, type=CTRL_CHECKLIST,
-                 kwarg_key={'current_week'})
-        ]
+        CARD_KEY_CHART_TYPE: charts.FIG_TYPE_CURRENT_RUNS_TABLE
     }
 }
 
@@ -562,7 +562,18 @@ collapse_id_to_card_id= {}
 for x in supported_cards:
     collapse_id_to_card_id[supported_cards[x][CARD_KEY_COLLAPSE_ID]] = x
 
+'''Generates the header strip for each chart
 
+Parameters:
+    title (string): The title of the card
+    collapse_button_id (string): The ID of the collapse button for that chart
+    collapse_text (string): The text in the collapse button
+    week_dropdown (bool): Whether or not the chart supports a week dropdown
+    week_dropdown_id (string): The ID of the week dropdown for that chart
+
+Returns:
+    The plotly card header
+'''
 def get_card_header(title, collapse_button_id, collapse_text, week_dropdown=True, week_dropdown_id=None):
     testplans = get_testplan_options()
     initial_testplan = init_value(testplans)
